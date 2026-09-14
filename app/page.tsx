@@ -28,6 +28,7 @@ export default function Home() {
   const [activeTab, setActiveTab] = useState('Mi Consultorio')
   const [vistaAgenda, setVistaAgenda] = useState<'Dia' | 'Semana'>('Semana')
   const [searchTerm, setSearchTerm] = useState('')
+  const [mostrarArchivados, setMostrarArchivados] = useState(false)
   const [filtroTiempo, setFiltroTiempo] = useState('Mes Actual')
 
   const [toast, setToast] = useState<{ mensaje: string; tipo: 'exito' | 'error' | 'advertencia' } | null>(null)
@@ -444,6 +445,7 @@ export default function Home() {
   }
 
   const pacientesFiltrados = pacientes.filter(p => {
+    if (!mostrarArchivados && !p.activo) return false
     const soloDigitos = searchTerm.replace(/\D/g, '')
     const coincidePorTelefono = soloDigitos.length >= 3 && (p.telefono || '').replace(/\D/g, '').includes(soloDigitos)
     return p.nombre_completo.toLowerCase().includes(searchTerm.toLowerCase()) || coincidePorTelefono
@@ -1156,22 +1158,30 @@ export default function Home() {
             <div className="flex-1 overflow-y-auto p-4 sm:p-8 pb-24 md:pb-8">
               <div className="max-w-5xl mx-auto">
                 <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
-                  <div className="p-6 sm:px-8 sm:py-8 border-b border-slate-100 bg-slate-50 flex gap-4 items-center">
-                    <span className="text-slate-400 text-xl">🔍</span>
-                    <input type="text" placeholder="Buscar expediente por nombre..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-transparent border-none text-lg font-black outline-none text-slate-800 placeholder:text-slate-300" />
+                  <div className="p-6 sm:px-8 sm:py-8 border-b border-slate-100 bg-slate-50 flex flex-col sm:flex-row gap-4 sm:items-center">
+                    <div className="flex gap-4 items-center flex-1">
+                      <span className="text-slate-400 text-xl">🔍</span>
+                      <input type="text" placeholder="Buscar por nombre o teléfono..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-transparent border-none text-lg font-black outline-none text-slate-800 placeholder:text-slate-300" />
+                    </div>
+                    <button onClick={() => setMostrarArchivados(!mostrarArchivados)} className={`shrink-0 text-xs font-bold px-3 py-2 rounded-lg border transition-colors ${mostrarArchivados ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-100'}`}>
+                      {mostrarArchivados ? '🗄️ Viendo archivados' : '🗄️ Mostrar archivados'}
+                    </button>
                   </div>
                   <div className="divide-y divide-slate-100">
                     {pacientesFiltrados.map(p => (
-                      <div key={p.id} className="flex justify-between items-center p-6 sm:px-8 hover:bg-slate-50 transition-colors group">
+                      <Link href={`/paciente/${p.id}`} key={p.id} className={`flex justify-between items-center p-6 sm:px-8 hover:bg-slate-50 transition-colors group ${!p.activo ? 'opacity-50' : ''}`}>
                         <div className="flex items-center gap-5">
                           <div className="w-12 h-12 rounded-full bg-blue-50 text-[#0066FF] flex items-center justify-center font-black text-sm border border-blue-100 shrink-0">{getInitials(p.nombre_completo)}</div>
                           <div>
-                            <Link href={`/paciente/${p.id}`} className="text-base font-black text-slate-800 group-hover:text-[#0066FF] transition-colors">{p.nombre_completo}</Link>
+                            <span className="text-base font-black text-slate-800 group-hover:text-[#0066FF] transition-colors flex items-center gap-2">
+                              {p.nombre_completo}
+                              {!p.activo && <span className="text-[9px] font-black uppercase tracking-widest bg-slate-200 text-slate-500 px-1.5 py-0.5 rounded">Archivado</span>}
+                            </span>
                             <p className="text-xs text-slate-500 mt-1 font-medium">📞 {p.telefono} • {getTextoUltimaVisita(p.id, biDatos.ultimasVisitasDict)}</p>
                           </div>
                         </div>
-                        <Link href={`/paciente/${p.id}`} className="text-slate-300 group-hover:text-[#0066FF] text-xl font-black">&rarr;</Link>
-                      </div>
+                        <span className="text-slate-300 group-hover:text-[#0066FF] text-xl font-black">&rarr;</span>
+                      </Link>
                     ))}
                     {pacientesFiltrados.length === 0 && <div className="p-12 text-center text-slate-400 text-sm font-bold">No se encontraron pacientes.</div>}
                   </div>

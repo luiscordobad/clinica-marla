@@ -234,6 +234,14 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
     if (!error) { await cargarDatos(esFullAccess); setShowEditPaciente(false) } else mostrarToast('Error actualizando perfil: ' + error.message, 'error')
   }
 
+  const alternarArchivado = async () => {
+    if (!paciente) return
+    const nuevoEstado = !paciente.activo
+    if (nuevoEstado === false && !window.confirm('¿Archivar a este paciente? Ya no aparecerá en el directorio, pero su expediente se conserva y puedes reactivarlo cuando quieras.')) return
+    const { error } = await supabase.from('pacientes').update({ activo: nuevoEstado }).eq('id', paciente.id)
+    if (!error) { await cargarDatos(esFullAccess); mostrarToast(nuevoEstado ? 'Paciente reactivado' : 'Paciente archivado', 'exito') } else mostrarToast('Error: ' + error.message, 'error')
+  }
+
   // =======================================================
   // REENVIAR TICKET DE UN COBRO PASADO (desde Historial Clínico)
   // =======================================================
@@ -304,7 +312,23 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
   // =======================================================
   // NUTRIÓLOGA: CONSULTA Y CIERRE
   // =======================================================
+  // Para seguimiento: trae el último antecedente/estilo de vida conocido (no
+  // necesariamente de la consulta más reciente, por si esa fue un seguimiento
+  // sin cambios) para que Marla lo revise y actualice en vez de partir de cero.
+  const obtenerUltimoNoVacio = (campo: 'antecedentes' | 'estilo_vida') => {
+    for (const c of consultas) {
+      const valor = c[campo]
+      if (valor && Object.keys(valor).length > 0) return valor
+    }
+    return null
+  }
+
   const iniciarConsulta = () => {
+    if (!esPrimeraVez) {
+      const ant = obtenerUltimoNoVacio('antecedentes')
+      const est = obtenerUltimoNoVacio('estilo_vida')
+      if (ant || est) setFormClinico(prev => ({ ...prev, ...(ant || {}), ...(est || {}) }))
+    }
     setSeccionActiva(esPrimeraVez ? 'antecedentes' : 'seguimiento_notas')
     setModoConsulta(true)
   }
@@ -352,11 +376,14 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
     if (!paciente || !sesion) return
     const productosLimpios = productosVenta.filter(p => p !== '')
 
-    const antecedentes = esPrimeraVez ? {
+    // Se guardan siempre (no solo en primera vez): en seguimiento el wizard
+    // los pre-llena con el último valor conocido para que Marla los revise y
+    // actualice si algo cambió (nueva alergia, nuevo medicamento, etc.).
+    const antecedentes = {
       heredo_familiares: formClinico.heredo_familiares, patologicos: formClinico.patologicos, cirugias: formClinico.cirugias,
       no_patologicos: formClinico.no_patologicos, laboratorios: formClinico.laboratorios, medicamentos: formClinico.medicamentos,
       suplementos_actuales: formClinico.suplementos_actuales, sueno: formClinico.sueno, objetivos: formClinico.objetivos,
-    } : {}
+    }
 
     const mediciones = {
       circ_abdominal: formClinico.circ_abdominal, circ_umbilical: formClinico.circ_umbilical, pecho: formClinico.pecho,
@@ -371,14 +398,14 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
       musculo_subir_kg: formClinico.musculo_subir_kg,
     }
 
-    const estilo_vida = esPrimeraVez ? {
+    const estilo_vida = {
       alergias_intolerancias: formClinico.alergias_intolerancias, agua_diaria: formClinico.agua_diaria, ansiedad: formClinico.ansiedad,
       restricciones_alimentarias: formClinico.restricciones_alimentarias, alcohol: formClinico.alcohol, cigarro: formClinico.cigarro,
       vape: formClinico.vape, drogas: formClinico.drogas, recordatorio_24h: formClinico.recordatorio_24h,
       alimentos_mas_consumidos: formClinico.alimentos_mas_consumidos, alimentos_menos_consumidos: formClinico.alimentos_menos_consumidos,
       actividad_fisica_freq: formClinico.actividad_fisica_freq, actividad_fisica_duracion: formClinico.actividad_fisica_duracion,
       actividad_fisica_intensidad: formClinico.actividad_fisica_intensidad, deporte_disciplina: formClinico.deporte_disciplina,
-    } : {}
+    }
 
     const enfoque_nutricional = {
       enfoque: formClinico.enfoque, aporte_calorico: formClinico.aporte_calorico, tiempos_comida: formClinico.tiempos_comida,
@@ -478,6 +505,8 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
                 { id: 'seguimiento_notas', label: '1. Notas de Evolución', icon: '🗣️' },
                 { id: 'mediciones', label: '2. Control Corporal', icon: '⚖️' },
                 { id: 'enfoque', label: '3. Ajuste de Plan', icon: '🔄' },
+                { id: 'antecedentes', label: '4. Actualizar Antecedentes', icon: '📝' },
+                { id: 'estilo', label: '5. Actualizar Estilo de Vida', icon: '🥗' },
               ].map(tab => (
                 <button key={tab.id} onClick={() => setSeccionActiva(tab.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold text-left whitespace-nowrap transition-all ${seccionActiva === tab.id ? 'bg-teal-600 text-white shadow-md' : 'hover:bg-slate-800'}`}>
                   <span>{tab.icon}</span> {tab.label}
@@ -495,9 +524,14 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
         <div className="flex-1 p-4 md:p-8 overflow-y-auto">
           <div className="max-w-4xl mx-auto bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-10">
 
-            {seccionActiva === 'antecedentes' && esPrimeraVez && (
+            {seccionActiva === 'antecedentes' && (
               <div className="space-y-6 animate-in fade-in">
                 <h3 className="text-2xl font-black text-slate-800 border-b border-slate-100 pb-3">1. Historial de Antecedentes</h3>
+                {!esPrimeraVez && (
+                  <div className="bg-sky-50 border border-sky-100 rounded-2xl p-4 text-xs text-sky-900 font-medium">
+                    Se precargó lo último registrado. Solo actualiza lo que haya cambiado (nuevo medicamento, alergia, cirugía, etc.).
+                  </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                   <div className="col-span-full"><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Antecedentes Heredo Familiares</label><textarea name="heredo_familiares" value={formClinico.heredo_familiares} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500 transition-all" rows={2} /></div>
                   <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Antecedentes Personales Patológicos</label><textarea name="patologicos" value={formClinico.patologicos} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500 transition-all" rows={2} /></div>
@@ -571,9 +605,14 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
               </div>
             )}
 
-            {seccionActiva === 'estilo' && esPrimeraVez && (
+            {seccionActiva === 'estilo' && (
               <div className="space-y-6 animate-in fade-in">
                 <h3 className="text-2xl font-black text-slate-800 border-b border-slate-100 pb-3">4. Alimentación y Estilo de Vida</h3>
+                {!esPrimeraVez && (
+                  <div className="bg-sky-50 border border-sky-100 rounded-2xl p-4 text-xs text-sky-900 font-medium">
+                    Se precargó lo último registrado. Solo actualiza lo que haya cambiado.
+                  </div>
+                )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Alergias o Intolerancias</label><input type="text" name="alergias_intolerancias" value={formClinico.alergias_intolerancias} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
                   <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Consumo de Agua Diario</label><input type="text" name="agua_diaria" value={formClinico.agua_diaria} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
@@ -786,10 +825,18 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
         </div>
 
         <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8">
-          <div className="flex justify-between items-start mb-5">
+          <div className="flex justify-between items-start mb-5 gap-4">
             <div>
-              <h2 className="text-3xl font-black text-slate-800 tracking-tight">{paciente.nombre_completo}</h2>
-              <button onClick={abrirEdicionPaciente} className="mt-2 text-xs text-slate-400 hover:text-teal-600 flex items-center gap-1 font-bold bg-slate-50 px-3 py-1 rounded-lg border border-slate-200">✏️ Editar Perfil</button>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-3xl font-black text-slate-800 tracking-tight">{paciente.nombre_completo}</h2>
+                {!paciente.activo && <span className="text-[10px] font-black uppercase tracking-widest bg-slate-200 text-slate-500 px-2 py-1 rounded-md">Archivado</span>}
+              </div>
+              <div className="flex gap-2 mt-2 flex-wrap">
+                <button onClick={abrirEdicionPaciente} className="text-xs text-slate-400 hover:text-teal-600 flex items-center gap-1 font-bold bg-slate-50 px-3 py-1 rounded-lg border border-slate-200">✏️ Editar Perfil</button>
+                <button onClick={alternarArchivado} className={`text-xs flex items-center gap-1 font-bold px-3 py-1 rounded-lg border ${paciente.activo ? 'text-rose-500 hover:text-rose-600 bg-rose-50 border-rose-100' : 'text-emerald-600 hover:text-emerald-700 bg-emerald-50 border-emerald-100'}`}>
+                  {paciente.activo ? '🗄️ Archivar' : '♻️ Reactivar'}
+                </button>
+              </div>
             </div>
           </div>
           <div className="grid grid-cols-2 gap-6 text-sm">

@@ -12,18 +12,25 @@ const FORM_VACIO = {
   residencia: '', correo: '', telefono: '', escolaridad: '', profesion: ''
 }
 
+type PacienteLigero = { id: string; nombre_completo: string; telefono: string | null }
+
 export default function RegistroPaciente() {
   const [verificando, setVerificando] = useState(true)
   const [usuarioId, setUsuarioId] = useState<string | null>(null)
+  const [pacientesExistentes, setPacientesExistentes] = useState<PacienteLigero[]>([])
   const [formData, setFormData] = useState(FORM_VACIO)
   const [loading, setLoading] = useState(false)
   const [mensaje, setMensaje] = useState<{ tipo: 'error' | 'exito'; texto: string; pacienteId?: string } | null>(null)
+  const [posiblesDuplicados, setPosiblesDuplicados] = useState<PacienteLigero[]>([])
+  const [confirmadoDuplicado, setConfirmadoDuplicado] = useState(false)
 
   useEffect(() => {
     const verificar = async () => {
       const estado = await obtenerEstadoSesion()
       if (estado.tipo !== 'activa') { window.location.href = '/login'; return }
       setUsuarioId(estado.sesion.usuario.id)
+      const { data } = await supabase.from('pacientes').select('id, nombre_completo, telefono').eq('activo', true)
+      if (data) setPacientesExistentes(data)
       setVerificando(false)
     }
     verificar()
@@ -31,10 +38,28 @@ export default function RegistroPaciente() {
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
+    setPosiblesDuplicados([])
+    setConfirmadoDuplicado(false)
+  }
+
+  const buscarDuplicados = (): PacienteLigero[] => {
+    const telDigitos = formData.telefono.replace(/\D/g, '')
+    const nombreNormalizado = formData.nombre_completo.trim().toLowerCase()
+    return pacientesExistentes.filter(p => {
+      const coincidePorTelefono = telDigitos.length >= 8 && (p.telefono || '').replace(/\D/g, '') === telDigitos
+      const coincidePorNombre = nombreNormalizado.length > 0 && p.nombre_completo.trim().toLowerCase() === nombreNormalizado
+      return coincidePorTelefono || coincidePorNombre
+    })
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+
+    if (!confirmadoDuplicado) {
+      const duplicados = buscarDuplicados()
+      if (duplicados.length > 0) { setPosiblesDuplicados(duplicados); return }
+    }
+
     setLoading(true)
     setMensaje(null)
 
@@ -49,6 +74,9 @@ export default function RegistroPaciente() {
     } else {
       setMensaje({ tipo: 'exito', texto: '¡Paciente registrado con éxito!', pacienteId: data.id })
       setFormData(FORM_VACIO)
+      setPosiblesDuplicados([])
+      setConfirmadoDuplicado(false)
+      setPacientesExistentes([...pacientesExistentes, { id: data.id, nombre_completo: formData.nombre_completo, telefono: formData.telefono }])
     }
     setLoading(false)
   }
@@ -77,6 +105,25 @@ export default function RegistroPaciente() {
                 Ir al Expediente →
               </Link>
             )}
+          </div>
+        )}
+
+        {posiblesDuplicados.length > 0 && (
+          <div className="p-5 rounded-2xl mb-6 bg-amber-50 border border-amber-200">
+            <p className="text-sm font-black text-amber-800 mb-1">⚠️ Ya existe un paciente parecido</p>
+            <p className="text-xs text-amber-700 mb-3">Revisa si es la misma persona antes de crear un registro duplicado:</p>
+            <div className="space-y-2 mb-4">
+              {posiblesDuplicados.map(p => (
+                <Link key={p.id} href={`/paciente/${p.id}`} className="flex items-center justify-between bg-white px-4 py-2.5 rounded-xl border border-amber-100 hover:border-amber-300 transition-colors">
+                  <span className="text-sm font-bold text-slate-700">{p.nombre_completo}</span>
+                  <span className="text-xs text-slate-400">📞 {p.telefono || 'sin teléfono'} — Ver expediente →</span>
+                </Link>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setPosiblesDuplicados([])} className="px-4 py-2 bg-white border border-amber-200 text-amber-700 rounded-lg text-xs font-bold hover:bg-amber-100">Cancelar</button>
+              <button type="button" onClick={() => { setConfirmadoDuplicado(true); setPosiblesDuplicados([]) }} className="px-4 py-2 bg-amber-500 text-white rounded-lg text-xs font-bold hover:bg-amber-600">Es una persona distinta, registrar de todas formas</button>
+            </div>
           </div>
         )}
 
