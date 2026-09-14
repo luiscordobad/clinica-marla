@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { obtenerEstadoSesion, type SesionActual } from '../../../lib/auth'
 import type { Cita, Consulta, Paciente, Pago, PagoProducto, Producto } from '../../../lib/types'
+import { fechaLocalISO } from '../../../lib/fecha'
 import Link from 'next/link'
 
 const ETIQUETAS_ANTECEDENTES: Record<string, string> = {
@@ -145,6 +146,10 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
   const [editForm, setEditForm] = useState({ nombre_completo: '', fecha_nacimiento: '', telefono: '', correo: '' })
 
   const [toast, setToast] = useState<{ mensaje: string; tipo: 'exito' | 'error' | 'advertencia' } | null>(null)
+  const [reciboParaImprimir, setReciboParaImprimir] = useState<{
+    paciente: string; concepto: string; fecha: string; productos: string[]
+    metodos: { label: string; monto: number }[]; total: number; requiereFactura: boolean
+  } | null>(null)
   const mostrarToast = (mensaje: string, tipo: 'exito' | 'error' | 'advertencia') => { setToast({ mensaje, tipo }); setTimeout(() => setToast(null), 4000) }
 
   const [formClinico, setFormClinico] = useState(FORM_CLINICO_VACIO)
@@ -155,11 +160,14 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
   })
   const [productosVenta, setProductosVenta] = useState<string[]>([''])
 
-  const hoyStr = new Date().toISOString().split('T')[0]
+  const hoyStr = fechaLocalISO()
   const esFullAccess = sesion?.esFullAccess ?? false
   const esPrimeraVez = consultas.length === 0
   const citaHoyEnEspera = citasPaciente.find(c => c.estado === 'en_espera' && c.fecha_cita === hoyStr)
   const citaHoyProgramada = citasPaciente.find(c => c.estado === 'programada' && c.fecha_cita === hoyStr)
+  // Si ya se generó un cobro hoy (pagado o pendiente), esa visita ya se atendió:
+  // no se debe volver a ofrecer Check-In aunque la cita ya no esté "en_espera".
+  const yaAtendidoHoy = pagosPaciente.some(p => p.fecha.split('T')[0] === hoyStr)
   const ultimaConsulta = consultas[0]
 
   const formatearFechaDisplay = (val: string) => {
@@ -224,6 +232,43 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
     if (!paciente) return
     const { error } = await supabase.from('pacientes').update(editForm).eq('id', paciente.id)
     if (!error) { await cargarDatos(esFullAccess); setShowEditPaciente(false) } else mostrarToast('Error actualizando perfil: ' + error.message, 'error')
+  }
+
+  // =======================================================
+  // REENVIAR TICKET DE UN COBRO PASADO (desde Historial Clínico)
+  // =======================================================
+  const reenviarTicketWhatsApp = (pago: Pago, productos: { nombre: string }[]) => {
+    if (!paciente?.telefono) return mostrarToast('Este paciente no tiene teléfono registrado.', 'advertencia')
+    const metodos = []
+    if (pago.monto_efectivo > 0) metodos.push(`Efectivo: $${pago.monto_efectivo}`)
+    if (pago.monto_tarjeta > 0) metodos.push(`Tarjeta: $${pago.monto_tarjeta}`)
+    if (pago.monto_transferencia > 0) metodos.push(`Transferencia: $${pago.monto_transferencia}`)
+
+    let texto = `*Clínica Marla - Ticket de Servicio* 🌿\n\nHola *${paciente.nombre_completo}*, aquí tienes de nuevo tu comprobante.\n\n🩺 *Servicio:* ${pago.concepto || ''}\n📅 *Fecha:* ${new Date(pago.fecha).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}\n`
+    if (productos.length > 0) { texto += `\n*Suplementos:*\n`; productos.forEach(p => texto += `💊 ${p.nombre}\n`) }
+    texto += `\n*Total:* $${pago.monto_esperado.toLocaleString()}\n💳 *Pago:* ${metodos.join(', ') || '—'}\n`
+    if (pago.requiere_factura) texto += `\n📌 _Tu factura CFDI será enviada a tu correo registrado en breve._\n`
+    texto += `\n¡Gracias por tu visita! ✨`
+
+    window.open(`https://wa.me/${String(paciente.telefono).replace(/\D/g, '')}?text=${encodeURIComponent(texto)}`, '_blank')
+  }
+
+  const imprimirTicketPasado = (pago: Pago, productos: { nombre: string }[]) => {
+    if (!paciente) return
+    setReciboParaImprimir({
+      paciente: paciente.nombre_completo,
+      concepto: pago.concepto || '',
+      fecha: new Date(pago.fecha).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }),
+      productos: productos.map(p => p.nombre),
+      metodos: [
+        ...(pago.monto_efectivo > 0 ? [{ label: 'Efectivo', monto: pago.monto_efectivo }] : []),
+        ...(pago.monto_tarjeta > 0 ? [{ label: 'Tarjeta', monto: pago.monto_tarjeta }] : []),
+        ...(pago.monto_transferencia > 0 ? [{ label: 'Transferencia', monto: pago.monto_transferencia }] : []),
+      ],
+      total: pago.monto_esperado,
+      requiereFactura: pago.requiere_factura,
+    })
+    setTimeout(() => window.print(), 300)
   }
 
   // =======================================================
@@ -719,7 +764,7 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
           <Link href="/" className="text-sm font-bold text-slate-500 hover:text-slate-800 flex items-center gap-2"><span className="text-lg">&larr;</span> Directorio</Link>
 
           <div className="flex gap-2">
-            {!citaHoyEnEspera && (
+            {!citaHoyEnEspera && !yaAtendidoHoy && (
               <button onClick={hacerCheckIn} className="px-5 py-3 rounded-2xl text-sm font-black transition-all flex items-center gap-2 bg-teal-50 text-teal-700 border border-teal-200 hover:bg-teal-100">
                 <span>🛋️</span> <span className="hidden sm:inline">Anunciar Llegada</span> Check-In
               </button>
@@ -790,7 +835,7 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
                               )}
                             </div>
                             {productosVendidos.length > 0 && (
-                              <div>
+                              <div className="mb-4">
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Suplementos vendidos</p>
                                 <div className="space-y-1">
                                   {productosVendidos.map(pp => {
@@ -798,6 +843,22 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
                                     return <p key={pp.id} className="text-sm font-bold text-slate-700">💊 {prod?.producto || 'Producto eliminado'} × {pp.cantidad} — ${(pp.precio_unit * pp.cantidad).toFixed(2)}</p>
                                   })}
                                 </div>
+                              </div>
+                            )}
+                            {pagoAsociado.estado === 'pagado' && (
+                              <div className="flex gap-2 pt-3 border-t border-slate-200">
+                                <button
+                                  onClick={() => reenviarTicketWhatsApp(pagoAsociado, productosVendidos.map(pp => ({ nombre: catalogo.find(p => p.id === pp.producto_id)?.producto || 'Producto' })))}
+                                  className="flex items-center gap-1.5 bg-[#25D366]/10 text-[#128C7E] text-xs font-bold px-3 py-2 rounded-lg hover:bg-[#25D366] hover:text-white transition-colors"
+                                >
+                                  📱 Reenviar por WhatsApp
+                                </button>
+                                <button
+                                  onClick={() => imprimirTicketPasado(pagoAsociado, productosVendidos.map(pp => ({ nombre: catalogo.find(p => p.id === pp.producto_id)?.producto || 'Producto' })))}
+                                  className="flex items-center gap-1.5 bg-slate-100 text-slate-600 text-xs font-bold px-3 py-2 rounded-lg hover:bg-slate-800 hover:text-white transition-colors"
+                                >
+                                  🖨️ Imprimir Ticket
+                                </button>
                               </div>
                             )}
                           </SeccionDetalle>
@@ -828,6 +889,36 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
           </div>
         )}
       </div>
+
+      {reciboParaImprimir && (
+        <div className="ticket-imprimible hidden print:block p-8 text-black bg-white">
+          <div className="max-w-sm mx-auto">
+            <h1 className="text-xl font-black text-center mb-1">Clínica Marla 🌿</h1>
+            <p className="text-xs text-center text-slate-600 mb-6">Ticket de Servicio</p>
+            <div className="border-t border-b border-slate-300 py-3 mb-3 text-sm">
+              <p><strong>Paciente:</strong> {reciboParaImprimir.paciente}</p>
+              <p><strong>Fecha:</strong> {reciboParaImprimir.fecha}</p>
+              <p><strong>Servicio:</strong> {reciboParaImprimir.concepto}</p>
+            </div>
+            {reciboParaImprimir.productos.length > 0 && (
+              <div className="mb-3 text-sm">
+                <p className="font-bold mb-1">Suplementos:</p>
+                {reciboParaImprimir.productos.map((p, i) => <p key={i}>• {p}</p>)}
+              </div>
+            )}
+            <div className="mb-3 text-sm">
+              <p className="font-bold mb-1">Forma de pago:</p>
+              {reciboParaImprimir.metodos.map((m, i) => <p key={i}>{m.label}: ${m.monto.toLocaleString()}</p>)}
+            </div>
+            <div className="border-t border-slate-300 pt-3 flex justify-between text-base font-black">
+              <span>TOTAL</span>
+              <span>${reciboParaImprimir.total.toLocaleString()}</span>
+            </div>
+            {reciboParaImprimir.requiereFactura && <p className="text-xs text-center mt-4">Tu factura CFDI será enviada a tu correo registrado.</p>}
+            <p className="text-xs text-center mt-6 text-slate-500">¡Gracias por tu visita!</p>
+          </div>
+        </div>
+      )}
     </main>
   )
 }

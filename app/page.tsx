@@ -9,6 +9,7 @@ import {
   DURACION_POR_TIPO, ETIQUETA_TIPO_CITA,
   type Cita, type EstadoCita, type Gasto, type Paciente, type Pago, type PagoProducto, type Producto, type TipoCita,
 } from '../lib/types'
+import { fechaLocalISO } from '../lib/fecha'
 import Link from 'next/link'
 
 export default function Home() {
@@ -47,7 +48,7 @@ export default function Home() {
   const [modoEdicionCita, setModoEdicionCita] = useState(false)
   const [formEdicion, setFormEdicion] = useState<{ fecha: string; hora: string; tipo: TipoCita }>({ fecha: '', hora: '', tipo: 'seguimiento' })
 
-  const [formGasto, setFormGasto] = useState({ fecha: new Date().toISOString().split('T')[0], concepto: '', categoria: 'Fijos (Renta, Servicios)', monto: '' })
+  const [formGasto, setFormGasto] = useState({ fecha: fechaLocalISO(), concepto: '', categoria: 'Fijos (Renta, Servicios)', monto: '' })
 
   const [showMenuPerfil, setShowMenuPerfil] = useState(false)
   const [showModalCalendario, setShowModalCalendario] = useState(false)
@@ -79,9 +80,9 @@ export default function Home() {
     }
   }
 
-  const hoyFechaFormat = new Date().toISOString().split('T')[0]
+  const hoyFechaFormat = fechaLocalISO()
   const mananaObj = new Date(); mananaObj.setDate(mananaObj.getDate() + 1)
-  const mananaFechaFormat = mananaObj.toISOString().split('T')[0]
+  const mananaFechaFormat = fechaLocalISO(mananaObj)
 
   const totalPagadoModal = Number(formCobro.efectivo) + Number(formCobro.tarjeta) + Number(formCobro.transferencia)
   const totalEsperadoModal = cobroActivo ? Number(cobroActivo.monto_esperado) : 0
@@ -548,19 +549,23 @@ export default function Home() {
                           </Link>
                         )}
 
-                        <Link href={`/paciente/${citaSeleccionada.paciente_id}`} className="py-2.5 flex items-center justify-center gap-1.5 bg-slate-50 text-slate-600 rounded-xl text-[10px] font-bold border border-slate-200 hover:bg-slate-100 transition-colors">
+                        <Link href={`/paciente/${citaSeleccionada.paciente_id}`} className={`py-2.5 flex items-center justify-center gap-1.5 bg-slate-50 text-slate-600 rounded-xl text-[10px] font-bold border border-slate-200 hover:bg-slate-100 transition-colors ${citaSeleccionada.estado === 'completada' ? 'col-span-2' : ''}`}>
                           👤 Expediente
                         </Link>
-                        <button onClick={() => setModoEdicionCita(true)} className="py-2.5 flex items-center justify-center gap-1.5 bg-slate-50 text-slate-600 rounded-xl text-[10px] font-bold border border-slate-200 hover:bg-slate-100 transition-colors">
-                          ✏️ Modificar
-                        </button>
+                        {citaSeleccionada.estado !== 'completada' && (
+                          <>
+                            <button onClick={() => setModoEdicionCita(true)} className="py-2.5 flex items-center justify-center gap-1.5 bg-slate-50 text-slate-600 rounded-xl text-[10px] font-bold border border-slate-200 hover:bg-slate-100 transition-colors">
+                              ✏️ Modificar
+                            </button>
 
-                        <button onClick={() => marcarAusente(citaSeleccionada.id)} className="py-2.5 flex items-center justify-center gap-1.5 bg-amber-50 text-amber-700 rounded-xl text-[10px] font-bold border border-amber-200 hover:bg-amber-100 transition-colors">
-                          👻 No Show
-                        </button>
-                        <button onClick={() => cancelarCita(citaSeleccionada.id)} className="py-2.5 flex items-center justify-center gap-1.5 bg-rose-50 text-rose-600 rounded-xl text-[10px] font-bold border border-rose-200 hover:bg-rose-100 transition-colors">
-                          ❌ Cancelar
-                        </button>
+                            <button onClick={() => marcarAusente(citaSeleccionada.id)} className="py-2.5 flex items-center justify-center gap-1.5 bg-amber-50 text-amber-700 rounded-xl text-[10px] font-bold border border-amber-200 hover:bg-amber-100 transition-colors">
+                              👻 No Show
+                            </button>
+                            <button onClick={() => cancelarCita(citaSeleccionada.id)} className="py-2.5 flex items-center justify-center gap-1.5 bg-rose-50 text-rose-600 rounded-xl text-[10px] font-bold border border-rose-200 hover:bg-rose-100 transition-colors">
+                              ❌ Cancelar
+                            </button>
+                          </>
+                        )}
                       </>
                     )}
                   </div>
