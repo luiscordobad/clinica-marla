@@ -678,7 +678,11 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
                   <div key={idx} className="relative">
                     <select value={prodId} onChange={(e) => handleProductSelectChange(idx, e.target.value)} className="w-full p-3.5 bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-teal-500 appearance-none">
                       <option value="">-- Selecciona producto para recetar --</option>
-                      {catalogo.map(p => <option key={p.id} value={p.id}>{p.producto} — ${p.precio_venta}</option>)}
+                      {catalogo.map(p => (
+                        <option key={p.id} value={p.id} disabled={p.stock <= 0}>
+                          {p.producto} — ${p.precio_venta} {p.stock <= 0 ? '(SIN STOCK)' : p.stock <= 5 ? `(quedan ${p.stock})` : ''}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 ))}
@@ -748,6 +752,10 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
             <h3 className="text-xl font-black text-slate-800 mb-2">Editar Perfil</h3>
             <div className="space-y-4 mb-8">
               <input type="text" name="nombre_completo" value={editForm.nombre_completo} onChange={handleEditFormChange} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm" placeholder="Nombre completo" />
+              <div>
+                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">Fecha de Nacimiento</label>
+                <input type="date" name="fecha_nacimiento" value={editForm.fecha_nacimiento} onChange={handleEditFormChange} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm" />
+              </div>
               <input type="text" name="telefono" value={editForm.telefono} onChange={handleEditFormChange} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm" placeholder="Teléfono" />
               <input type="email" name="correo" value={editForm.correo} onChange={handleEditFormChange} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm" placeholder="Correo" />
             </div>

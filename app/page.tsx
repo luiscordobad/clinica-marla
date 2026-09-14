@@ -229,21 +229,38 @@ export default function Home() {
     let nombrePaciente = 'Bloqueo Personal'
     if (!esBloqueo) { const pSelec = pacientes.find(p => p.id === formCita.paciente_id); if (pSelec) nombrePaciente = pSelec.nombre_completo }
 
-    const citasParaInsertar = []
+    const duracion = DURACION_POR_TIPO[formCita.tipo]
+    const nInicio = timeToMins(formCita.hora), nFin = nInicio + duracion
     const fechaBase = new Date(formCita.fecha + 'T12:00:00')
-    for (let i = 0; i < formCita.repeticion; i++) {
-      const d = new Date(fechaBase.getTime()); d.setDate(d.getDate() + (i * 7))
-      citasParaInsertar.push({
-        paciente_id: esBloqueo ? null : formCita.paciente_id,
-        nombre_paciente: nombrePaciente,
-        fecha_cita: d.toISOString().split('T')[0],
-        hora_cita: formCita.hora,
-        duracion_min: DURACION_POR_TIPO[formCita.tipo],
-        tipo: formCita.tipo,
-        estado: 'programada' as EstadoCita,
-        created_by: sesion?.usuario.id,
+    const fechasRepeticion = Array.from({ length: formCita.repeticion }, (_, i) => {
+      const d = new Date(fechaBase.getTime()); d.setDate(d.getDate() + (i * 7)); return d.toISOString().split('T')[0]
+    })
+
+    // La colisión de la primera fecha ya se revisa en vivo (hayColisionCita);
+    // aquí se revisan también las semanas siguientes de la repetición, que antes
+    // se insertaban sin validar y podían empalmarse con una cita ya existente.
+    const fechasConConflicto = fechasRepeticion.slice(1).filter(fecha =>
+      citas.some(c => {
+        if (c.fecha_cita !== fecha || c.estado === 'cancelada' || c.estado === 'ausente') return false
+        const eInicio = timeToMins(c.hora_cita.substring(0, 5)); const eFin = eInicio + c.duracion_min
+        return (nInicio < eFin && nFin > eInicio)
       })
+    )
+    if (fechasConConflicto.length > 0) {
+      const fechasTexto = fechasConConflicto.map(f => new Date(f + 'T12:00:00').toLocaleDateString('es-MX', { day: 'numeric', month: 'short' })).join(', ')
+      return mostrarToast(`Horario ocupado en: ${fechasTexto}. Ajusta la repetición o el horario.`, 'error')
     }
+
+    const citasParaInsertar = fechasRepeticion.map(fecha => ({
+      paciente_id: esBloqueo ? null : formCita.paciente_id,
+      nombre_paciente: nombrePaciente,
+      fecha_cita: fecha,
+      hora_cita: formCita.hora,
+      duracion_min: duracion,
+      tipo: formCita.tipo,
+      estado: 'programada' as EstadoCita,
+      created_by: sesion?.usuario.id,
+    }))
 
     const { error } = await supabase.from('citas').insert(citasParaInsertar)
     if (!error) { await cargarDatos(esFullAccess); setShowModalAgendar(false); setFormCita({ paciente_id: '', fecha: '', hora: '', tipo: 'seguimiento', repeticion: 1 }); mostrarToast(esBloqueo ? 'Agenda bloqueada' : 'Cita agendada', 'exito') } else mostrarToast('Error: ' + error.message, 'error')
@@ -426,7 +443,11 @@ export default function Home() {
     setProcesandoCobro(false)
   }
 
-  const pacientesFiltrados = pacientes.filter(p => p.nombre_completo.toLowerCase().includes(searchTerm.toLowerCase()))
+  const pacientesFiltrados = pacientes.filter(p => {
+    const soloDigitos = searchTerm.replace(/\D/g, '')
+    const coincidePorTelefono = soloDigitos.length >= 3 && (p.telefono || '').replace(/\D/g, '').includes(soloDigitos)
+    return p.nombre_completo.toLowerCase().includes(searchTerm.toLowerCase()) || coincidePorTelefono
+  })
   const diasSemanales = obtenerDiasSemana(fechaSeleccionada)
   const citasManana = citas.filter(c => c.fecha_cita === mananaFechaFormat && c.estado !== 'cancelada' && c.estado !== 'ausente' && c.tipo !== 'bloqueo')
 
@@ -887,6 +908,7 @@ export default function Home() {
                                   if (c.tipo === 'seguimiento') bgClass = 'bg-emerald-50 border-emerald-400 text-emerald-900'
                                   if (c.tipo === 'solo_inbody') bgClass = 'bg-orange-50 border-orange-400 text-orange-900'
                                   if (c.tipo === 'enzimas') bgClass = 'bg-purple-50 border-purple-400 text-purple-900'
+                                  if (c.tipo === 'en_linea') bgClass = 'bg-cyan-50 border-cyan-400 text-cyan-900'
                                   if (isTerminado) bgClass = 'bg-slate-100 border-slate-300 text-slate-500 opacity-60'
                                   if (isLate) bgClass = 'bg-rose-50 border-rose-500 text-rose-900 shadow-[0_0_10px_rgba(244,63,94,0.3)] animate-pulse'
 
@@ -1092,6 +1114,7 @@ export default function Home() {
                     if (c.tipo === 'seguimiento') borde = 'border-l-emerald-400'
                     if (c.tipo === 'solo_inbody') borde = 'border-l-orange-400'
                     if (c.tipo === 'enzimas') borde = 'border-l-purple-400'
+                    if (c.tipo === 'en_linea') borde = 'border-l-cyan-400'
                     if (esBloqueo) borde = 'border-l-slate-300'
                     if (isLate) borde = 'border-l-rose-500'
 
