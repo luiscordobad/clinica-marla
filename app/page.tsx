@@ -45,6 +45,10 @@ export default function Home() {
 
   const [formGasto, setFormGasto] = useState({ fecha: new Date().toISOString().split('T')[0], concepto: '', categoria: 'Fijos (Renta, Servicios)', monto: '' })
 
+  const [showMenuPerfil, setShowMenuPerfil] = useState(false)
+  const [showModalCalendario, setShowModalCalendario] = useState(false)
+  const [regenerandoToken, setRegenerandoToken] = useState(false)
+
   const [fechaSeleccionada, setFechaSeleccionada] = useState(() => {
     const d = new Date()
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
@@ -174,6 +178,17 @@ export default function Home() {
   }
 
   const cerrarSesion = async () => { await supabase.auth.signOut(); window.location.href = '/login' }
+
+  const regenerarLinkCalendario = async () => {
+    if (!window.confirm('El link anterior dejará de funcionar. ¿Generar uno nuevo?')) return
+    setRegenerandoToken(true)
+    const { data, error } = await supabase.rpc('regenerar_calendar_token')
+    if (!error && data && sesion) {
+      setSesion({ ...sesion, usuario: { ...sesion.usuario, calendar_token: data } })
+      mostrarToast('Nuevo link generado', 'exito')
+    } else mostrarToast('No se pudo generar el link', 'error')
+    setRegenerandoToken(false)
+  }
 
   const esFullAccess = sesion?.esFullAccess ?? false
 
@@ -402,7 +417,7 @@ export default function Home() {
   if (loading || !sesion) return <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center"><p className="animate-pulse font-bold text-[#0066FF]">Cargando plataforma...</p></div>
 
   return (
-    <div className="flex h-screen bg-[#F4F6F9] font-sans text-slate-800 overflow-hidden">
+    <div className="flex h-dvh md:h-screen bg-[#F4F6F9] font-sans text-slate-800 overflow-hidden">
 
       {toast && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-top-4 duration-300 pointer-events-none">
@@ -654,8 +669,52 @@ export default function Home() {
         </div>
       )}
 
+      {showModalCalendario && (
+        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4" onClick={() => setShowModalCalendario(false)}>
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
+            <div className="w-14 h-14 bg-[#0066FF]/10 text-[#0066FF] rounded-2xl flex items-center justify-center text-2xl mb-4">📆</div>
+            <h3 className="text-xl font-black text-slate-800 mb-1">Sincronizar con tu iPhone</h3>
+            <p className="text-sm text-slate-500 mb-6">Verás tu agenda de la clínica directo en la app Calendario de tu iPhone. Se actualiza sola cada rato (no es instantáneo, pero no tienes que hacer nada más).</p>
+
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 mb-4">
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Paso 1</p>
+              <a
+                href={`webcal://${typeof window !== 'undefined' ? window.location.host : ''}/api/calendario/${sesion.usuario.calendar_token}`}
+                className="block w-full text-center bg-[#0066FF] text-white font-black py-3 rounded-xl shadow-sm hover:bg-blue-700 transition-colors"
+              >
+                Agregar a Calendario (iPhone) →
+              </a>
+              <p className="text-[11px] text-slate-400 mt-2">Si el botón no abre nada automáticamente, copia este link y pégalo en Ajustes → Calendario → Cuentas → Añadir cuenta suscrita:</p>
+              <div className="mt-2 flex gap-2">
+                <input
+                  readOnly
+                  value={`${typeof window !== 'undefined' ? window.location.origin : ''}/api/calendario/${sesion.usuario.calendar_token}`}
+                  onFocus={(e) => e.target.select()}
+                  className="flex-1 min-w-0 p-2.5 bg-white border border-slate-200 rounded-lg text-[11px] font-mono text-slate-600 outline-none"
+                />
+                <button
+                  onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/api/calendario/${sesion.usuario.calendar_token}`); mostrarToast('Link copiado', 'exito') }}
+                  className="bg-slate-800 text-white text-xs font-bold px-3 rounded-lg hover:bg-slate-900 transition-colors shrink-0"
+                >
+                  Copiar
+                </button>
+              </div>
+            </div>
+
+            <p className="text-[11px] text-slate-400 mb-4">Este link es personal y privado — no lo compartas. Si crees que alguien más lo tiene, genera uno nuevo.</p>
+
+            <div className="flex gap-3">
+              <button onClick={() => setShowModalCalendario(false)} className="px-5 py-3 bg-slate-100 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors text-sm">Cerrar</button>
+              <button onClick={regenerarLinkCalendario} disabled={regenerandoToken} className="flex-1 bg-rose-50 text-rose-600 border border-rose-200 rounded-xl font-bold hover:bg-rose-100 transition-colors text-sm disabled:opacity-50">
+                {regenerandoToken ? 'Generando...' : 'Generar link nuevo'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* SIDEBAR IZQUIERDO */}
-      <aside className="w-[72px] bg-white border-r border-slate-200 flex flex-col items-center py-6 shrink-0 z-20">
+      <aside className="hidden md:flex w-[72px] bg-white border-r border-slate-200 flex-col items-center py-6 shrink-0 z-20">
         <div className="w-10 h-10 bg-[#0066FF] rounded-lg flex items-center justify-center text-white font-black text-xl mb-8 shadow-sm">M</div>
 
         <nav className="flex-1 flex flex-col gap-4 w-full px-3">
@@ -676,7 +735,7 @@ export default function Home() {
       </aside>
 
       {/* ÁREA PRINCIPAL */}
-      <div className="flex-1 flex flex-col h-screen overflow-hidden bg-slate-50/50">
+      <div className="flex-1 flex flex-col h-dvh md:h-screen overflow-hidden bg-slate-50/50">
 
         <header className="bg-white h-16 border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-10">
           <div className="flex items-center gap-4">
@@ -684,11 +743,36 @@ export default function Home() {
             <span className="bg-slate-100 text-slate-500 text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-widest">{esFullAccess ? 'Acceso Total' : 'Personal Administrativo'}</span>
           </div>
           <div className="flex items-center gap-4">
-            <Link href="/registro" className="text-[#0066FF] font-bold text-sm hover:underline flex items-center gap-1"><span>+</span> Nuevo Paciente</Link>
+            <Link href="/registro" className="text-[#0066FF] font-bold text-sm hover:underline flex items-center gap-1"><span className="hidden sm:inline">+ Nuevo Paciente</span><span className="sm:hidden text-lg leading-none">+</span></Link>
             <div className="h-6 w-px bg-slate-200"></div>
-            <div className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded-lg transition-colors">
-              <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-[#0066FF]">{getInitials(sesion.usuario.nombre)}</div>
-              <span className="text-sm font-bold text-slate-700 hidden sm:inline pr-2">{sesion.usuario.nombre}</span>
+            <div className="relative">
+              <button onClick={() => setShowMenuPerfil(!showMenuPerfil)} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded-lg transition-colors">
+                <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-[#0066FF]">{getInitials(sesion.usuario.nombre)}</div>
+                <span className="text-sm font-bold text-slate-700 hidden sm:inline pr-1">{sesion.usuario.nombre}</span>
+                <span className="text-slate-400 text-[10px] hidden sm:inline">▾</span>
+              </button>
+              {showMenuPerfil && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowMenuPerfil(false)}></div>
+                  <div className="absolute right-0 top-12 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 z-20 overflow-hidden animate-in fade-in zoom-in-95">
+                    <div className="p-4 border-b border-slate-100">
+                      <p className="text-sm font-black text-slate-800 truncate">{sesion.usuario.nombre}</p>
+                      <p className="text-xs text-slate-400 truncate">{sesion.usuario.email}</p>
+                    </div>
+                    <button onClick={() => { setShowModalCalendario(true); setShowMenuPerfil(false) }} className="w-full text-left px-4 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 flex items-center gap-2.5 transition-colors">
+                      📆 Sincronizar con iPhone
+                    </button>
+                    {esFullAccess && (
+                      <Link href="/usuarios" className="block px-4 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 flex items-center gap-2.5 transition-colors">
+                        ⚙️ Usuarios y Accesos
+                      </Link>
+                    )}
+                    <button onClick={cerrarSesion} className="w-full text-left px-4 py-3 text-sm font-bold text-rose-500 hover:bg-rose-50 flex items-center gap-2.5 transition-colors border-t border-slate-100">
+                      🚪 Cerrar Sesión
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </header>
@@ -697,7 +781,8 @@ export default function Home() {
 
           {/* VISTA 1: AGENDA Y WORKLIST */}
           {activeTab === 'Mi Consultorio' && (
-            <div className="flex-1 flex w-full h-full overflow-hidden">
+            <>
+            <div className="hidden md:flex flex-1 w-full h-full overflow-hidden">
 
               <div className="flex-1 flex flex-col bg-white m-4 rounded-xl shadow-sm border border-slate-200 overflow-hidden relative">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center p-4 border-b border-slate-200 gap-4 bg-slate-50/50">
@@ -906,11 +991,111 @@ export default function Home() {
                 )}
               </div>
             </div>
+
+            {/* AGENDA MÓVIL: lista del día en vez de la cuadrícula semanal */}
+            <div className="md:hidden flex-1 overflow-y-auto pb-24">
+              <div className="flex gap-2 overflow-x-auto px-4 pt-4 pb-2 -mx-1">
+                {diasSemanales.map((d, i) => {
+                  const seleccionado = d.iso === fechaSeleccionada
+                  const hasCitas = getOriginalCitasCount(d.iso) > 0
+                  return (
+                    <button
+                      key={d.iso}
+                      onClick={() => setFechaSeleccionada(d.iso)}
+                      className={`shrink-0 w-14 py-2.5 rounded-2xl flex flex-col items-center gap-0.5 border transition-colors ${seleccionado ? 'bg-[#0066FF] border-[#0066FF] text-white shadow-md' : d.iso === hoyFechaFormat ? 'bg-blue-50 border-blue-100 text-[#0066FF]' : 'bg-white border-slate-200 text-slate-600'}`}
+                    >
+                      <span className="text-[9px] font-black uppercase opacity-70">{DIAS_NOMBRES[i]}</span>
+                      <span className="text-base font-black leading-none">{d.dateObj.getDate()}</span>
+                      <div className={`w-1 h-1 rounded-full mt-0.5 ${hasCitas ? (seleccionado ? 'bg-white' : 'bg-amber-400') : 'bg-transparent'}`}></div>
+                    </button>
+                  )
+                })}
+              </div>
+
+              {fechaSeleccionada === hoyFechaFormat && (pacientesEnEspera.length > 0 || pacientesEnCaja.length > 0) && (
+                <div className="px-4 pb-2 space-y-2.5">
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest pt-2">Flujo de Hoy</h3>
+                  {pacientesEnEspera.map(c => (
+                    <div key={c.id} className="bg-white p-3.5 rounded-2xl shadow-sm border border-sky-200 border-l-4 border-l-sky-500 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-xs font-black text-slate-800 truncate">{c.nombre_paciente}</p>
+                        <p className="text-[10px] text-slate-500 font-medium">🛋️ En Sala de Espera</p>
+                      </div>
+                      {esFullAccess && <Link href={`/paciente/${c.paciente_id}`} className="shrink-0 bg-sky-50 border border-sky-100 text-sky-700 text-[10px] font-bold px-3 py-2 rounded-xl">Abrir</Link>}
+                    </div>
+                  ))}
+                  {pacientesEnCaja.map(pg => (
+                    <div key={pg.id} className="bg-white p-3.5 rounded-2xl shadow-sm border border-amber-200 border-l-4 border-l-amber-500 flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="text-xs font-black text-slate-800 truncate">{pacientes.find(p => p.id === pg.paciente_id)?.nombre_completo || 'Paciente'}</p>
+                        <p className="text-[10px] text-slate-500 font-bold">Por cobrar: ${pg.monto_esperado}</p>
+                      </div>
+                      <button onClick={() => setCobroActivo(pg)} className="shrink-0 bg-amber-500 text-white text-[10px] font-bold px-3 py-2 rounded-xl">Cobrar</button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="px-4 pt-2 pb-3 flex items-center justify-between">
+                <h3 className="text-sm font-black text-slate-800">
+                  {new Date(fechaSeleccionada + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}
+                </h3>
+              </div>
+
+              <div className="px-4 space-y-2.5">
+                {citas
+                  .filter(c => c.fecha_cita === fechaSeleccionada && c.estado !== 'cancelada' && c.estado !== 'ausente')
+                  .sort((a, b) => a.hora_cita.localeCompare(b.hora_cita))
+                  .map(c => {
+                    const isCheckedIn = c.estado === 'en_espera'
+                    const isTerminado = pagos.some(pg => pg.cita_id === c.id && pg.estado === 'pagado')
+                    const esBloqueo = c.tipo === 'bloqueo'
+                    const dCita = new Date(`${c.fecha_cita}T${c.hora_cita}`)
+                    const isLate = dCita < horaActual && c.fecha_cita === hoyFechaFormat && !isCheckedIn && !isTerminado && !esBloqueo
+
+                    let borde = 'border-l-blue-400'
+                    if (c.tipo === 'seguimiento') borde = 'border-l-emerald-400'
+                    if (c.tipo === 'solo_inbody') borde = 'border-l-orange-400'
+                    if (c.tipo === 'enzimas') borde = 'border-l-purple-400'
+                    if (esBloqueo) borde = 'border-l-slate-300'
+                    if (isLate) borde = 'border-l-rose-500'
+
+                    return (
+                      <button
+                        key={c.id}
+                        onClick={() => setCitaSeleccionada(c)}
+                        className={`w-full text-left bg-white p-4 rounded-2xl shadow-sm border border-slate-200 border-l-4 ${borde} flex items-center justify-between gap-3 ${isTerminado ? 'opacity-60' : ''}`}
+                      >
+                        <div className="min-w-0">
+                          <p className="text-sm font-black text-slate-800 truncate">{esBloqueo ? 'Bloqueado' : c.nombre_paciente}</p>
+                          <p className="text-[11px] text-slate-500 font-bold mt-0.5">{c.hora_cita.substring(0, 5)} · {ETIQUETA_TIPO_CITA[c.tipo]} {isLate && '⚠️'}</p>
+                        </div>
+                        <div className="text-lg shrink-0">{isTerminado ? '✅' : isCheckedIn ? '🛋️' : ''}</div>
+                      </button>
+                    )
+                  })}
+                {citas.filter(c => c.fecha_cita === fechaSeleccionada && c.estado !== 'cancelada' && c.estado !== 'ausente').length === 0 && (
+                  <div className="text-center py-16 text-slate-400">
+                    <p className="text-3xl mb-2">🌿</p>
+                    <p className="text-xs font-bold uppercase tracking-widest">Sin citas este día</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <button
+              onClick={() => abrirAgendadorRapido(fechaSeleccionada, '09:00')}
+              className="md:hidden fixed right-5 bottom-24 z-20 w-14 h-14 rounded-full bg-[#0066FF] text-white text-2xl font-black shadow-xl flex items-center justify-center active:scale-95 transition-transform"
+              aria-label="Agendar cita"
+            >
+              +
+            </button>
+            </>
           )}
 
           {/* VISTA 2: PACIENTES */}
           {activeTab === 'Pacientes' && (
-            <div className="flex-1 overflow-y-auto p-8">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-8 pb-24 md:pb-8">
               <div className="max-w-5xl mx-auto">
                 <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
                   <div className="p-6 sm:px-8 sm:py-8 border-b border-slate-100 bg-slate-50 flex gap-4 items-center">
@@ -939,7 +1124,7 @@ export default function Home() {
 
           {/* VISTA 3: ESTELA BI (FINANZAS) */}
           {activeTab === 'Finanzas' && esFullAccess && (
-            <div className="flex-1 overflow-y-auto p-8">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-8 pb-24 md:pb-8">
               <div className="max-w-6xl mx-auto space-y-6">
 
                 <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex justify-between items-center bg-gradient-to-r from-blue-900 to-slate-900 text-white">
@@ -1073,7 +1258,7 @@ export default function Home() {
 
           {/* VISTA 4: ALMACÉN */}
           {activeTab === 'Almacen' && esFullAccess && (
-            <div className="flex-1 overflow-y-auto p-8 flex items-center justify-center">
+            <div className="flex-1 overflow-y-auto p-4 sm:p-8 pb-24 md:pb-8 flex items-center justify-center">
               <div className="max-w-md w-full text-center bg-white p-12 rounded-3xl border border-slate-200 shadow-sm">
                 <div className="w-20 h-20 bg-[#0066FF]/10 text-[#0066FF] rounded-full flex items-center justify-center mx-auto mb-6 text-3xl">📦</div>
                 <h2 className="text-2xl font-black text-slate-800 mb-2">Almacén General</h2>
@@ -1085,6 +1270,34 @@ export default function Home() {
 
         </div>
       </div>
+
+      {/* BARRA DE NAVEGACIÓN INFERIOR (MÓVIL) */}
+      <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-slate-200 flex items-stretch px-2 pt-1.5" style={{ paddingBottom: 'env(safe-area-inset-bottom, 6px)' }}>
+        <button onClick={() => setActiveTab('Mi Consultorio')} className={`flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-xl transition-colors ${activeTab === 'Mi Consultorio' ? 'text-[#0066FF]' : 'text-slate-400'}`}>
+          <span className="text-xl">📅</span>
+          <span className="text-[10px] font-bold">Agenda</span>
+        </button>
+        <button onClick={() => setActiveTab('Pacientes')} className={`flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-xl transition-colors ${activeTab === 'Pacientes' ? 'text-[#0066FF]' : 'text-slate-400'}`}>
+          <span className="text-xl">👥</span>
+          <span className="text-[10px] font-bold">Pacientes</span>
+        </button>
+        {esFullAccess && (
+          <>
+            <button onClick={() => setActiveTab('Finanzas')} className={`flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-xl transition-colors ${activeTab === 'Finanzas' ? 'text-[#0066FF]' : 'text-slate-400'}`}>
+              <span className="text-xl">📊</span>
+              <span className="text-[10px] font-bold">Finanzas</span>
+            </button>
+            <button onClick={() => setActiveTab('Almacen')} className={`flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-xl transition-colors ${activeTab === 'Almacen' ? 'text-[#0066FF]' : 'text-slate-400'}`}>
+              <span className="text-xl">📦</span>
+              <span className="text-[10px] font-bold">Almacén</span>
+            </button>
+          </>
+        )}
+        <button onClick={() => setShowMenuPerfil(true)} className="flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-xl text-slate-400">
+          <span className="text-xl">👤</span>
+          <span className="text-[10px] font-bold">Tú</span>
+        </button>
+      </nav>
     </div>
   )
 }

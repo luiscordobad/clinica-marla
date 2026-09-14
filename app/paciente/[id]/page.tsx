@@ -142,13 +142,16 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
     } else {
       const ahora = new Date()
       const hora = `${String(ahora.getHours()).padStart(2, '0')}:${String(ahora.getMinutes()).padStart(2, '0')}`
+      // Nota: el personal administrativo no tiene acceso al expediente clínico (RLS),
+      // así que no puede saber con certeza si es primera vez. Se registra como
+      // "seguimiento" por defecto; Marla ajusta el tipo real al hacer la consulta.
       const { error } = await supabase.from('citas').insert([{
         paciente_id: paciente.id,
         nombre_paciente: paciente.nombre_completo,
         fecha_cita: hoyStr,
         hora_cita: hora,
-        duracion_min: esPrimeraVez ? 60 : 30,
-        tipo: esPrimeraVez ? 'primera_vez' : 'seguimiento',
+        duracion_min: 30,
+        tipo: 'seguimiento',
         estado: 'en_espera',
         created_by: sesion.usuario.id,
       }])

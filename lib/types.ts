@@ -10,6 +10,7 @@ export type Usuario = {
   nombre: string
   rol: RolUsuario
   activo: boolean
+  calendar_token: string
   created_at: string
 }
 
