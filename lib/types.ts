@@ -29,6 +29,7 @@ export type Paciente = {
   fecha_registro: string
   created_by: string | null
   updated_at: string
+  portal_token: string
 }
 
 export type TipoCita =

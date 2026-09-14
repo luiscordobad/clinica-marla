@@ -1233,6 +1233,24 @@ export default function Home() {
                   </div>
                 </div>
 
+                <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+                  <div className="flex justify-between items-center mb-1"><h3 className="font-black text-slate-800 flex items-center gap-2">📈 Tendencia de Ingresos</h3><span className="text-xl">💵</span></div>
+                  <p className="text-xs text-slate-500 mb-6">Ingresos por día con actividad (últimos {Math.min(biDatos.tendencia.length, 14)} días del periodo).</p>
+                  {biDatos.tendencia.length === 0 ? (
+                    <p className="text-slate-400 font-bold text-sm text-center py-10">No hay ingresos registrados en este periodo.</p>
+                  ) : (
+                    <div className="flex items-end gap-2 h-40 overflow-x-auto pb-1">
+                      {biDatos.tendencia.slice(-14).map((d, i) => (
+                        <div key={i} className="flex-1 min-w-[28px] flex flex-col items-center justify-end h-full group">
+                          <span className="text-[9px] font-black text-slate-500 mb-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">${d.total.toLocaleString('es-MX')}</span>
+                          <div className="w-full bg-gradient-to-t from-[#0066FF] to-cyan-400 rounded-t-md transition-all" style={{ height: `${Math.max((d.total / biDatos.maxTendencia) * 100, 3)}%` }} />
+                          <span className="text-[9px] font-bold text-slate-400 mt-1.5 whitespace-nowrap">{d.dia}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
                     <h3 className="font-black text-slate-800 mb-1 flex items-center gap-2">🚨 Panel de Rescate CRM</h3>

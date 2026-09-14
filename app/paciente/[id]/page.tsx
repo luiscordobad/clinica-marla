@@ -7,6 +7,7 @@ import { supabase } from '../../../lib/supabase'
 import { obtenerEstadoSesion, type SesionActual } from '../../../lib/auth'
 import type { Cita, Consulta, Paciente, Pago, PagoProducto, Producto } from '../../../lib/types'
 import { fechaLocalISO } from '../../../lib/fecha'
+import GraficaProgreso from '../../../components/GraficaProgreso'
 import Link from 'next/link'
 
 const ETIQUETAS_ANTECEDENTES: Record<string, string> = {
@@ -150,6 +151,9 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
     paciente: string; concepto: string; fecha: string; productos: string[]
     metodos: { label: string; monto: number }[]; total: number; requiereFactura: boolean
   } | null>(null)
+  const [planParaImprimir, setPlanParaImprimir] = useState<{
+    paciente: string; fecha: string; objetivos: string; enfoque: Record<string, any>
+  } | null>(null)
   const mostrarToast = (mensaje: string, tipo: 'exito' | 'error' | 'advertencia') => { setToast({ mensaje, tipo }); setTimeout(() => setToast(null), 4000) }
 
   const [formClinico, setFormClinico] = useState(FORM_CLINICO_VACIO)
@@ -234,6 +238,19 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
     if (!error) { await cargarDatos(esFullAccess); setShowEditPaciente(false) } else mostrarToast('Error actualizando perfil: ' + error.message, 'error')
   }
 
+  const copiarLinkPortal = () => {
+    if (!paciente) return
+    navigator.clipboard.writeText(`${window.location.origin}/portal/${paciente.portal_token}`)
+    mostrarToast('Link del portal copiado', 'exito')
+  }
+
+  const enviarLinkPortalWhatsApp = () => {
+    if (!paciente?.telefono) return
+    const link = `${window.location.origin}/portal/${paciente.portal_token}`
+    const texto = `Hola ${paciente.nombre_completo}, aquí puedes ver tu próxima cita y tu plan nutricional de Clínica Marla 🌿:\n\n${link}`
+    window.open(`https://wa.me/${String(paciente.telefono).replace(/\D/g, '')}?text=${encodeURIComponent(texto)}`, '_blank')
+  }
+
   const alternarArchivado = async () => {
     if (!paciente) return
     const nuevoEstado = !paciente.activo
@@ -261,8 +278,21 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
     window.open(`https://wa.me/${String(paciente.telefono).replace(/\D/g, '')}?text=${encodeURIComponent(texto)}`, '_blank')
   }
 
+  const generarPlanPDF = (consulta: Consulta) => {
+    if (!paciente) return
+    setPlanParaImprimir({
+      paciente: paciente.nombre_completo,
+      fecha: new Date(consulta.fecha).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }),
+      objetivos: consulta.antecedentes?.objetivos || obtenerUltimoNoVacio('antecedentes')?.objetivos || '',
+      enfoque: consulta.enfoque_nutricional || {},
+    })
+    setReciboParaImprimir(null)
+    setTimeout(() => window.print(), 300)
+  }
+
   const imprimirTicketPasado = (pago: Pago, productos: { nombre: string }[]) => {
     if (!paciente) return
+    setPlanParaImprimir(null)
     setReciboParaImprimir({
       paciente: paciente.nombre_completo,
       concepto: pago.concepto || '',
@@ -315,7 +345,7 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
   // Para seguimiento: trae el último antecedente/estilo de vida conocido (no
   // necesariamente de la consulta más reciente, por si esa fue un seguimiento
   // sin cambios) para que Marla lo revise y actualice en vez de partir de cero.
-  const obtenerUltimoNoVacio = (campo: 'antecedentes' | 'estilo_vida') => {
+  function obtenerUltimoNoVacio<K extends 'antecedentes' | 'estilo_vida'>(campo: K): Consulta[K] | null {
     for (const c of consultas) {
       const valor = c[campo]
       if (valor && Object.keys(valor).length > 0) return valor
@@ -836,6 +866,10 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
                 <button onClick={alternarArchivado} className={`text-xs flex items-center gap-1 font-bold px-3 py-1 rounded-lg border ${paciente.activo ? 'text-rose-500 hover:text-rose-600 bg-rose-50 border-rose-100' : 'text-emerald-600 hover:text-emerald-700 bg-emerald-50 border-emerald-100'}`}>
                   {paciente.activo ? '🗄️ Archivar' : '♻️ Reactivar'}
                 </button>
+                <button onClick={copiarLinkPortal} className="text-xs text-slate-400 hover:text-[#0066FF] flex items-center gap-1 font-bold bg-slate-50 px-3 py-1 rounded-lg border border-slate-200">🔗 Copiar Link Portal</button>
+                {paciente.telefono && (
+                  <button onClick={enviarLinkPortalWhatsApp} className="text-xs text-[#128C7E] hover:text-white hover:bg-[#25D366] flex items-center gap-1 font-bold bg-[#25D366]/10 px-3 py-1 rounded-lg border border-[#25D366]/20 transition-colors">📱 Enviar Portal</button>
+                )}
               </div>
             </div>
           </div>
@@ -843,6 +877,13 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
             <div><p className="text-slate-400 font-bold uppercase text-[10px] mb-1">Teléfono</p><p className="font-bold text-slate-800">{paciente.telefono || 'N/A'}</p></div>
           </div>
         </div>
+
+        {esFullAccess && !esPrimeraVez && (
+          <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8">
+            <h3 className="text-base font-black text-slate-800 mb-6 uppercase tracking-widest flex items-center gap-2"><span>📈</span> Progreso</h3>
+            <GraficaProgreso puntos={[...consultas].reverse().map(c => ({ fecha: c.fecha, peso: c.peso_actual, grasa: c.porcentaje_grasa }))} />
+          </div>
+        )}
 
         {esFullAccess && !esPrimeraVez && (
           <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8">
@@ -934,7 +975,14 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
                         </SeccionDetalle>
                         <SeccionDetalle titulo="Peso e InBody" icono="⚖️"><CamposDetalle datos={c.inbody} etiquetas={ETIQUETAS_INBODY} /></SeccionDetalle>
                         <SeccionDetalle titulo="Estilo de Vida" icono="🥗"><CamposDetalle datos={c.estilo_vida} etiquetas={ETIQUETAS_ESTILO_VIDA} /></SeccionDetalle>
-                        <SeccionDetalle titulo="Enfoque Nutricional" icono="🎯"><CamposDetalle datos={c.enfoque_nutricional} etiquetas={ETIQUETAS_ENFOQUE} /></SeccionDetalle>
+                        <SeccionDetalle titulo="Enfoque Nutricional" icono="🎯">
+                          <CamposDetalle datos={c.enfoque_nutricional} etiquetas={ETIQUETAS_ENFOQUE} />
+                          {c.enfoque_nutricional && Object.values(c.enfoque_nutricional).some(v => v !== undefined && v !== null && String(v).trim() !== '') && (
+                            <button onClick={() => generarPlanPDF(c)} className="mt-3 flex items-center gap-1.5 bg-[#0066FF]/10 text-[#0066FF] text-xs font-bold px-3 py-2 rounded-lg hover:bg-[#0066FF] hover:text-white transition-colors">
+                              📄 Generar Plan Nutricional (PDF)
+                            </button>
+                          )}
+                        </SeccionDetalle>
                       </div>
                     )}
                   </div>
@@ -971,6 +1019,56 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
             </div>
             {reciboParaImprimir.requiereFactura && <p className="text-xs text-center mt-4">Tu factura CFDI será enviada a tu correo registrado.</p>}
             <p className="text-xs text-center mt-6 text-slate-500">¡Gracias por tu visita!</p>
+          </div>
+        </div>
+      )}
+
+      {planParaImprimir && (
+        <div className="ticket-imprimible hidden print:block p-10 text-black bg-white">
+          <div className="max-w-md mx-auto">
+            <h1 className="text-2xl font-black text-center mb-1">Clínica Marla 🌿</h1>
+            <p className="text-sm text-center text-slate-600 mb-8">Plan Nutricional Personalizado</p>
+            <div className="border-t border-b border-slate-300 py-3 mb-6 text-sm flex justify-between">
+              <p><strong>Paciente:</strong> {planParaImprimir.paciente}</p>
+              <p><strong>Fecha:</strong> {planParaImprimir.fecha}</p>
+            </div>
+            {planParaImprimir.objetivos && (
+              <div className="mb-6">
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">Objetivo</p>
+                <p className="text-sm">{planParaImprimir.objetivos}</p>
+              </div>
+            )}
+            {planParaImprimir.enfoque.enfoque && (
+              <div className="mb-4">
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">Enfoque Nutricional</p>
+                <p className="text-base font-bold">{planParaImprimir.enfoque.enfoque}</p>
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              {planParaImprimir.enfoque.aporte_calorico && (
+                <div><p className="text-xs font-bold uppercase tracking-widest text-slate-500">Kcal Objetivo</p><p className="text-xl font-black">{planParaImprimir.enfoque.aporte_calorico} kcal</p></div>
+              )}
+              {planParaImprimir.enfoque.tiempos_comida && (
+                <div><p className="text-xs font-bold uppercase tracking-widest text-slate-500">Tiempos de comida</p><p className="text-xl font-black">{planParaImprimir.enfoque.tiempos_comida}</p></div>
+              )}
+            </div>
+            {(planParaImprimir.enfoque.pct_carbohidratos || planParaImprimir.enfoque.pct_proteinas || planParaImprimir.enfoque.pct_grasas) && (
+              <div className="mb-6">
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Distribución de Macronutrientes</p>
+                <div className="grid grid-cols-3 gap-3 text-center border border-slate-300 rounded-lg py-3">
+                  <div><p className="text-lg font-black">{planParaImprimir.enfoque.pct_carbohidratos || 0}%</p><p className="text-[10px] uppercase text-slate-500">Carbohidratos</p></div>
+                  <div><p className="text-lg font-black">{planParaImprimir.enfoque.pct_proteinas || 0}%</p><p className="text-[10px] uppercase text-slate-500">Proteínas</p></div>
+                  <div><p className="text-lg font-black">{planParaImprimir.enfoque.pct_grasas || 0}%</p><p className="text-[10px] uppercase text-slate-500">Grasas</p></div>
+                </div>
+              </div>
+            )}
+            {planParaImprimir.enfoque.notas_suplementos_recetados && (
+              <div className="mb-6">
+                <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-1">Suplementación Indicada</p>
+                <p className="text-sm">{planParaImprimir.enfoque.notas_suplementos_recetados}</p>
+              </div>
+            )}
+            <p className="text-xs text-center mt-10 text-slate-500">Este plan es personalizado — no lo compartas con otras personas.</p>
           </div>
         </div>
       )}
