@@ -907,7 +907,7 @@ export default function Home() {
             <>
               <button onClick={() => setActiveTab('Finanzas')} title="Estela BI (Reportes)" className={`w-full aspect-square rounded-xl flex items-center justify-center text-xl transition-all ${activeTab === 'Finanzas' ? 'bg-[#0066FF]/10 text-[#0066FF]' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}>📊</button>
               <button onClick={() => setActiveTab('Almacen')} title="Farmacia" className={`w-full aspect-square rounded-xl flex items-center justify-center text-xl transition-all ${activeTab === 'Almacen' ? 'bg-[#0066FF]/10 text-[#0066FF]' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}>📦</button>
-              <Link href="/usuarios" title="Usuarios y Accesos" className="w-full aspect-square rounded-xl flex items-center justify-center text-xl transition-all text-slate-400 hover:bg-slate-50 hover:text-slate-600">⚙️</Link>
+              <Link href="/usuarios" title="Ajustes" className="w-full aspect-square rounded-xl flex items-center justify-center text-xl transition-all text-slate-400 hover:bg-slate-50 hover:text-slate-600">⚙️</Link>
             </>
           )}
         </nav>
