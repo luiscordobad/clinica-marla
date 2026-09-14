@@ -49,6 +49,27 @@ export type Paciente = {
   created_by: string | null
   updated_at: string
   portal_token: string
+  referido_por_paciente_id: string | null
+}
+
+export type Servicio = {
+  id: string
+  nombre: string
+  precio: number
+  icono: string
+  activo: boolean
+  orden: number
+  created_at: string
+  updated_at: string
+}
+
+export type ConfiguracionClinica = {
+  id: true
+  nombre_clinica: string
+  direccion: string | null
+  telefono_contacto: string | null
+  horario: string | null
+  updated_at: string
 }
 
 export type TipoCita =

@@ -13,6 +13,8 @@ type DatosPortal = {
   proxima_cita?: { fecha: string; hora: string; tipo: TipoCita } | null
   plan?: { fecha: string; tipo: string; enfoque_nutricional: Record<string, any> } | null
   progreso?: { fecha: string; peso: number | null; grasa: number | null }[]
+  racha?: number
+  clinica?: { nombre: string; direccion: string | null; telefono: string | null; horario: string | null }
 }
 
 const ETIQUETA_ENFOQUE_PORTAL: Record<string, string> = {
@@ -55,6 +57,9 @@ export default function PortalPaciente({ params }: { params: { token: string } }
   const enfoque = datos.plan?.enfoque_nutricional || {}
   const tieneEnfoque = Object.values(enfoque).some(v => v !== undefined && v !== null && String(v).trim() !== '')
 
+  const pesosRegistrados = (datos.progreso || []).filter(p => p.peso !== null && p.peso !== undefined) as { fecha: string; peso: number }[]
+  const deltaPeso = pesosRegistrados.length >= 2 ? pesosRegistrados[pesosRegistrados.length - 1].peso - pesosRegistrados[0].peso : null
+
   return (
     <main className="min-h-screen bg-[#F4F6F9] p-4 sm:p-8">
       <div className="max-w-lg mx-auto space-y-6">
@@ -63,6 +68,23 @@ export default function PortalPaciente({ params }: { params: { token: string } }
           <h1 className="text-xl font-black text-slate-800">Hola, {datos.nombre?.split(' ')[0]} 🌿</h1>
           <p className="text-sm text-slate-500 mt-1">Este es tu resumen personal de Clínica Marla</p>
         </div>
+
+        {(deltaPeso !== null || (datos.racha || 0) > 0) && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {deltaPeso !== null && (
+              <div className={`rounded-3xl p-6 text-white shadow-sm ${deltaPeso < 0 ? 'bg-gradient-to-br from-[#0066FF] to-cyan-500' : deltaPeso > 0 ? 'bg-gradient-to-br from-teal-500 to-emerald-500' : 'bg-slate-700'}`}>
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1">Desde tu primera consulta</p>
+                <p className="text-3xl font-black">{deltaPeso > 0 ? '+' : ''}{deltaPeso.toFixed(1)} kg</p>
+              </div>
+            )}
+            {(datos.racha || 0) > 0 && (
+              <div className="rounded-3xl p-6 bg-gradient-to-br from-amber-400 to-orange-500 text-white shadow-sm">
+                <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1">Racha de asistencia</p>
+                <p className="text-3xl font-black">🔥 {datos.racha} {datos.racha === 1 ? 'consulta' : 'consultas'}</p>
+              </div>
+            )}
+          </div>
+        )}
 
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
           <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">📅 Tu Próxima Cita</h2>
@@ -122,6 +144,15 @@ export default function PortalPaciente({ params }: { params: { token: string } }
           <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
             <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">📈 Tu Progreso</h2>
             <GraficaProgreso puntos={datos.progreso} />
+          </div>
+        )}
+
+        {datos.clinica && (datos.clinica.direccion || datos.clinica.telefono || datos.clinica.horario) && (
+          <div className="text-center text-xs text-slate-500 space-y-0.5 pt-2">
+            <p className="font-black text-slate-700">{datos.clinica.nombre}</p>
+            {datos.clinica.direccion && <p>{datos.clinica.direccion}</p>}
+            {datos.clinica.telefono && <p>📞 {datos.clinica.telefono}</p>}
+            {datos.clinica.horario && <p>🕐 {datos.clinica.horario}</p>}
           </div>
         )}
 

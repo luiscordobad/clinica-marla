@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { obtenerEstadoSesion, type SesionActual } from '../../../lib/auth'
-import type { Cita, CategoriaDocumento, Consulta, DocumentoPaciente, Paciente, Pago, PagoProducto, Producto } from '../../../lib/types'
+import type { Cita, CategoriaDocumento, Consulta, DocumentoPaciente, Paciente, Pago, PagoProducto, Producto, Servicio } from '../../../lib/types'
 import { ETIQUETA_CATEGORIA_DOCUMENTO } from '../../../lib/types'
 import { fechaLocalISO } from '../../../lib/fecha'
 import GraficaProgreso from '../../../components/GraficaProgreso'
@@ -210,16 +210,6 @@ const SUPLEMENTOS_SI_NO_ITEMS = [
   { k: 'sup_creatina', l: 'Creatina' }, { k: 'sup_beta_alanina', l: 'Beta Alanina' }, { k: 'sup_gaba', l: 'GABA' }, { k: 'sup_inositol', l: 'Inositol' },
 ]
 
-const SERVICIOS = [
-  { id: 'Primera Vez', label: 'Primera Vez', precio: '1000', icon: '🌟' },
-  { id: 'Subsecuente', label: 'Subsecuente', precio: '800', icon: '🔄' },
-  { id: 'Medica', label: 'Médica', precio: '800', icon: '🩺' },
-  { id: 'En Linea', label: 'En Línea', precio: '700', icon: '💻' },
-  { id: 'InBody', label: 'Solo InBody', precio: '500', icon: '⚖️' },
-  { id: 'Enzimas', label: 'Enzimas', precio: '4500', icon: '💉' },
-  { id: 'Solo Suplementos', label: 'Suplementos', precio: '0', icon: '🛍️' },
-]
-
 const FORM_CLINICO_VACIO = {
   heredo_familiares: '', heredo_dm: 'No', heredo_hat: 'No', heredo_obesidad: 'No',
   patologicos: '', app_dislipidemia: 'No', app_gastritis: 'No', app_ansiedad: 'No', app_depresion: 'No',
@@ -257,6 +247,9 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
   const [pagosPaciente, setPagosPaciente] = useState<Pago[]>([])
   const [pagoProductosPaciente, setPagoProductosPaciente] = useState<PagoProducto[]>([])
   const [catalogo, setCatalogo] = useState<Producto[]>([])
+  const [servicios, setServicios] = useState<Servicio[]>([])
+  const [referidoPorNombre, setReferidoPorNombre] = useState<string | null>(null)
+  const [referidosCount, setReferidosCount] = useState(0)
   const [documentos, setDocumentos] = useState<DocumentoPaciente[]>([])
   const [subiendoDocumento, setSubiendoDocumento] = useState(false)
   const [categoriaNuevoDocumento, setCategoriaNuevoDocumento] = useState<CategoriaDocumento>('inbody')
@@ -318,6 +311,21 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
     iniciar()
   }, [params.id])
 
+  useEffect(() => {
+    const cargarReferidos = async () => {
+      if (!paciente) return
+      if (paciente.referido_por_paciente_id) {
+        const { data } = await supabase.from('pacientes').select('nombre_completo').eq('id', paciente.referido_por_paciente_id).single()
+        setReferidoPorNombre(data?.nombre_completo || null)
+      } else {
+        setReferidoPorNombre(null)
+      }
+      const { count } = await supabase.from('pacientes').select('id', { count: 'exact', head: true }).eq('referido_por_paciente_id', paciente.id)
+      setReferidosCount(count || 0)
+    }
+    cargarReferidos()
+  }, [paciente?.id, paciente?.referido_por_paciente_id])
+
   const cargarDatos = async (esFull: boolean) => {
     const { data: pData } = await supabase.from('pacientes').select('*').eq('id', params.id).single()
     if (pData) setPaciente(pData as Paciente)
@@ -334,6 +342,9 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
 
       const { data: invData } = await supabase.from('inventario').select('*').order('producto', { ascending: true })
       if (invData) setCatalogo(invData as Producto[])
+
+      const { data: srvData } = await supabase.from('servicios').select('*').eq('activo', true).order('orden', { ascending: true })
+      if (srvData) setServicios(srvData as Servicio[])
 
       if (payData && payData.length > 0) {
         const { data: ppData } = await supabase.from('pago_productos').select('*').in('pago_id', payData.map(p => p.id))
@@ -551,9 +562,9 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
   const abrirCheckout = () => {
     setModoConsulta(false)
     setShowCheckout(true)
-    if (!checkout.concepto) {
-      const base = esPrimeraVez ? SERVICIOS[0] : SERVICIOS[1]
-      setCheckout(prev => ({ ...prev, concepto: base.id, precio: base.precio }))
+    if (!checkout.concepto && servicios.length > 0) {
+      const base = esPrimeraVez ? servicios[0] : (servicios[1] || servicios[0])
+      setCheckout(prev => ({ ...prev, concepto: base.nombre, precio: String(base.precio) }))
     }
   }
 
@@ -1022,20 +1033,21 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
               <p className="text-sm text-slate-500 mb-6">Selecciona el tipo de servicio que realizaste hoy.</p>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {SERVICIOS.map(srv => (
+                {servicios.map(srv => (
                   <button
                     key={srv.id}
                     type="button"
-                    onClick={() => handleServiceSelect(srv.id, srv.precio)}
-                    className={`p-4 rounded-2xl border text-left transition-all flex flex-col gap-2 ${checkout.concepto === srv.id ? 'bg-teal-50 border-teal-400 ring-1 ring-teal-400 shadow-sm' : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50 shadow-sm'}`}
+                    onClick={() => handleServiceSelect(srv.nombre, String(srv.precio))}
+                    className={`p-4 rounded-2xl border text-left transition-all flex flex-col gap-2 ${checkout.concepto === srv.nombre ? 'bg-teal-50 border-teal-400 ring-1 ring-teal-400 shadow-sm' : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50 shadow-sm'}`}
                   >
-                    <span className="text-2xl">{srv.icon}</span>
+                    <span className="text-2xl">{srv.icono}</span>
                     <div className="mt-1">
-                      <p className={`text-xs font-bold leading-tight ${checkout.concepto === srv.id ? 'text-teal-900' : 'text-slate-700'}`}>{srv.label}</p>
-                      <p className={`text-[11px] font-black mt-1 ${checkout.concepto === srv.id ? 'text-teal-700' : 'text-slate-400'}`}>${srv.precio}</p>
+                      <p className={`text-xs font-bold leading-tight ${checkout.concepto === srv.nombre ? 'text-teal-900' : 'text-slate-700'}`}>{srv.nombre}</p>
+                      <p className={`text-[11px] font-black mt-1 ${checkout.concepto === srv.nombre ? 'text-teal-700' : 'text-slate-400'}`}>${srv.precio}</p>
                     </div>
                   </button>
                 ))}
+                {servicios.length === 0 && <p className="col-span-full text-xs text-slate-400 text-center py-4">Sin servicios configurados — agrégalos en Ajustes → Servicios.</p>}
               </div>
             </div>
 
@@ -1179,8 +1191,14 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-6 text-sm">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 text-sm">
             <div><p className="text-slate-400 font-bold uppercase text-[10px] mb-1">Teléfono</p><p className="font-bold text-slate-800">{paciente.telefono || 'N/A'}</p></div>
+            {referidoPorNombre && (
+              <div><p className="text-slate-400 font-bold uppercase text-[10px] mb-1">Referido por</p><p className="font-bold text-slate-800">{referidoPorNombre}</p></div>
+            )}
+            {referidosCount > 0 && (
+              <div><p className="text-slate-400 font-bold uppercase text-[10px] mb-1">Pacientes referidos</p><p className="font-bold text-teal-600">🎁 {referidosCount}</p></div>
+            )}
           </div>
         </div>
 

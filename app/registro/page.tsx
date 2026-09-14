@@ -23,6 +23,8 @@ export default function RegistroPaciente() {
   const [mensaje, setMensaje] = useState<{ tipo: 'error' | 'exito'; texto: string; pacienteId?: string } | null>(null)
   const [posiblesDuplicados, setPosiblesDuplicados] = useState<PacienteLigero[]>([])
   const [confirmadoDuplicado, setConfirmadoDuplicado] = useState(false)
+  const [referidoTexto, setReferidoTexto] = useState('')
+  const [referidoId, setReferidoId] = useState<string | null>(null)
 
   useEffect(() => {
     const verificar = async () => {
@@ -65,7 +67,7 @@ export default function RegistroPaciente() {
 
     const { data, error } = await supabase
       .from('pacientes')
-      .insert([{ ...formData, created_by: usuarioId }])
+      .insert([{ ...formData, created_by: usuarioId, referido_por_paciente_id: referidoId }])
       .select('id')
       .single()
 
@@ -76,6 +78,8 @@ export default function RegistroPaciente() {
       setFormData(FORM_VACIO)
       setPosiblesDuplicados([])
       setConfirmadoDuplicado(false)
+      setReferidoTexto('')
+      setReferidoId(null)
       setPacientesExistentes([...pacientesExistentes, { id: data.id, nombre_completo: formData.nombre_completo, telefono: formData.telefono }])
     }
     setLoading(false)
@@ -174,6 +178,34 @@ export default function RegistroPaciente() {
               <div>
                 <label className="block text-sm font-bold text-slate-600 mb-1">Ocupación / Profesión</label>
                 <input type="text" name="profesion" value={formData.profesion} onChange={handleChange} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0066FF] focus:border-[#0066FF] outline-none" />
+              </div>
+              <div className="relative">
+                <label className="block text-sm font-bold text-slate-600 mb-1">¿Quién lo refirió? (opcional)</label>
+                <input
+                  type="text"
+                  value={referidoTexto}
+                  onChange={(e) => { setReferidoTexto(e.target.value); setReferidoId(null) }}
+                  placeholder="Busca por nombre..."
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0066FF] focus:border-[#0066FF] outline-none"
+                />
+                {referidoTexto.trim().length > 1 && !referidoId && (
+                  <div className="absolute z-10 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                    {pacientesExistentes.filter(p => p.nombre_completo.toLowerCase().includes(referidoTexto.trim().toLowerCase())).slice(0, 6).map(p => (
+                      <button
+                        type="button"
+                        key={p.id}
+                        onClick={() => { setReferidoId(p.id); setReferidoTexto(p.nombre_completo) }}
+                        className="w-full text-left px-3.5 py-2.5 text-sm font-medium text-slate-700 hover:bg-blue-50 transition-colors"
+                      >
+                        {p.nombre_completo}
+                      </button>
+                    ))}
+                    {pacientesExistentes.filter(p => p.nombre_completo.toLowerCase().includes(referidoTexto.trim().toLowerCase())).length === 0 && (
+                      <p className="px-3.5 py-2.5 text-xs text-slate-400">Sin coincidencias — déjalo así si no es un paciente existente.</p>
+                    )}
+                  </div>
+                )}
+                {referidoId && <p className="text-[11px] font-bold text-emerald-600 mt-1">✓ Referido por paciente existente</p>}
               </div>
             </div>
 

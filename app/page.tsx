@@ -6,7 +6,7 @@ import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { obtenerEstadoSesion, type SesionActual } from '../lib/auth'
 import {
-  DURACION_POR_TIPO, ETIQUETA_TIPO_CITA,
+  DURACION_POR_TIPO, ETIQUETA_TIPO_CITA, PRECIO_SUGERIDO_POR_TIPO,
   type Cita, type EstadoCita, type Gasto, type Paciente, type Pago, type PagoProducto, type Producto, type TipoCita,
 } from '../lib/types'
 import { fechaLocalISO } from '../lib/fecha'
@@ -19,6 +19,7 @@ export default function Home() {
   const [pagoProductos, setPagoProductos] = useState<PagoProducto[]>([])
   const [inventario, setInventario] = useState<Producto[]>([])
   const [gastos, setGastos] = useState<Gasto[]>([])
+  const [consultasResumen, setConsultasResumen] = useState<{ paciente_id: string; tipo: string; fecha: string; antecedentes: any }[]>([])
 
   const [loading, setLoading] = useState(true)
   const [sesion, setSesion] = useState<SesionActual | null>(null)
@@ -53,6 +54,9 @@ export default function Home() {
 
   const [showMenuPerfil, setShowMenuPerfil] = useState(false)
   const [showModalCalendario, setShowModalCalendario] = useState(false)
+  const [showModalVacaciones, setShowModalVacaciones] = useState(false)
+  const [formVacaciones, setFormVacaciones] = useState({ fecha_inicio: '', fecha_fin: '', motivo: 'Vacaciones' })
+  const [guardandoVacaciones, setGuardandoVacaciones] = useState(false)
   const [regenerandoToken, setRegenerandoToken] = useState(false)
 
   const [fechaSeleccionada, setFechaSeleccionada] = useState(() => {
@@ -173,12 +177,14 @@ export default function Home() {
     if (ppData) setPagoProductos(ppData as PagoProducto[])
 
     if (esFullAccess) {
-      const [{ data: iData }, { data: gData }] = await Promise.all([
+      const [{ data: iData }, { data: gData }, { data: conData }] = await Promise.all([
         supabase.from('inventario').select('*'),
         supabase.from('gastos').select('*').order('fecha', { ascending: false }),
+        supabase.from('consultas').select('paciente_id, tipo, fecha, antecedentes').order('fecha', { ascending: false }),
       ])
       if (iData) setInventario(iData as Producto[])
       if (gData) setGastos(gData as Gasto[])
+      if (conData) setConsultasResumen(conData as any)
     }
     setLoading(false)
   }
@@ -265,6 +271,41 @@ export default function Home() {
 
     const { error } = await supabase.from('citas').insert(citasParaInsertar)
     if (!error) { await cargarDatos(esFullAccess); setShowModalAgendar(false); setFormCita({ paciente_id: '', fecha: '', hora: '', tipo: 'seguimiento', repeticion: 1 }); mostrarToast(esBloqueo ? 'Agenda bloqueada' : 'Cita agendada', 'exito') } else mostrarToast('Error: ' + error.message, 'error')
+  }
+
+  const bloquearRangoFechas = async () => {
+    if (!formVacaciones.fecha_inicio || !formVacaciones.fecha_fin) return mostrarToast('Completa las dos fechas.', 'advertencia')
+    const inicio = new Date(formVacaciones.fecha_inicio + 'T12:00:00')
+    const fin = new Date(formVacaciones.fecha_fin + 'T12:00:00')
+    if (fin < inicio) return mostrarToast('La fecha final debe ser posterior a la inicial.', 'advertencia')
+
+    const dias: string[] = []
+    for (let d = new Date(inicio); d <= fin; d.setDate(d.getDate() + 1)) dias.push(d.toISOString().split('T')[0])
+    if (dias.length > 60) return mostrarToast('Máximo 60 días por bloqueo.', 'advertencia')
+
+    const citasExistentes = citas.filter(c => dias.includes(c.fecha_cita) && c.estado !== 'cancelada' && c.estado !== 'ausente' && c.tipo !== 'bloqueo')
+    if (citasExistentes.length > 0) {
+      if (!window.confirm(`Ya hay ${citasExistentes.length} cita(s) programada(s) en ese rango. ¿Bloquear de todas formas? (no se cancelan solas, tendrás que reagendarlas)`)) return
+    }
+
+    setGuardandoVacaciones(true)
+    const { error } = await supabase.from('citas').insert(dias.map(fecha => ({
+      paciente_id: null,
+      nombre_paciente: formVacaciones.motivo || 'Bloqueo',
+      fecha_cita: fecha,
+      hora_cita: '00:00',
+      duracion_min: 1440,
+      tipo: 'bloqueo' as TipoCita,
+      estado: 'programada' as EstadoCita,
+      created_by: sesion?.usuario.id,
+    })))
+    setGuardandoVacaciones(false)
+    if (!error) {
+      await cargarDatos(esFullAccess)
+      setShowModalVacaciones(false)
+      setFormVacaciones({ fecha_inicio: '', fecha_fin: '', motivo: 'Vacaciones' })
+      mostrarToast(`${dias.length} día(s) bloqueado(s)`, 'exito')
+    } else mostrarToast('Error: ' + error.message, 'error')
   }
 
   const guardarEdicionCita = async () => {
@@ -356,6 +397,54 @@ export default function Home() {
     const hoyMes = String(hoy.getMonth() + 1).padStart(2, '0'); const hoyDia = String(hoy.getDate()).padStart(2, '0')
     const cumpleaneros = pacientes.filter(p => String(p.fecha_nacimiento || '').includes(`-${hoyMes}-${hoyDia}`))
 
+    // Cumpleaños de todo el mes actual (para planear con tiempo, no solo el día exacto)
+    const cumpleanerosDelMes = pacientes
+      .filter(p => p.fecha_nacimiento)
+      .map(p => ({ ...p, diaNacimiento: Number(String(p.fecha_nacimiento).split('-')[2]) }))
+      .filter(p => Number(String(p.fecha_nacimiento).split('-')[1]) === hoy.getMonth() + 1)
+      .sort((a, b) => a.diaNacimiento - b.diaNacimiento)
+
+    // Conversión primera vez -> seguimiento: de los pacientes con una primera
+    // cita completada, cuántos tuvieron al menos otra cita completada después.
+    const citasCompletadasPorPaciente = new Map<string, Cita[]>()
+    citas.filter(c => c.estado === 'completada' && c.paciente_id).forEach(c => {
+      const lista = citasCompletadasPorPaciente.get(c.paciente_id!) || []
+      lista.push(c); citasCompletadasPorPaciente.set(c.paciente_id!, lista)
+    })
+    let pacientesConPrimeraVez = 0, pacientesConSeguimiento = 0
+    citasCompletadasPorPaciente.forEach(lista => {
+      const primeraVez = lista.find(c => c.tipo === 'primera_vez')
+      if (!primeraVez) return
+      pacientesConPrimeraVez++
+      const tieneDespues = lista.some(c => c.id !== primeraVez.id && new Date(`${c.fecha_cita}T${c.hora_cita}`) > new Date(`${primeraVez.fecha_cita}T${primeraVez.hora_cita}`))
+      if (tieneDespues) pacientesConSeguimiento++
+    })
+    const tasaConversion = pacientesConPrimeraVez > 0 ? Math.round((pacientesConSeguimiento / pacientesConPrimeraVez) * 100) : 0
+
+    // Ingreso proyectado: suma de precio sugerido de las citas ya agendadas
+    // (programadas) en los próximos 14 días — solo una estimación.
+    const en2Semanas = new Date(hoy.getTime() + 14 * 24 * 3600 * 1000)
+    const ingresoProyectado = citas
+      .filter(c => c.estado === 'programada' && c.tipo !== 'bloqueo' && (() => { const f = extraerFechaLocal(c.fecha_cita); return f && f >= hoy && f <= en2Semanas })())
+      .reduce((acc, c) => acc + (PRECIO_SUGERIDO_POR_TIPO[c.tipo] || 0), 0)
+
+    // Ocupación de agenda de la semana actual, asumiendo horario 9am-7pm x 6 días (3600 min disponibles)
+    const inicioSemana = new Date(hoy); inicioSemana.setDate(hoy.getDate() - hoy.getDay() + 1); inicioSemana.setHours(0, 0, 0, 0)
+    const finSemana = new Date(inicioSemana.getTime() + 7 * 24 * 3600 * 1000)
+    const minutosOcupados = citas
+      .filter(c => c.estado !== 'cancelada' && c.estado !== 'ausente' && (() => { const f = extraerFechaLocal(c.fecha_cita); return f && f >= inicioSemana && f < finSemana })())
+      .reduce((acc, c) => acc + c.duracion_min, 0)
+    const ocupacionSemana = Math.min(100, Math.round((minutosOcupados / 3600) * 100))
+
+    // Segmentación por objetivo declarado en la consulta más reciente de cada paciente
+    const ultimaConsultaPorPaciente = new Map<string, any>()
+    consultasResumen.forEach(c => { if (!ultimaConsultaPorPaciente.has(c.paciente_id)) ultimaConsultaPorPaciente.set(c.paciente_id, c) })
+    let objetivoMasaMuscular = 0, objetivoBajarGrasa = 0
+    ultimaConsultaPorPaciente.forEach(c => {
+      if (c.antecedentes?.objetivo_masa_muscular === 'Si') objetivoMasaMuscular++
+      if (c.antecedentes?.objetivo_bajar_grasa === 'Si') objetivoBajarGrasa++
+    })
+
     const totalGastos = gastos.filter(g => {
       const fT = extraerFechaLocal(g.fecha); if (!fT) return false
       if (filtroTiempo === 'Mes Actual') return fT.getMonth() === hoy.getMonth() && fT.getFullYear() === hoy.getFullYear()
@@ -368,9 +457,11 @@ export default function Home() {
       kpis: { ingresosTotales, ingresosServicios, ingresosFarmacia, totalTrx: pagosFiltrados.length, porcentajeAusentismo, citasCanceladasMes, totalGastos, utilidadNeta: ingresosTotales - totalGastos },
       tendencia, maxTendencia: tendencia.length ? Math.max(...tendencia.map(d => d.total)) : 1,
       topFarmacia, maxFarmacia: topFarmacia.length ? Math.max(...topFarmacia.map(p => p.cantidad)) : 1,
-      alertasCRM, ultimasVisitasDict, cumpleaneros,
+      alertasCRM, ultimasVisitasDict, cumpleaneros, cumpleanerosDelMes,
+      tasaConversion, pacientesConPrimeraVez, ingresoProyectado, ocupacionSemana,
+      objetivoMasaMuscular, objetivoBajarGrasa,
     }
-  }, [pagos, pacientes, inventario, pagoProductos, citas, gastos, filtroTiempo])
+  }, [pagos, pacientes, inventario, pagoProductos, citas, gastos, filtroTiempo, consultasResumen])
 
   const registrarGasto = async () => {
     if (!formGasto.concepto.trim() || !Number(formGasto.monto)) return mostrarToast('Completa concepto y monto.', 'advertencia')
@@ -771,6 +862,40 @@ export default function Home() {
         </div>
       )}
 
+      {showModalVacaciones && (
+        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4" onClick={() => setShowModalVacaciones(false)}>
+          <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
+            <div className="w-14 h-14 bg-amber-100 text-amber-600 rounded-2xl flex items-center justify-center text-2xl mb-4">🏖️</div>
+            <h3 className="text-xl font-black text-slate-800 mb-1">Bloquear Vacaciones o Días</h3>
+            <p className="text-sm text-slate-500 mb-6">Bloquea un rango de días de una sola vez (vacaciones, congreso, etc.) para que no se puedan agendar citas.</p>
+
+            <div className="space-y-4 mb-6">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Desde</label>
+                  <input type="date" value={formVacaciones.fecha_inicio} onChange={(e) => setFormVacaciones({ ...formVacaciones, fecha_inicio: e.target.value })} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-amber-500" />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Hasta</label>
+                  <input type="date" value={formVacaciones.fecha_fin} onChange={(e) => setFormVacaciones({ ...formVacaciones, fecha_fin: e.target.value })} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-amber-500" />
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Motivo (opcional)</label>
+                <input type="text" value={formVacaciones.motivo} onChange={(e) => setFormVacaciones({ ...formVacaciones, motivo: e.target.value })} placeholder="Vacaciones" className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-amber-500" />
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={() => setShowModalVacaciones(false)} className="px-5 py-3 bg-slate-100 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors text-sm">Cancelar</button>
+              <button onClick={bloquearRangoFechas} disabled={guardandoVacaciones} className="flex-1 bg-amber-500 text-white rounded-xl font-bold hover:bg-amber-600 disabled:opacity-50 transition-colors text-sm">
+                {guardandoVacaciones ? 'Bloqueando...' : 'Bloquear Días'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* SIDEBAR IZQUIERDO */}
       <aside className="hidden md:flex w-[72px] bg-white border-r border-slate-200 flex-col items-center py-6 shrink-0 z-20">
         <div className="w-10 h-10 bg-[#0066FF] rounded-lg flex items-center justify-center text-white font-black text-xl mb-8 shadow-sm">M</div>
@@ -821,8 +946,13 @@ export default function Home() {
                       📆 Sincronizar con iPhone
                     </button>
                     {esFullAccess && (
+                      <button onClick={() => { setShowModalVacaciones(true); setShowMenuPerfil(false) }} className="w-full text-left px-4 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 flex items-center gap-2.5 transition-colors">
+                        🏖️ Bloquear Vacaciones/Días
+                      </button>
+                    )}
+                    {esFullAccess && (
                       <Link href="/usuarios" className="block px-4 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 flex items-center gap-2.5 transition-colors">
-                        ⚙️ Usuarios y Accesos
+                        ⚙️ Ajustes
                       </Link>
                     )}
                     <button onClick={cerrarSesion} className="w-full text-left px-4 py-3 text-sm font-bold text-rose-500 hover:bg-rose-50 flex items-center gap-2.5 transition-colors border-t border-slate-100">
@@ -1251,6 +1381,42 @@ export default function Home() {
                     <p className="text-3xl font-black text-white">${biDatos.kpis.utilidadNeta.toLocaleString('es-MX')}</p>
                   </div>
                 </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Conversión 1ª Vez → Seguimiento</p>
+                    <p className="text-3xl font-black tracking-tight text-emerald-600">{biDatos.tasaConversion}%</p>
+                    <p className="text-[9px] text-slate-400 font-bold mt-2 uppercase">de {biDatos.pacientesConPrimeraVez} pacientes con 1ª cita</p>
+                  </div>
+                  <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Proyectado 14 días</p>
+                    <p className="text-3xl font-black tracking-tight text-[#0066FF]">${biDatos.ingresoProyectado.toLocaleString('es-MX')}</p>
+                    <p className="text-[9px] text-slate-400 font-bold mt-2 uppercase">según citas ya agendadas</p>
+                  </div>
+                  <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Ocupación de Agenda</p>
+                    <p className="text-3xl font-black tracking-tight text-slate-800">{biDatos.ocupacionSemana}%</p>
+                    <p className="text-[9px] text-slate-400 font-bold mt-2 uppercase">semana actual (estimado)</p>
+                  </div>
+                  <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Objetivos de Pacientes</p>
+                    <p className="text-sm font-black text-slate-800">💪 {biDatos.objetivoMasaMuscular} masa · 🔥 {biDatos.objetivoBajarGrasa} grasa</p>
+                    <p className="text-[9px] text-slate-400 font-bold mt-2 uppercase">último objetivo registrado</p>
+                  </div>
+                </div>
+
+                {biDatos.cumpleanerosDelMes.length > 0 && (
+                  <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
+                    <h3 className="font-black text-slate-800 mb-4 flex items-center gap-2">🎂 Cumpleaños del Mes ({biDatos.cumpleanerosDelMes.length})</h3>
+                    <div className="flex flex-wrap gap-2">
+                      {biDatos.cumpleanerosDelMes.map((p: any) => (
+                        <span key={p.id} className="bg-pink-50 border border-pink-100 text-pink-700 text-xs font-bold px-3 py-1.5 rounded-full">
+                          {p.diaNacimiento} — {p.nombre_completo}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
                   <div className="flex justify-between items-center mb-1"><h3 className="font-black text-slate-800 flex items-center gap-2">📈 Tendencia de Ingresos</h3><span className="text-xl">💵</span></div>
