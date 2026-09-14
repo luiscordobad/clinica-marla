@@ -82,16 +82,48 @@ export type TipoConsulta = 'primera_vez' | 'seguimiento'
 // secciones del wizard clínico de Marla. Se documentan aquí para que el
 // formulario y el guardado no se desincronicen. Al ser jsonb, Supabase no
 // las valida — este tipo es la única fuente de verdad sobre su forma.
+export type SiNo = 'Si' | 'No'
+
 export type Antecedentes = {
   heredo_familiares?: string
+  heredo_dm?: SiNo
+  heredo_hat?: SiNo
+  heredo_obesidad?: SiNo
   patologicos?: string
+  app_dislipidemia?: SiNo
+  app_gastritis?: SiNo
+  app_ansiedad?: SiNo
+  app_depresion?: SiNo
+  app_hiperglucemia?: SiNo
+  app_hiperuricemia?: SiNo
+  app_litiasis_renal?: SiNo
   cirugias?: string
   no_patologicos?: string
+  apnp_estrenimiento?: SiNo
+  apnp_cansancio?: SiNo
+  apnp_caida_cabello?: SiNo
+  apnp_inflamacion?: SiNo
+  apnp_insomnio?: SiNo
+  apnp_falta_concentracion?: SiNo
+  apnp_memoria_afectada?: SiNo
   laboratorios?: string
   medicamentos?: string
   suplementos_actuales?: string
+  sup_leca_c?: SiNo
+  sup_omega_3?: SiNo
+  sup_proteina?: SiNo
+  sup_creatina?: SiNo
+  sup_magnesio?: string
+  sup_beta_alanina?: SiNo
+  sup_gaba?: SiNo
+  sup_inositol?: SiNo
   sueno?: string
+  sueno_horas?: string
+  sueno_interrumpido?: SiNo
+  sueno_despertar?: string
   objetivos?: string
+  objetivo_masa_muscular?: SiNo
+  objetivo_bajar_grasa?: SiNo
 }
 
 export type Mediciones = {
@@ -145,6 +177,15 @@ export type EnfoqueNutricional = {
   pct_proteinas?: string
   pct_grasas?: string
   notas_suplementos_recetados?: string
+  pep_semaglutida?: string
+  pep_tirzepatida?: string
+  pep_retatrutide?: SiNo
+  pep_bpc157?: SiNo
+  pep_tb500?: SiNo
+  pep_epitalon?: SiNo
+  pep_humanin?: SiNo
+  pep_ghk_cu?: SiNo
+  pep_nad?: SiNo
 }
 
 export type Consulta = {

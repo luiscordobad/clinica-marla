@@ -1013,41 +1013,37 @@ export default function Home() {
                   </div>
                 </div>
 
-                {!esFullAccess && (
-                  <>
-                    <hr className="border-slate-100" />
-                    <div>
-                      <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex justify-between items-center">
-                        Confirmar Mañana <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{citasManana.length} citas</span>
-                      </h3>
-                      {citasManana.length === 0 ? (
-                        <div className="bg-slate-50 rounded-xl p-5 text-center border border-slate-100">
-                          <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Sin citas por confirmar</p>
-                        </div>
-                      ) : (
-                        <div className="space-y-2.5">
-                          {citasManana.map(c => {
-                            const tel = getTelefonoPaciente(c.paciente_id)
-                            const mensaje = `Hola ${c.nombre_paciente}, te confirmamos tu cita de ${ETIQUETA_TIPO_CITA[c.tipo]} el día de mañana a las ${c.hora_cita.substring(0, 5)} hrs con la Nutrióloga Marla.\n\nPor favor responde 1 para confirmar o 2 para reagendar. ¡Excelente día! 🌿`
-                            return (
-                              <div key={c.id} className="bg-white p-3 rounded-xl shadow-sm border border-slate-200 hover:border-emerald-300 transition-colors">
-                                <p className="text-xs font-bold text-slate-800 truncate">{c.nombre_paciente}</p>
-                                <p className="text-[9px] text-slate-500 mb-2 mt-0.5 font-bold">{c.hora_cita.substring(0, 5)} hrs • {ETIQUETA_TIPO_CITA[c.tipo]}</p>
-                                {tel ? (
-                                  <a href={`https://wa.me/${tel}?text=${encodeURIComponent(mensaje)}`} target="_blank" className="flex items-center justify-center gap-1.5 w-full bg-[#25D366]/10 text-[#128C7E] text-[10px] font-black py-1.5 rounded-lg hover:bg-[#25D366] hover:text-white transition-colors">
-                                    Confirmar por WhatsApp
-                                  </a>
-                                ) : (
-                                  <span className="block w-full bg-slate-100 text-slate-400 text-[10px] font-bold py-1.5 rounded-lg text-center">Sin Teléfono</span>
-                                )}
-                              </div>
-                            )
-                          })}
-                        </div>
-                      )}
+                <hr className="border-slate-100" />
+                <div>
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex justify-between items-center">
+                    Confirmar Mañana <span className="bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full">{citasManana.length} citas</span>
+                  </h3>
+                  {citasManana.length === 0 ? (
+                    <div className="bg-slate-50 rounded-xl p-5 text-center border border-slate-100">
+                      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Sin citas por confirmar</p>
                     </div>
-                  </>
-                )}
+                  ) : (
+                    <div className="space-y-2.5">
+                      {citasManana.map(c => {
+                        const tel = getTelefonoPaciente(c.paciente_id)
+                        const mensaje = `Hola ${c.nombre_paciente}, te confirmamos tu cita de ${ETIQUETA_TIPO_CITA[c.tipo]} el día de mañana a las ${c.hora_cita.substring(0, 5)} hrs con la Nutrióloga Marla.\n\nPor favor responde 1 para confirmar o 2 para reagendar. ¡Excelente día! 🌿`
+                        return (
+                          <div key={c.id} className="bg-white p-3 rounded-xl shadow-sm border border-slate-200 hover:border-emerald-300 transition-colors">
+                            <p className="text-xs font-bold text-slate-800 truncate">{c.nombre_paciente}</p>
+                            <p className="text-[9px] text-slate-500 mb-2 mt-0.5 font-bold">{c.hora_cita.substring(0, 5)} hrs • {ETIQUETA_TIPO_CITA[c.tipo]}</p>
+                            {tel ? (
+                              <a href={`https://wa.me/${tel}?text=${encodeURIComponent(mensaje)}`} target="_blank" className="flex items-center justify-center gap-1.5 w-full bg-[#25D366]/10 text-[#128C7E] text-[10px] font-black py-1.5 rounded-lg hover:bg-[#25D366] hover:text-white transition-colors">
+                                Confirmar por WhatsApp
+                              </a>
+                            ) : (
+                              <span className="block w-full bg-slate-100 text-slate-400 text-[10px] font-bold py-1.5 rounded-lg text-center">Sin Teléfono</span>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
@@ -1092,6 +1088,29 @@ export default function Home() {
                       <button onClick={() => setCobroActivo(pg)} className="shrink-0 bg-amber-500 text-white text-[10px] font-bold px-3 py-2 rounded-xl">Cobrar</button>
                     </div>
                   ))}
+                </div>
+              )}
+
+              {citasManana.length > 0 && (
+                <div className="px-4 pb-2 space-y-2.5">
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest pt-2">Confirmar Mañana ({citasManana.length})</h3>
+                  {citasManana.map(c => {
+                    const tel = getTelefonoPaciente(c.paciente_id)
+                    const mensaje = `Hola ${c.nombre_paciente}, te confirmamos tu cita de ${ETIQUETA_TIPO_CITA[c.tipo]} el día de mañana a las ${c.hora_cita.substring(0, 5)} hrs con la Nutrióloga Marla.\n\nPor favor responde 1 para confirmar o 2 para reagendar. ¡Excelente día! 🌿`
+                    return (
+                      <div key={c.id} className="bg-white p-3.5 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-xs font-black text-slate-800 truncate">{c.nombre_paciente}</p>
+                          <p className="text-[10px] text-slate-500 font-bold">{c.hora_cita.substring(0, 5)} hrs · {ETIQUETA_TIPO_CITA[c.tipo]}</p>
+                        </div>
+                        {tel ? (
+                          <a href={`https://wa.me/${tel}?text=${encodeURIComponent(mensaje)}`} target="_blank" className="shrink-0 bg-[#25D366] text-white text-[10px] font-black px-3 py-2 rounded-xl">WhatsApp</a>
+                        ) : (
+                          <span className="shrink-0 text-[10px] text-slate-400 font-bold">Sin tel.</span>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               )}
 

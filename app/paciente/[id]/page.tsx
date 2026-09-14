@@ -12,15 +12,45 @@ import GraficaProgreso from '../../../components/GraficaProgreso'
 import Link from 'next/link'
 
 const ETIQUETAS_ANTECEDENTES: Record<string, string> = {
-  heredo_familiares: 'Antecedentes Heredo Familiares',
-  patologicos: 'Antecedentes Personales Patológicos',
+  heredo_familiares: 'Antecedentes Heredo Familiares (otros)',
+  heredo_dm: 'Heredo — Diabetes (DM)',
+  heredo_hat: 'Heredo — Hipertensión (HAT)',
+  heredo_obesidad: 'Heredo — Obesidad',
+  patologicos: 'Antecedentes Personales Patológicos (otros)',
+  app_dislipidemia: 'APP — Dislipidemia',
+  app_gastritis: 'APP — Gastritis',
+  app_ansiedad: 'APP — Ansiedad',
+  app_depresion: 'APP — Depresión',
+  app_hiperglucemia: 'APP — Hiperglucemia',
+  app_hiperuricemia: 'APP — Hiperuricemia',
+  app_litiasis_renal: 'APP — Litiasis Renal',
   cirugias: 'Cirugías',
-  no_patologicos: 'Antecedentes Personales No Patológicos',
+  no_patologicos: 'Antecedentes Personales No Patológicos (otros)',
+  apnp_estrenimiento: 'APNP — Estreñimiento',
+  apnp_cansancio: 'APNP — Cansancio',
+  apnp_caida_cabello: 'APNP — Caída de Cabello',
+  apnp_inflamacion: 'APNP — Inflamación',
+  apnp_insomnio: 'APNP — Insomnio',
+  apnp_falta_concentracion: 'APNP — Falta de Concentración',
+  apnp_memoria_afectada: 'APNP — Memoria Afectada',
   laboratorios: 'Resultados de Laboratorios',
   medicamentos: 'Medicamentos',
-  suplementos_actuales: 'Suplementos que tomaba',
-  sueno: 'Patrón de Sueño',
-  objetivos: 'Objetivos Clínicos / Estéticos',
+  suplementos_actuales: 'Suplementos (otros / detalle)',
+  sup_leca_c: 'Suplemento — Leca C',
+  sup_omega_3: 'Suplemento — Omega 3',
+  sup_proteina: 'Suplemento — Proteína (Vegetal/Whey)',
+  sup_creatina: 'Suplemento — Creatina',
+  sup_magnesio: 'Suplemento — Magnesio',
+  sup_beta_alanina: 'Suplemento — Beta Alanina',
+  sup_gaba: 'Suplemento — GABA',
+  sup_inositol: 'Suplemento — Inositol',
+  sueno: 'Patrón de Sueño (detalle)',
+  sueno_horas: 'Horas de Sueño',
+  sueno_interrumpido: 'Sueño Interrumpido',
+  sueno_despertar: 'Al Despertar',
+  objetivos: 'Objetivos Clínicos / Estéticos (otros)',
+  objetivo_masa_muscular: 'Objetivo — Aumentar Masa Muscular',
+  objetivo_bajar_grasa: 'Objetivo — Bajar Grasa',
 }
 
 const ETIQUETAS_MEDICIONES: Record<string, string> = {
@@ -72,7 +102,28 @@ const ETIQUETAS_ENFOQUE: Record<string, string> = {
   pct_proteinas: 'Proteínas (%)',
   pct_grasas: 'Grasas (%)',
   notas_suplementos_recetados: 'Suplementación Recetada',
+  pep_semaglutida: 'Péptido — Semaglutida',
+  pep_tirzepatida: 'Péptido — Tirzepatida',
+  pep_retatrutide: 'Péptido — Retatrutide',
+  pep_bpc157: 'Péptido — BPC-157',
+  pep_tb500: 'Péptido — TB-500',
+  pep_epitalon: 'Péptido — Epitalon',
+  pep_humanin: 'Péptido — Humanin',
+  pep_ghk_cu: 'Péptido — GHK-Cu',
+  pep_nad: 'Péptido — NAD+',
 }
+
+const OPCIONES_SEMAGLUTIDA = ['', '0.25mg', '0.5mg', '1mg', '1.7mg', '2.4mg']
+const OPCIONES_TIRZEPATIDA = ['', '2.5mg', '5mg', '7.5mg', '10mg', '12.5mg', '15mg']
+const PEPTIDOS_SI_NO: { k: string; l: string }[] = [
+  { k: 'pep_retatrutide', l: 'Retatrutide' },
+  { k: 'pep_bpc157', l: 'BPC-157' },
+  { k: 'pep_tb500', l: 'TB-500' },
+  { k: 'pep_epitalon', l: 'Epitalon' },
+  { k: 'pep_humanin', l: 'Humanin' },
+  { k: 'pep_ghk_cu', l: 'GHK-Cu' },
+  { k: 'pep_nad', l: 'NAD+' },
+]
 
 function CamposDetalle({ datos, etiquetas }: { datos: Record<string, any> | null | undefined; etiquetas: Record<string, string> }) {
   if (!datos) return null
@@ -99,6 +150,40 @@ function SeccionDetalle({ titulo, icono, children }: { titulo: string; icono: st
   )
 }
 
+function GrupoSiNo({ items, valores, onChange }: { items: { k: string; l: string }[]; valores: Record<string, any>; onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void }) {
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+      {items.map(item => (
+        <div key={item.k} className="flex items-center justify-between gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2.5 shadow-sm">
+          <span className="text-[11px] font-bold text-slate-600">{item.l}</span>
+          <select name={item.k} value={valores[item.k] ?? 'No'} onChange={onChange} className="p-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-black text-center outline-none focus:ring-2 focus:ring-teal-500 shrink-0">
+            <option value="No">No</option>
+            <option value="Si">Sí</option>
+          </select>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+const HEREDO_ITEMS = [
+  { k: 'heredo_dm', l: 'Diabetes (DM)' }, { k: 'heredo_hat', l: 'Hipertensión (HAT)' }, { k: 'heredo_obesidad', l: 'Obesidad' },
+]
+const APP_ITEMS = [
+  { k: 'app_dislipidemia', l: 'Dislipidemia' }, { k: 'app_gastritis', l: 'Gastritis' }, { k: 'app_ansiedad', l: 'Ansiedad' },
+  { k: 'app_depresion', l: 'Depresión' }, { k: 'app_hiperglucemia', l: 'Hiperglucemia' }, { k: 'app_hiperuricemia', l: 'Hiperuricemia' },
+  { k: 'app_litiasis_renal', l: 'Litiasis Renal' },
+]
+const APNP_ITEMS = [
+  { k: 'apnp_estrenimiento', l: 'Estreñimiento' }, { k: 'apnp_cansancio', l: 'Cansancio' }, { k: 'apnp_caida_cabello', l: 'Caída de Cabello' },
+  { k: 'apnp_inflamacion', l: 'Inflamación' }, { k: 'apnp_insomnio', l: 'Insomnio' },
+  { k: 'apnp_falta_concentracion', l: 'Falta de Concentración' }, { k: 'apnp_memoria_afectada', l: 'Memoria Afectada' },
+]
+const SUPLEMENTOS_SI_NO_ITEMS = [
+  { k: 'sup_leca_c', l: 'Leca C' }, { k: 'sup_omega_3', l: 'Omega 3' }, { k: 'sup_proteina', l: 'Proteína (Vegetal/Whey)' },
+  { k: 'sup_creatina', l: 'Creatina' }, { k: 'sup_beta_alanina', l: 'Beta Alanina' }, { k: 'sup_gaba', l: 'GABA' }, { k: 'sup_inositol', l: 'Inositol' },
+]
+
 const SERVICIOS = [
   { id: 'Primera Vez', label: 'Primera Vez', precio: '1000', icon: '🌟' },
   { id: 'Subsecuente', label: 'Subsecuente', precio: '800', icon: '🔄' },
@@ -110,8 +195,17 @@ const SERVICIOS = [
 ]
 
 const FORM_CLINICO_VACIO = {
-  heredo_familiares: '', patologicos: '', cirugias: '', no_patologicos: '',
-  laboratorios: '', medicamentos: '', suplementos_actuales: '', sueno: '', objetivos: '',
+  heredo_familiares: '', heredo_dm: 'No', heredo_hat: 'No', heredo_obesidad: 'No',
+  patologicos: '', app_dislipidemia: 'No', app_gastritis: 'No', app_ansiedad: 'No', app_depresion: 'No',
+  app_hiperglucemia: 'No', app_hiperuricemia: 'No', app_litiasis_renal: 'No',
+  cirugias: '', no_patologicos: '',
+  apnp_estrenimiento: 'No', apnp_cansancio: 'No', apnp_caida_cabello: 'No', apnp_inflamacion: 'No',
+  apnp_insomnio: 'No', apnp_falta_concentracion: 'No', apnp_memoria_afectada: 'No',
+  laboratorios: '', medicamentos: '', suplementos_actuales: '',
+  sup_leca_c: 'No', sup_omega_3: 'No', sup_proteina: 'No', sup_creatina: 'No', sup_magnesio: '',
+  sup_beta_alanina: 'No', sup_gaba: 'No', sup_inositol: 'No',
+  sueno: '', sueno_horas: '', sueno_interrumpido: 'No', sueno_despertar: '',
+  objetivos: '', objetivo_masa_muscular: 'No', objetivo_bajar_grasa: 'No',
   circ_abdominal: '', circ_umbilical: '', bicep_izq_reposo: '', bicep_der_reposo: '',
   gluteo: '', muslo: '', pecho: '',
   p_abdominal: '', p_triceps: '', p_biceps: '', p_subescapular: '', p_suprailiaco: '', p_muslo: '', p_pantorrilla: '', p_pectoral: '', p_medio_axilar: '',
@@ -123,6 +217,8 @@ const FORM_CLINICO_VACIO = {
   deporte_disciplina: 'Gimnasio',
   enfoque: 'Deficit Calorico Ligero', aporte_calorico: '', tiempos_comida: '3',
   pct_carbohidratos: '', pct_proteinas: '', pct_grasas: '', notas_suplementos_recetados: '',
+  pep_semaglutida: '', pep_tirzepatida: '', pep_retatrutide: 'No', pep_bpc157: 'No', pep_tb500: 'No',
+  pep_epitalon: 'No', pep_humanin: 'No', pep_ghk_cu: 'No', pep_nad: 'No',
   notas_seguimiento_general: '',
 }
 
@@ -158,6 +254,7 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
   const [planParaImprimir, setPlanParaImprimir] = useState<{
     paciente: string; fecha: string; objetivos: string; enfoque: Record<string, any>
   } | null>(null)
+  const [expedienteParaImprimir, setExpedienteParaImprimir] = useState(false)
   const mostrarToast = (mensaje: string, tipo: 'exito' | 'error' | 'advertencia') => { setToast({ mensaje, tipo }); setTimeout(() => setToast(null), 4000) }
 
   const [formClinico, setFormClinico] = useState(FORM_CLINICO_VACIO)
@@ -340,12 +437,21 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
       enfoque: consulta.enfoque_nutricional || {},
     })
     setReciboParaImprimir(null)
+    setExpedienteParaImprimir(false)
+    setTimeout(() => window.print(), 300)
+  }
+
+  const generarExpedienteCompletoPDF = () => {
+    setReciboParaImprimir(null)
+    setPlanParaImprimir(null)
+    setExpedienteParaImprimir(true)
     setTimeout(() => window.print(), 300)
   }
 
   const imprimirTicketPasado = (pago: Pago, productos: { nombre: string }[]) => {
     if (!paciente) return
     setPlanParaImprimir(null)
+    setExpedienteParaImprimir(false)
     setReciboParaImprimir({
       paciente: paciente.nombre_completo,
       concepto: pago.concepto || '',
@@ -463,9 +569,25 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
     // los pre-llena con el último valor conocido para que Marla los revise y
     // actualice si algo cambió (nueva alergia, nuevo medicamento, etc.).
     const antecedentes = {
-      heredo_familiares: formClinico.heredo_familiares, patologicos: formClinico.patologicos, cirugias: formClinico.cirugias,
-      no_patologicos: formClinico.no_patologicos, laboratorios: formClinico.laboratorios, medicamentos: formClinico.medicamentos,
-      suplementos_actuales: formClinico.suplementos_actuales, sueno: formClinico.sueno, objetivos: formClinico.objetivos,
+      heredo_familiares: formClinico.heredo_familiares,
+      heredo_dm: formClinico.heredo_dm, heredo_hat: formClinico.heredo_hat, heredo_obesidad: formClinico.heredo_obesidad,
+      patologicos: formClinico.patologicos,
+      app_dislipidemia: formClinico.app_dislipidemia, app_gastritis: formClinico.app_gastritis, app_ansiedad: formClinico.app_ansiedad,
+      app_depresion: formClinico.app_depresion, app_hiperglucemia: formClinico.app_hiperglucemia, app_hiperuricemia: formClinico.app_hiperuricemia,
+      app_litiasis_renal: formClinico.app_litiasis_renal,
+      cirugias: formClinico.cirugias,
+      no_patologicos: formClinico.no_patologicos,
+      apnp_estrenimiento: formClinico.apnp_estrenimiento, apnp_cansancio: formClinico.apnp_cansancio, apnp_caida_cabello: formClinico.apnp_caida_cabello,
+      apnp_inflamacion: formClinico.apnp_inflamacion, apnp_insomnio: formClinico.apnp_insomnio,
+      apnp_falta_concentracion: formClinico.apnp_falta_concentracion, apnp_memoria_afectada: formClinico.apnp_memoria_afectada,
+      laboratorios: formClinico.laboratorios, medicamentos: formClinico.medicamentos,
+      suplementos_actuales: formClinico.suplementos_actuales,
+      sup_leca_c: formClinico.sup_leca_c, sup_omega_3: formClinico.sup_omega_3, sup_proteina: formClinico.sup_proteina,
+      sup_creatina: formClinico.sup_creatina, sup_magnesio: formClinico.sup_magnesio, sup_beta_alanina: formClinico.sup_beta_alanina,
+      sup_gaba: formClinico.sup_gaba, sup_inositol: formClinico.sup_inositol,
+      sueno: formClinico.sueno, sueno_horas: formClinico.sueno_horas, sueno_interrumpido: formClinico.sueno_interrumpido,
+      sueno_despertar: formClinico.sueno_despertar,
+      objetivos: formClinico.objetivos, objetivo_masa_muscular: formClinico.objetivo_masa_muscular, objetivo_bajar_grasa: formClinico.objetivo_bajar_grasa,
     }
 
     const mediciones = {
@@ -494,6 +616,14 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
       enfoque: formClinico.enfoque, aporte_calorico: formClinico.aporte_calorico, tiempos_comida: formClinico.tiempos_comida,
       pct_carbohidratos: formClinico.pct_carbohidratos, pct_proteinas: formClinico.pct_proteinas, pct_grasas: formClinico.pct_grasas,
       notas_suplementos_recetados: formClinico.notas_suplementos_recetados,
+      pep_semaglutida: formClinico.pep_semaglutida, pep_tirzepatida: formClinico.pep_tirzepatida,
+      pep_retatrutide: formClinico.pep_retatrutide, pep_bpc157: formClinico.pep_bpc157, pep_tb500: formClinico.pep_tb500,
+      pep_epitalon: formClinico.pep_epitalon, pep_humanin: formClinico.pep_humanin, pep_ghk_cu: formClinico.pep_ghk_cu, pep_nad: formClinico.pep_nad,
+    }
+
+    const sumaMacros = (Number(formClinico.pct_carbohidratos) || 0) + (Number(formClinico.pct_proteinas) || 0) + (Number(formClinico.pct_grasas) || 0)
+    if (sumaMacros !== 0 && sumaMacros !== 100) {
+      return mostrarToast(`La distribución de macros debe sumar 100% (ahora suma ${sumaMacros}%).`, 'advertencia')
     }
 
     const citaAsociada = citaHoyEnEspera || null
@@ -615,16 +745,66 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
                     Se precargó lo último registrado. Solo actualiza lo que haya cambiado (nuevo medicamento, alergia, cirugía, etc.).
                   </div>
                 )}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="col-span-full"><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Antecedentes Heredo Familiares</label><textarea name="heredo_familiares" value={formClinico.heredo_familiares} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500 transition-all" rows={2} /></div>
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Antecedentes Personales Patológicos</label><textarea name="patologicos" value={formClinico.patologicos} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500 transition-all" rows={2} /></div>
+                <div className="space-y-5">
+
+                  <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+                    <p className="font-bold text-sm text-slate-700">Antecedentes Heredo Familiares</p>
+                    <GrupoSiNo items={HEREDO_ITEMS} valores={formClinico} onChange={handleFormChange} />
+                    <textarea name="heredo_familiares" value={formClinico.heredo_familiares} onChange={handleFormChange} placeholder="Otro / cómo está..." className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500 transition-all" rows={2} />
+                  </div>
+
+                  <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+                    <p className="font-bold text-sm text-slate-700">Antecedentes Personales Patológicos (APP)</p>
+                    <GrupoSiNo items={APP_ITEMS} valores={formClinico} onChange={handleFormChange} />
+                    <textarea name="patologicos" value={formClinico.patologicos} onChange={handleFormChange} placeholder="Otro..." className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500 transition-all" rows={2} />
+                  </div>
+
                   <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Cirugías</label><textarea name="cirugias" value={formClinico.cirugias} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500 transition-all" rows={2} /></div>
-                  <div className="col-span-full"><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Antecedentes Personales No Patológicos</label><textarea name="no_patologicos" value={formClinico.no_patologicos} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500 transition-all" rows={2} /></div>
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Resultados de Laboratorios</label><input type="text" name="laboratorios" value={formClinico.laboratorios} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all" /></div>
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Medicamentos</label><input type="text" name="medicamentos" value={formClinico.medicamentos} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all" /></div>
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Suplementos que toma actualmente</label><input type="text" name="suplementos_actuales" value={formClinico.suplementos_actuales} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all" /></div>
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Patrón de Sueño</label><input type="text" name="sueno" value={formClinico.sueno} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all" placeholder="Horas, calidad del descanso..." /></div>
-                  <div className="col-span-full"><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Objetivos Clínicos / Estéticos</label><input type="text" name="objetivos" value={formClinico.objetivos} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all" /></div>
+
+                  <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+                    <p className="font-bold text-sm text-slate-700">Antecedentes Personales No Patológicos (APNP)</p>
+                    <GrupoSiNo items={APNP_ITEMS} valores={formClinico} onChange={handleFormChange} />
+                    <textarea name="no_patologicos" value={formClinico.no_patologicos} onChange={handleFormChange} placeholder="Más campo libre..." className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500 transition-all" rows={2} />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Resultados de Laboratorios</label>
+                      <input type="text" name="laboratorios" value={formClinico.laboratorios} onChange={handleFormChange} placeholder="Notas rápidas — el PDF se sube en Documentos ↓" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all" />
+                    </div>
+                    <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Medicamentos</label><input type="text" name="medicamentos" value={formClinico.medicamentos} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all" /></div>
+                  </div>
+
+                  <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+                    <p className="font-bold text-sm text-slate-700">Suplementos que toma actualmente</p>
+                    <GrupoSiNo items={SUPLEMENTOS_SI_NO_ITEMS} valores={formClinico} onChange={handleFormChange} />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="flex items-center justify-between gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2.5 shadow-sm">
+                        <span className="text-[11px] font-bold text-slate-600">Magnesio</span>
+                        <select name="sup_magnesio" value={formClinico.sup_magnesio} onChange={handleFormChange} className="p-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-black text-center outline-none focus:ring-2 focus:ring-teal-500">
+                          <option value="">No toma</option><option value="TL">TL</option><option value="CT">CT</option><option value="Otro">Otro Magnesio</option>
+                        </select>
+                      </div>
+                      <input type="text" name="suplementos_actuales" value={formClinico.suplementos_actuales} onChange={handleFormChange} placeholder="Otro / detalle..." className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500" />
+                    </div>
+                  </div>
+
+                  <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+                    <p className="font-bold text-sm text-slate-700">Patrón de Sueño</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div><label className="block text-[10px] font-bold text-slate-500 mb-1.5 ml-1">Horas</label><select name="sueno_horas" value={formClinico.sueno_horas} onChange={handleFormChange} className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-teal-500"><option value="">—</option><option value="6_o_menos">6 o menos</option><option value="7_a_8">7 - 8</option><option value="8_o_mas">8 o más</option></select></div>
+                      <div><label className="block text-[10px] font-bold text-slate-500 mb-1.5 ml-1">Interrumpido</label><select name="sueno_interrumpido" value={formClinico.sueno_interrumpido} onChange={handleFormChange} className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-teal-500"><option value="No">No</option><option value="Si">Sí</option></select></div>
+                      <div><label className="block text-[10px] font-bold text-slate-500 mb-1.5 ml-1">Al despertar</label><select name="sueno_despertar" value={formClinico.sueno_despertar} onChange={handleFormChange} className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-teal-500"><option value="">—</option><option value="Con energia">Con energía</option><option value="Cansado">Cansado</option></select></div>
+                    </div>
+                    <input type="text" name="sueno" value={formClinico.sueno} onChange={handleFormChange} placeholder="Detalle adicional..." className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500" />
+                  </div>
+
+                  <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+                    <p className="font-bold text-sm text-slate-700">Objetivos Clínicos / Estéticos</p>
+                    <GrupoSiNo items={[{ k: 'objetivo_masa_muscular', l: 'Aumento Masa Muscular' }, { k: 'objetivo_bajar_grasa', l: 'Bajar Grasa' }]} valores={formClinico} onChange={handleFormChange} />
+                    <input type="text" name="objetivos" value={formClinico.objetivos} onChange={handleFormChange} placeholder="Personalizar / otro objetivo..." className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500" />
+                  </div>
+
                 </div>
               </div>
             )}
@@ -739,13 +919,39 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
                 </div>
 
                 <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 grid grid-cols-3 gap-4 shadow-sm">
-                  <p className="col-span-full font-bold text-sm text-slate-700">Distribución de Macronutrientes (%)</p>
+                  <div className="col-span-full flex items-center justify-between">
+                    <p className="font-bold text-sm text-slate-700">Distribución de Macronutrientes (%)</p>
+                    {(() => {
+                      const suma = (Number(formClinico.pct_carbohidratos) || 0) + (Number(formClinico.pct_proteinas) || 0) + (Number(formClinico.pct_grasas) || 0)
+                      if (suma === 0) return null
+                      return <span className={`text-xs font-black px-2.5 py-1 rounded-full ${suma === 100 ? 'bg-teal-100 text-teal-700' : 'bg-red-100 text-red-600'}`}>Total: {suma}% {suma === 100 ? '✓' : '⚠️ debe sumar 100%'}</span>
+                    })()}
+                  </div>
                   <div><label className="block text-[10px] font-bold text-slate-500 mb-1.5 ml-1">Carbohidratos</label><input type="number" name="pct_carbohidratos" value={formClinico.pct_carbohidratos} onChange={handleFormChange} placeholder="%" className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-teal-500 text-center" /></div>
                   <div><label className="block text-[10px] font-bold text-slate-500 mb-1.5 ml-1">Proteínas</label><input type="number" name="pct_proteinas" value={formClinico.pct_proteinas} onChange={handleFormChange} placeholder="%" className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-teal-500 text-center" /></div>
                   <div><label className="block text-[10px] font-bold text-slate-500 mb-1.5 ml-1">Grasas</label><input type="number" name="pct_grasas" value={formClinico.pct_grasas} onChange={handleFormChange} placeholder="%" className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-teal-500 text-center" /></div>
                 </div>
 
                 <div className="col-span-full"><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Prescripción de Suplementación Específica</label><textarea name="notas_suplementos_recetados" value={formClinico.notas_suplementos_recetados} onChange={handleFormChange} placeholder="Dosis y marcas de suplementos indicados..." className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" rows={3} /></div>
+
+                <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+                  <p className="font-bold text-sm text-slate-700">Prescripción de Péptidos</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="flex items-center justify-between gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2.5 shadow-sm">
+                      <span className="text-[11px] font-bold text-slate-600">Semaglutida</span>
+                      <select name="pep_semaglutida" value={formClinico.pep_semaglutida} onChange={handleFormChange} className="p-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-black text-center outline-none focus:ring-2 focus:ring-teal-500">
+                        {OPCIONES_SEMAGLUTIDA.map(d => <option key={d} value={d}>{d === '' ? 'No aplica' : d}</option>)}
+                      </select>
+                    </div>
+                    <div className="flex items-center justify-between gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2.5 shadow-sm">
+                      <span className="text-[11px] font-bold text-slate-600">Tirzepatida</span>
+                      <select name="pep_tirzepatida" value={formClinico.pep_tirzepatida} onChange={handleFormChange} className="p-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-black text-center outline-none focus:ring-2 focus:ring-teal-500">
+                        {OPCIONES_TIRZEPATIDA.map(d => <option key={d} value={d}>{d === '' ? 'No aplica' : d}</option>)}
+                      </select>
+                    </div>
+                  </div>
+                  <GrupoSiNo items={PEPTIDOS_SI_NO} valores={formClinico} onChange={handleFormChange} />
+                </div>
               </div>
             )}
 
@@ -983,7 +1189,14 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
 
         {esFullAccess && !esPrimeraVez && (
           <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8">
-            <h3 className="text-base font-black text-slate-800 mb-6 uppercase tracking-widest flex items-center gap-2"><span>📋</span> Historial Clínico</h3>
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+              <h3 className="text-base font-black text-slate-800 uppercase tracking-widest flex items-center gap-2"><span>📋</span> Historial Clínico</h3>
+              {consultas.length > 0 && (
+                <button onClick={generarExpedienteCompletoPDF} className="flex items-center gap-1.5 bg-slate-100 text-slate-700 text-xs font-bold px-3 py-2 rounded-lg hover:bg-slate-800 hover:text-white transition-colors">
+                  📄 Exportar Expediente Completo (PDF)
+                </button>
+              )}
+            </div>
             <div className="space-y-5">
               {consultas.map((c) => {
                 const pagoAsociado = pagosPaciente.find(p => p.consulta_id === c.id)
@@ -1165,6 +1378,36 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
               </div>
             )}
             <p className="text-xs text-center mt-10 text-slate-500">Este plan es personalizado — no lo compartas con otras personas.</p>
+          </div>
+        </div>
+      )}
+
+      {expedienteParaImprimir && paciente && (
+        <div className="ticket-imprimible hidden print:block p-10 text-black bg-white">
+          <div className="max-w-2xl mx-auto">
+            <h1 className="text-2xl font-black text-center mb-1">Clínica Marla 🌿</h1>
+            <p className="text-sm text-center text-slate-600 mb-1">Expediente Clínico Completo</p>
+            <p className="text-sm text-center font-bold mb-8">{paciente.nombre_completo}</p>
+
+            {[...consultas].reverse().map((c, i) => (
+              <div key={c.id} className={i > 0 ? 'pt-8 mt-8 border-t-2 border-slate-800' : ''} style={i > 0 ? { pageBreakBefore: 'always' } : undefined}>
+                <p className="text-[11px] font-black uppercase tracking-widest text-slate-500 mb-1">{c.tipo === 'primera_vez' ? 'Consulta Inicial' : 'Consulta de Seguimiento'}</p>
+                <p className="text-lg font-black mb-4">{new Date(c.fecha).toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                {c.notas_evolucion && <p className="text-sm mb-4">{c.notas_evolucion}</p>}
+                {(c.peso_actual || c.porcentaje_grasa) && (
+                  <p className="text-xs font-bold mb-4">⚖️ {c.peso_actual ? `${c.peso_actual} kg` : ''} {c.porcentaje_grasa ? `• ${c.porcentaje_grasa}% grasa` : ''}</p>
+                )}
+                <div className="space-y-4 text-sm">
+                  <div><p className="text-xs font-black uppercase tracking-widest border-b border-slate-300 pb-1 mb-2">Antecedentes</p><CamposDetalle datos={c.antecedentes} etiquetas={ETIQUETAS_ANTECEDENTES} /></div>
+                  <div><p className="text-xs font-black uppercase tracking-widest border-b border-slate-300 pb-1 mb-2">Mediciones</p><CamposDetalle datos={c.mediciones} etiquetas={ETIQUETAS_MEDICIONES} /></div>
+                  <div><p className="text-xs font-black uppercase tracking-widest border-b border-slate-300 pb-1 mb-2">Peso e InBody</p><CamposDetalle datos={c.inbody} etiquetas={ETIQUETAS_INBODY} /></div>
+                  <div><p className="text-xs font-black uppercase tracking-widest border-b border-slate-300 pb-1 mb-2">Estilo de Vida</p><CamposDetalle datos={c.estilo_vida} etiquetas={ETIQUETAS_ESTILO_VIDA} /></div>
+                  <div><p className="text-xs font-black uppercase tracking-widest border-b border-slate-300 pb-1 mb-2">Enfoque Nutricional</p><CamposDetalle datos={c.enfoque_nutricional} etiquetas={ETIQUETAS_ENFOQUE} /></div>
+                </div>
+              </div>
+            ))}
+
+            <p className="text-xs text-center mt-10 text-slate-500">Documento de uso clínico interno — Clínica Marla.</p>
           </div>
         </div>
       )}
