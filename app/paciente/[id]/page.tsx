@@ -5,8 +5,96 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { obtenerEstadoSesion, type SesionActual } from '../../../lib/auth'
-import type { Cita, Consulta, Paciente, Pago, Producto } from '../../../lib/types'
+import type { Cita, Consulta, Paciente, Pago, PagoProducto, Producto } from '../../../lib/types'
 import Link from 'next/link'
+
+const ETIQUETAS_ANTECEDENTES: Record<string, string> = {
+  heredo_familiares: 'Antecedentes Heredo Familiares',
+  patologicos: 'Antecedentes Personales Patológicos',
+  cirugias: 'Cirugías',
+  no_patologicos: 'Antecedentes Personales No Patológicos',
+  laboratorios: 'Resultados de Laboratorios',
+  medicamentos: 'Medicamentos',
+  suplementos_actuales: 'Suplementos que tomaba',
+  sueno: 'Patrón de Sueño',
+  objetivos: 'Objetivos Clínicos / Estéticos',
+}
+
+const ETIQUETAS_MEDICIONES: Record<string, string> = {
+  circ_abdominal: 'Circ. Abdominal (cm)',
+  circ_umbilical: 'Circ. Umbilical (cm)',
+  pecho: 'Pecho (cm)',
+  gluteo: 'Glúteo (cm)',
+  muslo: 'Muslo (cm)',
+  bicep_izq_reposo: 'Bicep Izq (Reposo/Flex)',
+  bicep_der_reposo: 'Bicep Der (Reposo/Flex)',
+}
+
+const ETIQUETAS_INBODY: Record<string, string> = {
+  peso_kg: 'Peso Total (kg)',
+  musculo_esqu_kg: 'Masa Muscular Esquelética (kg)',
+  masa_grasa_kg: 'Masa Grasa Corporal (kg)',
+  grasa_pct: 'Porcentaje de Grasa (%)',
+  grasa_visceral: 'Grasa Visceral (Nivel)',
+  tmb_kcal: 'TMB (kcal)',
+  agua_total_lt: 'Agua Corporal Total (Lts)',
+  peso_ideal_kg: 'Peso Ideal Configurado (kg)',
+  grasa_bajar_kg: 'Grasa a bajar (kg)',
+  musculo_subir_kg: 'Músculo a subir (kg)',
+}
+
+const ETIQUETAS_ESTILO_VIDA: Record<string, string> = {
+  alergias_intolerancias: 'Alergias o Intolerancias',
+  agua_diaria: 'Consumo de Agua Diario',
+  ansiedad: 'Ansiedad / Estrés',
+  restricciones_alimentarias: 'Restricciones Alimentarias',
+  alcohol: 'Alcohol',
+  cigarro: 'Cigarro',
+  vape: 'Vape',
+  drogas: 'Drogas',
+  recordatorio_24h: 'Recordatorio de 24 Horas',
+  alimentos_mas_consumidos: 'Alimentos más consumidos',
+  alimentos_menos_consumidos: 'Alimentos menos consumidos',
+  actividad_fisica_freq: 'Actividad Física — Frecuencia',
+  actividad_fisica_duracion: 'Actividad Física — Duración',
+  actividad_fisica_intensidad: 'Actividad Física — Intensidad',
+  deporte_disciplina: 'Disciplina / Deporte',
+}
+
+const ETIQUETAS_ENFOQUE: Record<string, string> = {
+  enfoque: 'Enfoque Nutricional',
+  aporte_calorico: 'Aporte Calórico Sugerido (kcal)',
+  tiempos_comida: 'Tiempos de comida al día',
+  pct_carbohidratos: 'Carbohidratos (%)',
+  pct_proteinas: 'Proteínas (%)',
+  pct_grasas: 'Grasas (%)',
+  notas_suplementos_recetados: 'Suplementación Recetada',
+}
+
+function CamposDetalle({ datos, etiquetas }: { datos: Record<string, any> | null | undefined; etiquetas: Record<string, string> }) {
+  if (!datos) return null
+  const entradas = Object.entries(etiquetas).filter(([clave]) => datos[clave] !== undefined && datos[clave] !== null && String(datos[clave]).trim() !== '')
+  if (entradas.length === 0) return null
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+      {entradas.map(([clave, etiqueta]) => (
+        <div key={clave}>
+          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{etiqueta}</p>
+          <p className="text-sm font-bold text-slate-700">{String(datos[clave])}</p>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function SeccionDetalle({ titulo, icono, children }: { titulo: string; icono: string; children: React.ReactNode }) {
+  return (
+    <div className="border-t border-slate-100 pt-4 mt-4 first:border-t-0 first:pt-0 first:mt-0">
+      <p className="text-xs font-black text-slate-800 uppercase tracking-wide mb-3 flex items-center gap-1.5">{icono} {titulo}</p>
+      {children}
+    </div>
+  )
+}
 
 const SERVICIOS = [
   { id: 'Primera Vez', label: 'Primera Vez', precio: '1000', icon: '🌟' },
@@ -42,8 +130,10 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
   const [citasPaciente, setCitasPaciente] = useState<Cita[]>([])
   const [consultas, setConsultas] = useState<Consulta[]>([])
   const [pagosPaciente, setPagosPaciente] = useState<Pago[]>([])
+  const [pagoProductosPaciente, setPagoProductosPaciente] = useState<PagoProducto[]>([])
   const [catalogo, setCatalogo] = useState<Producto[]>([])
   const [loading, setLoading] = useState(true)
+  const [consultaExpandida, setConsultaExpandida] = useState<string | null>(null)
 
   const [modoConsulta, setModoConsulta] = useState(false)
   const [showCheckout, setShowCheckout] = useState(false)
@@ -105,6 +195,11 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
 
       const { data: invData } = await supabase.from('inventario').select('*').order('producto', { ascending: true })
       if (invData) setCatalogo(invData as Producto[])
+
+      if (payData && payData.length > 0) {
+        const { data: ppData } = await supabase.from('pago_productos').select('*').in('pago_id', payData.map(p => p.id))
+        if (ppData) setPagoProductosPaciente(ppData as PagoProducto[])
+      }
     }
 
     setLoading(false)
@@ -655,21 +750,75 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
             <div className="space-y-5">
               {consultas.map((c) => {
                 const pagoAsociado = pagosPaciente.find(p => p.consulta_id === c.id)
+                const productosVendidos = pagoAsociado ? pagoProductosPaciente.filter(pp => pp.pago_id === pagoAsociado.id) : []
+                const expandida = consultaExpandida === c.id
                 return (
-                  <div key={c.id} className="border border-slate-200 rounded-3xl overflow-hidden bg-white shadow-sm flex flex-col md:flex-row p-6 gap-4">
-                    <div className="flex-1">
-                      <p className="text-[11px] font-black text-teal-600 uppercase mb-1">{c.tipo === 'primera_vez' ? 'Consulta Inicial' : 'Consulta de Seguimiento'}</p>
-                      <p className="text-xl font-black text-slate-800">{formatearFechaDisplay(c.fecha)}</p>
-                      {c.notas_evolucion && <p className="text-sm text-slate-600 mt-3">{c.notas_evolucion}</p>}
-                      {(c.peso_actual || c.porcentaje_grasa) && (
-                        <p className="text-xs font-bold text-slate-500 mt-3">⚖️ {c.peso_actual ? `${c.peso_actual} kg` : ''} {c.porcentaje_grasa ? `• ${c.porcentaje_grasa}% grasa` : ''}</p>
+                  <div key={c.id} className="border border-slate-200 rounded-3xl overflow-hidden bg-white shadow-sm">
+                    <button onClick={() => setConsultaExpandida(expandida ? null : c.id)} className="w-full text-left flex flex-col md:flex-row p-6 gap-4 hover:bg-slate-50/50 transition-colors">
+                      <div className="flex-1">
+                        <p className="text-[11px] font-black text-teal-600 uppercase mb-1">{c.tipo === 'primera_vez' ? 'Consulta Inicial' : 'Consulta de Seguimiento'}</p>
+                        <p className="text-xl font-black text-slate-800">{formatearFechaDisplay(c.fecha)}</p>
+                        {c.notas_evolucion && <p className="text-sm text-slate-600 mt-3">{c.notas_evolucion}</p>}
+                        {(c.peso_actual || c.porcentaje_grasa) && (
+                          <p className="text-xs font-bold text-slate-500 mt-3">⚖️ {c.peso_actual ? `${c.peso_actual} kg` : ''} {c.porcentaje_grasa ? `• ${c.porcentaje_grasa}% grasa` : ''}</p>
+                        )}
+                        <p className="text-xs font-bold text-teal-600 mt-3">{expandida ? '▾ Ocultar detalle' : '▸ Ver detalle completo'}</p>
+                      </div>
+                      {pagoAsociado && (
+                        <div className="md:w-48 md:border-l md:pl-4 border-slate-100 shrink-0">
+                          <p className="text-[10px] font-bold text-slate-400 uppercase mt-0 md:mt-4">Total de cuenta:</p>
+                          <p className="text-2xl font-black text-slate-900">${pagoAsociado.monto_esperado}</p>
+                          <p className="text-[10px] font-bold text-slate-500 mt-1 uppercase">{pagoAsociado.estado === 'pagado' ? 'Pagado' : 'Pendiente de pago'}</p>
+                        </div>
                       )}
-                    </div>
-                    {pagoAsociado && (
-                      <div className="md:w-48 md:border-l md:pl-4 border-slate-100">
-                        <p className="text-[10px] font-bold text-slate-400 uppercase mt-0 md:mt-4">Total de cuenta:</p>
-                        <p className="text-2xl font-black text-slate-900">${pagoAsociado.monto_esperado}</p>
-                        <p className="text-[10px] font-bold text-slate-500 mt-1 uppercase">{pagoAsociado.estado === 'pagado' ? 'Pagado' : 'Pendiente de pago'}</p>
+                    </button>
+
+                    {expandida && (
+                      <div className="border-t border-slate-100 bg-slate-50/50 p-6">
+                        {pagoAsociado && (
+                          <SeccionDetalle titulo="Cobro" icono="💳">
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3 mb-3">
+                              <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Concepto</p><p className="text-sm font-bold text-slate-700">{pagoAsociado.concepto || '—'}</p></div>
+                              <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Efectivo</p><p className="text-sm font-bold text-slate-700">${pagoAsociado.monto_efectivo}</p></div>
+                              <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tarjeta</p><p className="text-sm font-bold text-slate-700">${pagoAsociado.monto_tarjeta}</p></div>
+                              <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Transferencia</p><p className="text-sm font-bold text-slate-700">${pagoAsociado.monto_transferencia}</p></div>
+                              {pagoAsociado.descuento_tipo !== 'ninguno' && (
+                                <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Descuento</p><p className="text-sm font-bold text-rose-600">{pagoAsociado.descuento_tipo === 'porcentaje' ? `${pagoAsociado.descuento_valor}%` : `$${pagoAsociado.descuento_valor}`}</p></div>
+                              )}
+                              {pagoAsociado.requiere_factura && (
+                                <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Factura</p><p className="text-sm font-bold text-slate-700">Sí, CFDI</p></div>
+                              )}
+                            </div>
+                            {productosVendidos.length > 0 && (
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Suplementos vendidos</p>
+                                <div className="space-y-1">
+                                  {productosVendidos.map(pp => {
+                                    const prod = catalogo.find(p => p.id === pp.producto_id)
+                                    return <p key={pp.id} className="text-sm font-bold text-slate-700">💊 {prod?.producto || 'Producto eliminado'} × {pp.cantidad} — ${(pp.precio_unit * pp.cantidad).toFixed(2)}</p>
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                          </SeccionDetalle>
+                        )}
+                        <SeccionDetalle titulo="Antecedentes" icono="📝"><CamposDetalle datos={c.antecedentes} etiquetas={ETIQUETAS_ANTECEDENTES} /></SeccionDetalle>
+                        <SeccionDetalle titulo="Mediciones" icono="📏">
+                          <CamposDetalle datos={c.mediciones} etiquetas={ETIQUETAS_MEDICIONES} />
+                          {c.mediciones?.realizar_plicometria === 'Si' && c.mediciones?.plicometria && Object.keys(c.mediciones.plicometria).length > 0 && (
+                            <div className="mt-3 pt-3 border-t border-slate-200">
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Plicometría (mm)</p>
+                              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                {Object.entries(c.mediciones.plicometria).map(([sitio, val]) => (
+                                  <p key={sitio} className="text-xs font-bold text-slate-700">{sitio.replace('_', ' ')}: {String(val)}</p>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </SeccionDetalle>
+                        <SeccionDetalle titulo="Peso e InBody" icono="⚖️"><CamposDetalle datos={c.inbody} etiquetas={ETIQUETAS_INBODY} /></SeccionDetalle>
+                        <SeccionDetalle titulo="Estilo de Vida" icono="🥗"><CamposDetalle datos={c.estilo_vida} etiquetas={ETIQUETAS_ESTILO_VIDA} /></SeccionDetalle>
+                        <SeccionDetalle titulo="Enfoque Nutricional" icono="🎯"><CamposDetalle datos={c.enfoque_nutricional} etiquetas={ETIQUETAS_ENFOQUE} /></SeccionDetalle>
                       </div>
                     )}
                   </div>

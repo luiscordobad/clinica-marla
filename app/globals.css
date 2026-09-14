@@ -5,3 +5,19 @@
 body {
   background-color: #f9fafb;
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .ticket-imprimible,
+  .ticket-imprimible * {
+    visibility: visible;
+  }
+  .ticket-imprimible {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+  }
+}

@@ -32,6 +32,10 @@ export default function Home() {
   const [toast, setToast] = useState<{ mensaje: string; tipo: 'exito' | 'error' | 'advertencia' } | null>(null)
 
   const [cobroActivo, setCobroActivo] = useState<Pago | null>(null)
+  const [reciboParaImprimir, setReciboParaImprimir] = useState<{
+    paciente: string; concepto: string; fecha: string; productos: string[]
+    metodos: { label: string; monto: number }[]; total: number; requiereFactura: boolean
+  } | null>(null)
   const [formCobro, setFormCobro] = useState({ efectivo: '', tarjeta: '', transferencia: '', requiereFactura: false, recibo: 'whatsapp' })
   const [procesandoCobro, setProcesandoCobro] = useState(false)
   const [urlWhatsAppPendiente, setUrlWhatsAppPendiente] = useState<string | null>(null)
@@ -388,8 +392,22 @@ export default function Home() {
       if (Number(formCobro.transferencia) > 0) metodosArray.push('Transf.')
 
       if (formCobro.recibo === 'pdf') {
+        const pacienteInfo = pacientes.find(p => p.id === cobroActivo.paciente_id)
+        setReciboParaImprimir({
+          paciente: pacienteInfo?.nombre_completo || 'Paciente',
+          concepto: cobroActivo.concepto || '',
+          fecha: new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }),
+          productos: nombresProdsVenta,
+          metodos: [
+            ...(Number(formCobro.efectivo) > 0 ? [{ label: 'Efectivo', monto: Number(formCobro.efectivo) }] : []),
+            ...(Number(formCobro.tarjeta) > 0 ? [{ label: 'Tarjeta', monto: Number(formCobro.tarjeta) }] : []),
+            ...(Number(formCobro.transferencia) > 0 ? [{ label: 'Transferencia', monto: Number(formCobro.transferencia) }] : []),
+          ],
+          total: totalEsperadoModal,
+          requiereFactura: formCobro.requiereFactura,
+        })
         mostrarToast('Generando Ticket PDF...', 'exito')
-        setTimeout(() => window.print(), 1000)
+        setTimeout(() => window.print(), 300)
       } else if (formCobro.recibo === 'whatsapp') {
         const pacienteInfo = pacientes.find(p => p.id === cobroActivo.paciente_id)
         if (pacienteInfo?.telefono) {
@@ -514,10 +532,15 @@ export default function Home() {
                       </button>
                     ) : (
                       <>
-                        {citaSeleccionada.estado === 'programada' && (
+                        {citaSeleccionada.estado === 'programada' && citaSeleccionada.fecha_cita === hoyFechaFormat && (
                           <button onClick={() => hacerCheckInRapido(citaSeleccionada.id, citaSeleccionada.nombre_paciente || '')} className="col-span-2 py-3.5 bg-[#00D084] text-white rounded-xl text-sm font-black hover:bg-emerald-600 transition-colors shadow-md flex items-center justify-center gap-2 mb-2">
                             📍 Registrar Llegada (Check-In)
                           </button>
+                        )}
+                        {citaSeleccionada.estado === 'programada' && citaSeleccionada.fecha_cita !== hoyFechaFormat && (
+                          <div className="col-span-2 py-2.5 bg-slate-50 text-slate-400 rounded-xl text-[11px] font-bold text-center mb-2 border border-slate-100">
+                            El Check-In se habilita el día de la cita
+                          </div>
                         )}
                         {citaSeleccionada.estado === 'en_espera' && esFullAccess && (
                           <Link href={`/paciente/${citaSeleccionada.paciente_id}`} className="col-span-2 py-3.5 flex items-center justify-center gap-2 bg-[#0066FF] text-white rounded-xl text-sm font-black shadow-md hover:bg-blue-700 transition-colors mb-2">
@@ -1270,6 +1293,37 @@ export default function Home() {
 
         </div>
       </div>
+
+      {/* TICKET DE IMPRESIÓN (solo visible al imprimir, ver globals.css) */}
+      {reciboParaImprimir && (
+        <div className="ticket-imprimible hidden print:block p-8 text-black bg-white">
+          <div className="max-w-sm mx-auto">
+            <h1 className="text-xl font-black text-center mb-1">Clínica Marla 🌿</h1>
+            <p className="text-xs text-center text-slate-600 mb-6">Ticket de Servicio</p>
+            <div className="border-t border-b border-slate-300 py-3 mb-3 text-sm">
+              <p><strong>Paciente:</strong> {reciboParaImprimir.paciente}</p>
+              <p><strong>Fecha:</strong> {reciboParaImprimir.fecha}</p>
+              <p><strong>Servicio:</strong> {reciboParaImprimir.concepto}</p>
+            </div>
+            {reciboParaImprimir.productos.length > 0 && (
+              <div className="mb-3 text-sm">
+                <p className="font-bold mb-1">Suplementos:</p>
+                {reciboParaImprimir.productos.map((p, i) => <p key={i}>• {p}</p>)}
+              </div>
+            )}
+            <div className="mb-3 text-sm">
+              <p className="font-bold mb-1">Forma de pago:</p>
+              {reciboParaImprimir.metodos.map((m, i) => <p key={i}>{m.label}: ${m.monto.toLocaleString()}</p>)}
+            </div>
+            <div className="border-t border-slate-300 pt-3 flex justify-between text-base font-black">
+              <span>TOTAL</span>
+              <span>${reciboParaImprimir.total.toLocaleString()}</span>
+            </div>
+            {reciboParaImprimir.requiereFactura && <p className="text-xs text-center mt-4">Tu factura CFDI será enviada a tu correo registrado.</p>}
+            <p className="text-xs text-center mt-6 text-slate-500">¡Gracias por tu visita!</p>
+          </div>
+        </div>
+      )}
 
       {/* BARRA DE NAVEGACIÓN INFERIOR (MÓVIL) */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-slate-200 flex items-stretch px-2 pt-1.5" style={{ paddingBottom: 'env(safe-area-inset-bottom, 6px)' }}>
