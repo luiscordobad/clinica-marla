@@ -1159,9 +1159,14 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
           <Link href="/" className="text-sm font-bold text-slate-500 hover:text-slate-800 flex items-center gap-2"><span className="text-lg">&larr;</span> Directorio</Link>
 
           <div className="flex gap-2">
-            {!citaHoyEnEspera && !yaAtendidoHoy && (
+            {!citaHoyEnEspera && !yaAtendidoHoy && citaHoyProgramada && (
               <button onClick={hacerCheckIn} className="px-5 py-3 rounded-2xl text-sm font-black transition-all flex items-center gap-2 bg-teal-50 text-teal-700 border border-teal-200 hover:bg-teal-100">
                 <span>🛋️</span> <span className="hidden sm:inline">Anunciar Llegada</span> Check-In
+              </button>
+            )}
+            {!citaHoyEnEspera && !yaAtendidoHoy && !citaHoyProgramada && (
+              <button onClick={() => { if (window.confirm(`${paciente.nombre_completo} no tiene cita programada para hoy. ¿Registrarlo de todas formas como visita sin cita?`)) hacerCheckIn() }} className="px-5 py-3 rounded-2xl text-sm font-black transition-all flex items-center gap-2 bg-slate-50 text-slate-500 border border-slate-200 hover:bg-slate-100">
+                <span>➕</span> <span className="hidden sm:inline">Registrar</span> Visita Sin Cita
               </button>
             )}
             {esFullAccess && (
