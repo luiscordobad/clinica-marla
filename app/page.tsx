@@ -431,6 +431,7 @@ export default function Home() {
   const citasManana = citas.filter(c => c.fecha_cita === mananaFechaFormat && c.estado !== 'cancelada' && c.estado !== 'ausente' && c.tipo !== 'bloqueo')
 
   const pacienteCitaSeleccionada = citaSeleccionada && citaSeleccionada.tipo !== 'bloqueo' ? pacientes.find(p => p.id === citaSeleccionada.paciente_id) : null
+  const horaCitaSeleccionadaYaPaso = citaSeleccionada ? new Date(`${citaSeleccionada.fecha_cita}T${citaSeleccionada.hora_cita}`) <= horaActual : false
   const telefonoLimpioCita = pacienteCitaSeleccionada?.telefono ? String(pacienteCitaSeleccionada.telefono).replace(/\D/g, '') : null
 
   if (loading || !sesion) return <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center"><p className="animate-pulse font-bold text-[#0066FF]">Cargando plataforma...</p></div>
@@ -558,9 +559,15 @@ export default function Home() {
                               ✏️ Modificar
                             </button>
 
-                            <button onClick={() => marcarAusente(citaSeleccionada.id)} className="py-2.5 flex items-center justify-center gap-1.5 bg-amber-50 text-amber-700 rounded-xl text-[10px] font-bold border border-amber-200 hover:bg-amber-100 transition-colors">
-                              👻 No Show
-                            </button>
+                            {citaSeleccionada.estado === 'programada' && horaCitaSeleccionadaYaPaso ? (
+                              <button onClick={() => marcarAusente(citaSeleccionada.id)} className="py-2.5 flex items-center justify-center gap-1.5 bg-amber-50 text-amber-700 rounded-xl text-[10px] font-bold border border-amber-200 hover:bg-amber-100 transition-colors">
+                                👻 No Show
+                              </button>
+                            ) : (
+                              <div className="py-2.5 flex items-center justify-center text-center bg-slate-50 text-slate-300 rounded-xl text-[9px] font-bold border border-slate-100 px-1">
+                                No Show se habilita a la hora de la cita
+                              </div>
+                            )}
                             <button onClick={() => cancelarCita(citaSeleccionada.id)} className="py-2.5 flex items-center justify-center gap-1.5 bg-rose-50 text-rose-600 rounded-xl text-[10px] font-bold border border-rose-200 hover:bg-rose-100 transition-colors">
                               ❌ Cancelar
                             </button>
