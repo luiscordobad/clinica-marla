@@ -150,17 +150,43 @@ function SeccionDetalle({ titulo, icono, children }: { titulo: string; icono: st
   )
 }
 
-function GrupoSiNo({ items, valores, onChange }: { items: { k: string; l: string }[]; valores: Record<string, any>; onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void }) {
+// Chips de toque único: tocas y ya quedó marcado, sin abrir un dropdown.
+// Es el mismo patrón de "tags" que usan apps como Avena para llenar algo
+// rápido desde el celular en vez de sentir que llenas un formulario.
+function GrupoSiNo({ items, valores, onToggle }: { items: { k: string; l: string }[]; valores: Record<string, any>; onToggle: (nombre: string) => void }) {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-      {items.map(item => (
-        <div key={item.k} className="flex items-center justify-between gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2.5 shadow-sm">
-          <span className="text-[11px] font-bold text-slate-600">{item.l}</span>
-          <select name={item.k} value={valores[item.k] ?? 'No'} onChange={onChange} className="p-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-black text-center outline-none focus:ring-2 focus:ring-teal-500 shrink-0">
-            <option value="No">No</option>
-            <option value="Si">Sí</option>
-          </select>
-        </div>
+    <div className="flex flex-wrap gap-2">
+      {items.map(item => {
+        const activo = valores[item.k] === 'Si'
+        return (
+          <button
+            key={item.k}
+            type="button"
+            onClick={() => onToggle(item.k)}
+            className={`px-3.5 py-2 rounded-full text-xs font-bold border transition-all ${activo ? 'bg-teal-500 border-teal-500 text-white shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-teal-300'}`}
+          >
+            {activo && '✓ '}{item.l}
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+// Selector tipo "segmento": para elegir 1 de varias opciones con un toque,
+// en vez de abrir un <select>. Mismo espíritu que GrupoSiNo.
+function Segmentado({ opciones, valor, onSeleccionar }: { opciones: { v: string; l: string }[]; valor: string; onSeleccionar: (v: string) => void }) {
+  return (
+    <div className="flex flex-wrap gap-2">
+      {opciones.map(o => (
+        <button
+          key={o.v}
+          type="button"
+          onClick={() => onSeleccionar(o.v)}
+          className={`px-3.5 py-2 rounded-full text-xs font-bold border transition-all ${valor === o.v ? 'bg-[#0066FF] border-[#0066FF] text-white shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-blue-300'}`}
+        >
+          {o.l}
+        </button>
       ))}
     </div>
   )
@@ -535,6 +561,9 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
     setFormClinico({ ...formClinico, [e.target.name]: e.target.value })
   }
 
+  const setCampoClinico = (nombre: string, valor: string) => setFormClinico(prev => ({ ...prev, [nombre]: valor }))
+  const alternarSiNo = (nombre: string) => setFormClinico(prev => ({ ...prev, [nombre]: (prev as any)[nombre] === 'Si' ? 'No' : 'Si' }))
+
   const handlePlicometriaChange = (sitio: string, val: string) => setPlicometriaValores({ ...plicometriaValores, [sitio]: val })
 
   const handleCheckoutChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
@@ -749,13 +778,13 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
 
                   <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
                     <p className="font-bold text-sm text-slate-700">Antecedentes Heredo Familiares</p>
-                    <GrupoSiNo items={HEREDO_ITEMS} valores={formClinico} onChange={handleFormChange} />
+                    <GrupoSiNo items={HEREDO_ITEMS} valores={formClinico} onToggle={alternarSiNo} />
                     <textarea name="heredo_familiares" value={formClinico.heredo_familiares} onChange={handleFormChange} placeholder="Otro / cómo está..." className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500 transition-all" rows={2} />
                   </div>
 
                   <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
                     <p className="font-bold text-sm text-slate-700">Antecedentes Personales Patológicos (APP)</p>
-                    <GrupoSiNo items={APP_ITEMS} valores={formClinico} onChange={handleFormChange} />
+                    <GrupoSiNo items={APP_ITEMS} valores={formClinico} onToggle={alternarSiNo} />
                     <textarea name="patologicos" value={formClinico.patologicos} onChange={handleFormChange} placeholder="Otro..." className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500 transition-all" rows={2} />
                   </div>
 
@@ -763,7 +792,7 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
 
                   <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
                     <p className="font-bold text-sm text-slate-700">Antecedentes Personales No Patológicos (APNP)</p>
-                    <GrupoSiNo items={APNP_ITEMS} valores={formClinico} onChange={handleFormChange} />
+                    <GrupoSiNo items={APNP_ITEMS} valores={formClinico} onToggle={alternarSiNo} />
                     <textarea name="no_patologicos" value={formClinico.no_patologicos} onChange={handleFormChange} placeholder="Más campo libre..." className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500 transition-all" rows={2} />
                   </div>
 
@@ -777,31 +806,34 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
 
                   <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
                     <p className="font-bold text-sm text-slate-700">Suplementos que toma actualmente</p>
-                    <GrupoSiNo items={SUPLEMENTOS_SI_NO_ITEMS} valores={formClinico} onChange={handleFormChange} />
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div className="flex items-center justify-between gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2.5 shadow-sm">
-                        <span className="text-[11px] font-bold text-slate-600">Magnesio</span>
-                        <select name="sup_magnesio" value={formClinico.sup_magnesio} onChange={handleFormChange} className="p-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-black text-center outline-none focus:ring-2 focus:ring-teal-500">
-                          <option value="">No toma</option><option value="TL">TL</option><option value="CT">CT</option><option value="Otro">Otro Magnesio</option>
-                        </select>
-                      </div>
-                      <input type="text" name="suplementos_actuales" value={formClinico.suplementos_actuales} onChange={handleFormChange} placeholder="Otro / detalle..." className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500" />
+                    <GrupoSiNo items={SUPLEMENTOS_SI_NO_ITEMS} valores={formClinico} onToggle={alternarSiNo} />
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Magnesio</p>
+                      <Segmentado opciones={[{ v: '', l: 'No toma' }, { v: 'TL', l: 'TL' }, { v: 'CT', l: 'CT' }, { v: 'Otro', l: 'Otro' }]} valor={formClinico.sup_magnesio} onSeleccionar={(v) => setCampoClinico('sup_magnesio', v)} />
                     </div>
+                    <input type="text" name="suplementos_actuales" value={formClinico.suplementos_actuales} onChange={handleFormChange} placeholder="Otro / detalle..." className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500" />
                   </div>
 
-                  <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
+                  <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
                     <p className="font-bold text-sm text-slate-700">Patrón de Sueño</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                      <div><label className="block text-[10px] font-bold text-slate-500 mb-1.5 ml-1">Horas</label><select name="sueno_horas" value={formClinico.sueno_horas} onChange={handleFormChange} className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-teal-500"><option value="">—</option><option value="6_o_menos">6 o menos</option><option value="7_a_8">7 - 8</option><option value="8_o_mas">8 o más</option></select></div>
-                      <div><label className="block text-[10px] font-bold text-slate-500 mb-1.5 ml-1">Interrumpido</label><select name="sueno_interrumpido" value={formClinico.sueno_interrumpido} onChange={handleFormChange} className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-teal-500"><option value="No">No</option><option value="Si">Sí</option></select></div>
-                      <div><label className="block text-[10px] font-bold text-slate-500 mb-1.5 ml-1">Al despertar</label><select name="sueno_despertar" value={formClinico.sueno_despertar} onChange={handleFormChange} className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs font-semibold outline-none focus:ring-2 focus:ring-teal-500"><option value="">—</option><option value="Con energia">Con energía</option><option value="Cansado">Cansado</option></select></div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Horas</p>
+                      <Segmentado opciones={[{ v: '6_o_menos', l: '6 o menos' }, { v: '7_a_8', l: '7 - 8' }, { v: '8_o_mas', l: '8 o más' }]} valor={formClinico.sueno_horas} onSeleccionar={(v) => setCampoClinico('sueno_horas', v)} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Interrumpido</p>
+                      <GrupoSiNo items={[{ k: 'sueno_interrumpido', l: 'Sueño interrumpido' }]} valores={formClinico} onToggle={alternarSiNo} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Al despertar</p>
+                      <Segmentado opciones={[{ v: 'Con energia', l: 'Con energía' }, { v: 'Cansado', l: 'Cansado' }]} valor={formClinico.sueno_despertar} onSeleccionar={(v) => setCampoClinico('sueno_despertar', v)} />
                     </div>
                     <input type="text" name="sueno" value={formClinico.sueno} onChange={handleFormChange} placeholder="Detalle adicional..." className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500" />
                   </div>
 
                   <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
                     <p className="font-bold text-sm text-slate-700">Objetivos Clínicos / Estéticos</p>
-                    <GrupoSiNo items={[{ k: 'objetivo_masa_muscular', l: 'Aumento Masa Muscular' }, { k: 'objetivo_bajar_grasa', l: 'Bajar Grasa' }]} valores={formClinico} onChange={handleFormChange} />
+                    <GrupoSiNo items={[{ k: 'objetivo_masa_muscular', l: 'Aumento Masa Muscular' }, { k: 'objetivo_bajar_grasa', l: 'Bajar Grasa' }]} valores={formClinico} onToggle={alternarSiNo} />
                     <input type="text" name="objetivos" value={formClinico.objetivos} onChange={handleFormChange} placeholder="Personalizar / otro objetivo..." className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500" />
                   </div>
 
@@ -837,7 +869,7 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
                 </div>
 
                 <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 mt-6 shadow-sm">
-                  <div className="flex justify-between items-center"><label className="text-sm font-bold text-slate-700">¿Realizar Plicometría de Pliegues?</label><select value={realizarPlicometria} onChange={(e) => setRealizarPlicometria(e.target.value as 'Si' | 'No')} className="p-3 bg-white border border-slate-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-teal-500"><option value="No">No</option><option value="Si">Sí</option></select></div>
+                  <div className="flex flex-wrap justify-between items-center gap-3"><label className="text-sm font-bold text-slate-700">¿Realizar Plicometría de Pliegues?</label><Segmentado opciones={[{ v: 'No', l: 'No' }, { v: 'Si', l: 'Sí' }]} valor={realizarPlicometria} onSeleccionar={(v) => setRealizarPlicometria(v as 'Si' | 'No')} /></div>
 
                   {realizarPlicometria === 'Si' && (
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-5 pt-5 border-t border-slate-200">
@@ -879,12 +911,15 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Alergias o Intolerancias</label><input type="text" name="alergias_intolerancias" value={formClinico.alergias_intolerancias} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
                   <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Consumo de Agua Diario</label><input type="text" name="agua_diaria" value={formClinico.agua_diaria} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Ansiedad / Estrés</label><select name="ansiedad" value={formClinico.ansiedad} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500"><option value="No">No presenta</option><option value="Leve">Leve</option><option value="Moderada">Moderada</option><option value="Alta">Alta</option></select></div>
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Restricciones Alimentarias</label><input type="text" name="restricciones_alimentarias" value={formClinico.restricciones_alimentarias} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
+                  <div className="col-span-full"><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Ansiedad / Estrés</label><Segmentado opciones={[{ v: 'No', l: 'No presenta' }, { v: 'Leve', l: 'Leve' }, { v: 'Moderada', l: 'Moderada' }, { v: 'Alta', l: 'Alta' }]} valor={formClinico.ansiedad} onSeleccionar={(v) => setCampoClinico('ansiedad', v)} /></div>
+                  <div className="col-span-full"><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Restricciones Alimentarias</label><input type="text" name="restricciones_alimentarias" value={formClinico.restricciones_alimentarias} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
 
-                  <div className="flex gap-4 text-xs font-bold bg-slate-50 border border-slate-200 p-4 rounded-3xl col-span-full justify-between items-center shadow-sm">
+                  <div className="flex flex-col gap-3 bg-slate-50 border border-slate-200 p-4 rounded-3xl col-span-full shadow-sm">
                     {[{ k: 'alcohol', l: 'Alcohol' }, { k: 'cigarro', l: 'Cigarro' }, { k: 'vape', l: 'Vape' }, { k: 'drogas', l: 'Drogas' }].map(h => (
-                      <div key={h.k} className="flex flex-col items-center w-full"><span className="text-slate-500 mb-2">{h.l}</span><select name={h.k} value={(formClinico as any)[h.k]} onChange={handleFormChange} className="p-2.5 bg-white border border-slate-200 rounded-xl w-full text-center outline-none focus:ring-2 focus:ring-teal-500 shadow-sm"><option value="No">No</option><option value="Social">Social</option><option value="Frecuente">Frecuente</option></select></div>
+                      <div key={h.k} className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="text-xs font-bold text-slate-600">{h.l}</span>
+                        <Segmentado opciones={[{ v: 'No', l: 'No' }, { v: 'Social', l: 'Social' }, { v: 'Frecuente', l: 'Frecuente' }]} valor={(formClinico as any)[h.k]} onSeleccionar={(v) => setCampoClinico(h.k, v)} />
+                      </div>
                     ))}
                   </div>
 
@@ -892,17 +927,27 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
                   <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Alimentos más consumidos</label><input type="text" name="alimentos_mas_consumidos" value={formClinico.alimentos_mas_consumidos} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
                   <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Alimentos menos consumidos</label><input type="text" name="alimentos_menos_consumidos" value={formClinico.alimentos_menos_consumidos} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
 
-                  <div className="col-span-full bg-slate-50 p-5 rounded-3xl border border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-4 shadow-sm">
-                    <p className="col-span-full font-bold text-sm text-slate-700">Actividad Física</p>
-                    <div><label className="block text-[10px] font-bold text-slate-500 mb-1.5 ml-1">Frecuencia Semanal</label><input type="text" name="actividad_fisica_freq" value={formClinico.actividad_fisica_freq} onChange={handleFormChange} placeholder="Ej. 4 días" className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500" /></div>
-                    <div><label className="block text-[10px] font-bold text-slate-500 mb-1.5 ml-1">Duración Sesión</label><input type="text" name="actividad_fisica_duracion" value={formClinico.actividad_fisica_duracion} onChange={handleFormChange} placeholder="Ej. 1 hora" className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500" /></div>
-                    <div><label className="block text-[10px] font-bold text-slate-500 mb-1.5 ml-1">Intensidad</label><select name="actividad_fisica_intensidad" value={formClinico.actividad_fisica_intensidad} onChange={handleFormChange} className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500"><option>Moderada</option><option>Ligera</option><option>Vigorosa</option></select></div>
-
-                    <div className="col-span-full"><label className="block text-[11px] font-bold text-slate-600 mb-1.5 ml-1">Disciplina / Deporte</label>
-                      <select name="deporte_disciplina" value={formClinico.deporte_disciplina} onChange={handleFormChange} className="w-full p-4 bg-white border border-slate-200 rounded-2xl text-sm font-semibold text-slate-700 outline-none focus:ring-2 focus:ring-teal-500">
-                        <option value="Gimnasio">Gimnasio</option><option value="Funcional">Funcional</option><option value="Calistenia">Calistenia</option><option value="Barre">Barré</option><option value="Pilates">Pilates</option><option value="Natacion">Natación</option><option value="Bicicleta">Bicicleta</option><option value="Indoor Cycling">Indoor Cycling</option><option value="Crossfit">Crossfit</option><option value="Box">Box</option><option value="MMA">MMA</option><option value="Cardio">Cardio</option>
-                        <option value="Carrera_5k">Carrera - 5 km</option><option value="Carrera_8k">Carrera - 8 km</option><option value="Carrera_10k">Carrera - 10 km</option><option value="Carrera_12k">Carrera - 12 km</option><option value="Carrera_15k">Carrera - 15 km</option><option value="Carrera_20k">Carrera - 20 km</option><option value="Carrera_21k">Carrera - Medio Maratón (21k+)</option>
-                      </select>
+                  <div className="col-span-full bg-slate-50 p-5 rounded-3xl border border-slate-200 space-y-4 shadow-sm">
+                    <p className="font-bold text-sm text-slate-700">Actividad Física</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div><label className="block text-[10px] font-bold text-slate-500 mb-1.5 ml-1">Frecuencia Semanal</label><input type="text" name="actividad_fisica_freq" value={formClinico.actividad_fisica_freq} onChange={handleFormChange} placeholder="Ej. 4 días" className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500" /></div>
+                      <div><label className="block text-[10px] font-bold text-slate-500 mb-1.5 ml-1">Duración Sesión</label><input type="text" name="actividad_fisica_duracion" value={formClinico.actividad_fisica_duracion} onChange={handleFormChange} placeholder="Ej. 1 hora" className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500" /></div>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-500 mb-1.5 ml-1">Intensidad</p>
+                      <Segmentado opciones={[{ v: 'Ligera', l: 'Ligera' }, { v: 'Moderada', l: 'Moderada' }, { v: 'Vigorosa', l: 'Vigorosa' }]} valor={formClinico.actividad_fisica_intensidad} onSeleccionar={(v) => setCampoClinico('actividad_fisica_intensidad', v)} />
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-bold text-slate-600 mb-1.5 ml-1">Disciplina / Deporte</p>
+                      <Segmentado
+                        opciones={[
+                          { v: 'Gimnasio', l: 'Gimnasio' }, { v: 'Funcional', l: 'Funcional' }, { v: 'Calistenia', l: 'Calistenia' }, { v: 'Barre', l: 'Barré' }, { v: 'Pilates', l: 'Pilates' },
+                          { v: 'Natacion', l: 'Natación' }, { v: 'Bicicleta', l: 'Bicicleta' }, { v: 'Indoor Cycling', l: 'Indoor Cycling' }, { v: 'Crossfit', l: 'Crossfit' }, { v: 'Box', l: 'Box' }, { v: 'MMA', l: 'MMA' }, { v: 'Cardio', l: 'Cardio' },
+                          { v: 'Carrera_5k', l: 'Carrera 5 km' }, { v: 'Carrera_8k', l: 'Carrera 8 km' }, { v: 'Carrera_10k', l: 'Carrera 10 km' }, { v: 'Carrera_12k', l: 'Carrera 12 km' }, { v: 'Carrera_15k', l: 'Carrera 15 km' }, { v: 'Carrera_20k', l: 'Carrera 20 km' }, { v: 'Carrera_21k', l: 'Medio Maratón (21k+)' },
+                        ]}
+                        valor={formClinico.deporte_disciplina}
+                        onSeleccionar={(v) => setCampoClinico('deporte_disciplina', v)}
+                      />
                     </div>
                   </div>
                 </div>
@@ -912,10 +957,18 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
             {seccionActiva === 'enfoque' && (
               <div className="space-y-6 animate-in fade-in">
                 <h3 className="text-2xl font-black text-slate-800 border-b border-slate-100 pb-3">Enfoque Nutricional</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Enfoque Nutricional</label><select name="enfoque" value={formClinico.enfoque} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700 outline-none focus:ring-2 focus:ring-teal-500"><option value="Deficit Calorico Ligero">Déficit Calórico Ligero</option><option value="Deficit Calorico Moderado">Déficit Calórico Moderado</option><option value="Deficit Calorico Estricto">Déficit Calórico Estricto</option><option value="Mantenimiento">Mantenimiento</option><option value="Superavit">Superávit</option></select></div>
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Aporte Calórico Sugerido (kcal)</label><input type="number" name="aporte_calorico" value={formClinico.aporte_calorico} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black text-teal-700 outline-none focus:ring-2 focus:ring-teal-500" /></div>
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Tiempos de comida al día</label><select name="tiempos_comida" value={formClinico.tiempos_comida} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7 o más</option></select></div>
+                <div className="space-y-5">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Enfoque Nutricional</label>
+                    <Segmentado opciones={[{ v: 'Deficit Calorico Ligero', l: 'Déficit Ligero' }, { v: 'Deficit Calorico Moderado', l: 'Déficit Moderado' }, { v: 'Deficit Calorico Estricto', l: 'Déficit Estricto' }, { v: 'Mantenimiento', l: 'Mantenimiento' }, { v: 'Superavit', l: 'Superávit' }]} valor={formClinico.enfoque} onSeleccionar={(v) => setCampoClinico('enfoque', v)} />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                    <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Aporte Calórico Sugerido (kcal)</label><input type="number" name="aporte_calorico" value={formClinico.aporte_calorico} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black text-teal-700 outline-none focus:ring-2 focus:ring-teal-500" /></div>
+                    <div>
+                      <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Tiempos de comida al día</label>
+                      <Segmentado opciones={['1', '2', '3', '4', '5', '6', '7'].map(n => ({ v: n, l: n === '7' ? '7 o más' : n }))} valor={formClinico.tiempos_comida} onSeleccionar={(v) => setCampoClinico('tiempos_comida', v)} />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 grid grid-cols-3 gap-4 shadow-sm">
@@ -936,21 +989,15 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
 
                 <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
                   <p className="font-bold text-sm text-slate-700">Prescripción de Péptidos</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    <div className="flex items-center justify-between gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2.5 shadow-sm">
-                      <span className="text-[11px] font-bold text-slate-600">Semaglutida</span>
-                      <select name="pep_semaglutida" value={formClinico.pep_semaglutida} onChange={handleFormChange} className="p-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-black text-center outline-none focus:ring-2 focus:ring-teal-500">
-                        {OPCIONES_SEMAGLUTIDA.map(d => <option key={d} value={d}>{d === '' ? 'No aplica' : d}</option>)}
-                      </select>
-                    </div>
-                    <div className="flex items-center justify-between gap-2 bg-white border border-slate-200 rounded-xl px-3 py-2.5 shadow-sm">
-                      <span className="text-[11px] font-bold text-slate-600">Tirzepatida</span>
-                      <select name="pep_tirzepatida" value={formClinico.pep_tirzepatida} onChange={handleFormChange} className="p-1.5 bg-slate-50 border border-slate-200 rounded-lg text-[11px] font-black text-center outline-none focus:ring-2 focus:ring-teal-500">
-                        {OPCIONES_TIRZEPATIDA.map(d => <option key={d} value={d}>{d === '' ? 'No aplica' : d}</option>)}
-                      </select>
-                    </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Semaglutida</p>
+                    <Segmentado opciones={OPCIONES_SEMAGLUTIDA.map(d => ({ v: d, l: d === '' ? 'No aplica' : d }))} valor={formClinico.pep_semaglutida} onSeleccionar={(v) => setCampoClinico('pep_semaglutida', v)} />
                   </div>
-                  <GrupoSiNo items={PEPTIDOS_SI_NO} valores={formClinico} onChange={handleFormChange} />
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Tirzepatida</p>
+                    <Segmentado opciones={OPCIONES_TIRZEPATIDA.map(d => ({ v: d, l: d === '' ? 'No aplica' : d }))} valor={formClinico.pep_tirzepatida} onSeleccionar={(v) => setCampoClinico('pep_tirzepatida', v)} />
+                  </div>
+                  <GrupoSiNo items={PEPTIDOS_SI_NO} valores={formClinico} onToggle={alternarSiNo} />
                 </div>
               </div>
             )}
