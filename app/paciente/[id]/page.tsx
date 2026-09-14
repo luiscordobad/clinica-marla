@@ -5,7 +5,8 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { obtenerEstadoSesion, type SesionActual } from '../../../lib/auth'
-import type { Cita, Consulta, Paciente, Pago, PagoProducto, Producto } from '../../../lib/types'
+import type { Cita, CategoriaDocumento, Consulta, DocumentoPaciente, Paciente, Pago, PagoProducto, Producto } from '../../../lib/types'
+import { ETIQUETA_CATEGORIA_DOCUMENTO } from '../../../lib/types'
 import { fechaLocalISO } from '../../../lib/fecha'
 import GraficaProgreso from '../../../components/GraficaProgreso'
 import Link from 'next/link'
@@ -134,6 +135,9 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
   const [pagosPaciente, setPagosPaciente] = useState<Pago[]>([])
   const [pagoProductosPaciente, setPagoProductosPaciente] = useState<PagoProducto[]>([])
   const [catalogo, setCatalogo] = useState<Producto[]>([])
+  const [documentos, setDocumentos] = useState<DocumentoPaciente[]>([])
+  const [subiendoDocumento, setSubiendoDocumento] = useState(false)
+  const [categoriaNuevoDocumento, setCategoriaNuevoDocumento] = useState<CategoriaDocumento>('inbody')
   const [loading, setLoading] = useState(true)
   const [consultaExpandida, setConsultaExpandida] = useState<string | null>(null)
 
@@ -212,6 +216,9 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
         const { data: ppData } = await supabase.from('pago_productos').select('*').in('pago_id', payData.map(p => p.id))
         if (ppData) setPagoProductosPaciente(ppData as PagoProducto[])
       }
+
+      const { data: docData } = await supabase.from('documentos_paciente').select('*').eq('paciente_id', params.id).order('created_at', { ascending: false })
+      if (docData) setDocumentos(docData as DocumentoPaciente[])
     }
 
     setLoading(false)
@@ -236,6 +243,52 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
     if (!paciente) return
     const { error } = await supabase.from('pacientes').update(editForm).eq('id', paciente.id)
     if (!error) { await cargarDatos(esFullAccess); setShowEditPaciente(false) } else mostrarToast('Error actualizando perfil: ' + error.message, 'error')
+  }
+
+  // =======================================================
+  // DOCUMENTOS (InBody, laboratorios, etc.)
+  // =======================================================
+  const TIPOS_ACEPTADOS = ['application/pdf', 'image/jpeg', 'image/png', 'image/heic']
+  const TAMANO_MAXIMO = 10 * 1024 * 1024 // 10 MB, igual que el límite del bucket
+
+  const subirDocumento = async (archivo: File) => {
+    if (!paciente || !sesion) return
+    if (!TIPOS_ACEPTADOS.includes(archivo.type)) return mostrarToast('Solo se aceptan PDF, JPG, PNG o HEIC.', 'advertencia')
+    if (archivo.size > TAMANO_MAXIMO) return mostrarToast('El archivo pesa más de 10 MB.', 'advertencia')
+
+    setSubiendoDocumento(true)
+    const extension = archivo.name.split('.').pop() || 'pdf'
+    const ruta = `${paciente.id}/${crypto.randomUUID()}.${extension}`
+
+    const { error: errorSubida } = await supabase.storage.from('documentos-pacientes').upload(ruta, archivo)
+    if (errorSubida) { mostrarToast('Error al subir: ' + errorSubida.message, 'error'); setSubiendoDocumento(false); return }
+
+    const { error: errorRegistro } = await supabase.from('documentos_paciente').insert([{
+      paciente_id: paciente.id,
+      categoria: categoriaNuevoDocumento,
+      nombre_original: archivo.name,
+      storage_path: ruta,
+      tamano_bytes: archivo.size,
+      subido_por: sesion.usuario.id,
+    }])
+    if (errorRegistro) { mostrarToast('Error al registrar: ' + errorRegistro.message, 'error'); setSubiendoDocumento(false); return }
+
+    await cargarDatos(esFullAccess)
+    mostrarToast('Documento subido', 'exito')
+    setSubiendoDocumento(false)
+  }
+
+  const verDocumento = async (doc: DocumentoPaciente) => {
+    const { data, error } = await supabase.storage.from('documentos-pacientes').createSignedUrl(doc.storage_path, 300)
+    if (error || !data) return mostrarToast('No se pudo abrir el documento.', 'error')
+    window.open(data.signedUrl, '_blank')
+  }
+
+  const eliminarDocumento = async (doc: DocumentoPaciente) => {
+    if (!window.confirm(`¿Eliminar "${doc.nombre_original}"? No se puede deshacer.`)) return
+    await supabase.storage.from('documentos-pacientes').remove([doc.storage_path])
+    const { error } = await supabase.from('documentos_paciente').delete().eq('id', doc.id)
+    if (!error) { await cargarDatos(esFullAccess); mostrarToast('Documento eliminado', 'exito') } else mostrarToast('Error: ' + error.message, 'error')
   }
 
   const copiarLinkPortal = () => {
@@ -877,6 +930,49 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
             <div><p className="text-slate-400 font-bold uppercase text-[10px] mb-1">Teléfono</p><p className="font-bold text-slate-800">{paciente.telefono || 'N/A'}</p></div>
           </div>
         </div>
+
+        {esFullAccess && (
+          <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8">
+            <h3 className="text-base font-black text-slate-800 mb-6 uppercase tracking-widest flex items-center gap-2"><span>📁</span> Documentos (InBody, Laboratorios...)</h3>
+
+            <div className="flex flex-col sm:flex-row gap-3 mb-6 bg-slate-50 border border-slate-200 rounded-2xl p-4">
+              <select value={categoriaNuevoDocumento} onChange={e => setCategoriaNuevoDocumento(e.target.value as CategoriaDocumento)} className="p-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold outline-none">
+                <option value="inbody">InBody</option>
+                <option value="laboratorio">Laboratorio</option>
+                <option value="otro">Otro</option>
+              </select>
+              <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold cursor-pointer transition-colors ${subiendoDocumento ? 'bg-slate-200 text-slate-400' : 'bg-[#0066FF] text-white hover:bg-blue-700'}`}>
+                {subiendoDocumento ? 'Subiendo...' : '⬆️ Subir Archivo (PDF, JPG, PNG)'}
+                <input
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,.heic"
+                  className="hidden"
+                  disabled={subiendoDocumento}
+                  onChange={(e) => { const archivo = e.target.files?.[0]; if (archivo) subirDocumento(archivo); e.target.value = '' }}
+                />
+              </label>
+            </div>
+
+            {documentos.length === 0 ? (
+              <p className="text-sm text-slate-400 font-medium text-center py-4">Todavía no hay documentos subidos.</p>
+            ) : (
+              <div className="space-y-2">
+                {documentos.map(doc => (
+                  <div key={doc.id} className="flex items-center justify-between gap-3 bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+                    <button onClick={() => verDocumento(doc)} className="flex items-center gap-3 min-w-0 text-left hover:opacity-70 transition-opacity">
+                      <span className="text-2xl shrink-0">{doc.storage_path.endsWith('pdf') ? '📄' : '🖼️'}</span>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-slate-800 truncate">{doc.nombre_original}</p>
+                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">{ETIQUETA_CATEGORIA_DOCUMENTO[doc.categoria]} · {new Date(doc.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                      </div>
+                    </button>
+                    <button onClick={() => eliminarDocumento(doc)} className="shrink-0 text-rose-400 hover:text-rose-600 text-xs font-bold px-2">🗑️</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {esFullAccess && !esPrimeraVez && (
           <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8">

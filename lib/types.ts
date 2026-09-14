@@ -14,6 +14,25 @@ export type Usuario = {
   created_at: string
 }
 
+export type CategoriaDocumento = 'inbody' | 'laboratorio' | 'otro'
+
+export type DocumentoPaciente = {
+  id: string
+  paciente_id: string
+  categoria: CategoriaDocumento
+  nombre_original: string
+  storage_path: string
+  tamano_bytes: number | null
+  subido_por: string | null
+  created_at: string
+}
+
+export const ETIQUETA_CATEGORIA_DOCUMENTO: Record<CategoriaDocumento, string> = {
+  inbody: 'InBody',
+  laboratorio: 'Laboratorio',
+  otro: 'Otro',
+}
+
 export type Paciente = {
   id: string
   nombre_completo: string
