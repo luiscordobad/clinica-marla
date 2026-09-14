@@ -623,15 +623,18 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
         <div className="flex justify-between items-center bg-white p-5 rounded-3xl shadow-sm border border-slate-200">
           <Link href="/" className="text-sm font-bold text-slate-500 hover:text-slate-800 flex items-center gap-2"><span className="text-lg">&larr;</span> Directorio</Link>
 
-          {esFullAccess ? (
-            <button onClick={iniciarConsulta} className="bg-slate-900 text-white px-6 py-3 rounded-2xl text-sm font-black hover:bg-teal-600 transition-all flex items-center gap-2">
-              <span>🩺</span> {citaHoyEnEspera ? 'Paciente Esperando - Iniciar Consulta' : 'Nueva Consulta Directa'}
-            </button>
-          ) : (
-            <button onClick={hacerCheckIn} disabled={!!citaHoyEnEspera} className={`px-6 py-3 rounded-2xl text-sm font-black transition-all flex items-center gap-2 ${citaHoyEnEspera ? 'bg-slate-200 text-slate-400' : 'bg-teal-600 text-white hover:bg-teal-700 shadow-md'}`}>
-              <span>🛋️</span> {citaHoyEnEspera ? 'Ya está en sala de espera' : 'Anunciar Llegada (Check-In)'}
-            </button>
-          )}
+          <div className="flex gap-2">
+            {!citaHoyEnEspera && (
+              <button onClick={hacerCheckIn} className="px-5 py-3 rounded-2xl text-sm font-black transition-all flex items-center gap-2 bg-teal-50 text-teal-700 border border-teal-200 hover:bg-teal-100">
+                <span>🛋️</span> <span className="hidden sm:inline">Anunciar Llegada</span> Check-In
+              </button>
+            )}
+            {esFullAccess && (
+              <button onClick={iniciarConsulta} className="bg-slate-900 text-white px-6 py-3 rounded-2xl text-sm font-black hover:bg-teal-600 transition-all flex items-center gap-2">
+                <span>🩺</span> {citaHoyEnEspera ? 'Paciente Esperando - Iniciar Consulta' : 'Nueva Consulta Directa'}
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8">

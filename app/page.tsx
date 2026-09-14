@@ -514,7 +514,7 @@ export default function Home() {
                       </button>
                     ) : (
                       <>
-                        {citaSeleccionada.estado === 'programada' && !esFullAccess && (
+                        {citaSeleccionada.estado === 'programada' && (
                           <button onClick={() => hacerCheckInRapido(citaSeleccionada.id, citaSeleccionada.nombre_paciente || '')} className="col-span-2 py-3.5 bg-[#00D084] text-white rounded-xl text-sm font-black hover:bg-emerald-600 transition-colors shadow-md flex items-center justify-center gap-2 mb-2">
                             📍 Registrar Llegada (Check-In)
                           </button>
