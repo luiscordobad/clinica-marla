@@ -256,6 +256,8 @@ export type Pago = {
   monto_transferencia: number
   estado: EstadoPago
   requiere_factura: boolean
+  factura_concepto: string | null
+  factura_notas: string | null
   descuento_tipo: TipoDescuento
   descuento_valor: number
   created_by: string | null

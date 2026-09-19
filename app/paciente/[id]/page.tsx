@@ -1415,9 +1415,15 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
                                 <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Descuento</p><p className="text-sm font-bold text-rose-600">{pagoAsociado.descuento_tipo === 'porcentaje' ? `${pagoAsociado.descuento_valor}%` : `$${pagoAsociado.descuento_valor}`}</p></div>
                               )}
                               {pagoAsociado.requiere_factura && (
-                                <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Factura</p><p className="text-sm font-bold text-slate-700">Sí, CFDI</p></div>
+                                <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Factura</p><p className="text-sm font-bold text-slate-700">Sí, CFDI{pagoAsociado.factura_concepto ? ` — ${pagoAsociado.factura_concepto}` : ''}</p></div>
                               )}
                             </div>
+                            {pagoAsociado.requiere_factura && pagoAsociado.factura_notas && (
+                              <div className="mb-4 bg-blue-50 border border-blue-100 rounded-xl p-3">
+                                <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">Notas de Factura</p>
+                                <p className="text-xs font-medium text-blue-900">{pagoAsociado.factura_notas}</p>
+                              </div>
+                            )}
                             {productosVendidos.length > 0 && (
                               <div className="mb-4">
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Suplementos vendidos</p>

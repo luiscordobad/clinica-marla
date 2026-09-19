@@ -39,7 +39,9 @@ export default function Home() {
     paciente: string; concepto: string; fecha: string; productos: string[]
     metodos: { label: string; monto: number }[]; total: number; requiereFactura: boolean
   } | null>(null)
-  const [formCobro, setFormCobro] = useState({ efectivo: '', tarjeta: '', transferencia: '', requiereFactura: false, recibo: 'whatsapp' })
+  const [formCobro, setFormCobro] = useState({ efectivo: '', tarjeta: '', transferencia: '', requiereFactura: false, recibo: 'whatsapp', facturaConcepto: 'Honorarios Médicos', facturaConceptoOtro: '', facturaNotas: '' })
+  const COMISION_TARJETA_PCT = 0.025
+  const IVA_FACTURA_PCT = 0.16
   const [procesandoCobro, setProcesandoCobro] = useState(false)
   const [urlWhatsAppPendiente, setUrlWhatsAppPendiente] = useState<string | null>(null)
 
@@ -483,6 +485,8 @@ export default function Home() {
       monto_tarjeta: Number(formCobro.tarjeta) || 0,
       monto_transferencia: Number(formCobro.transferencia) || 0,
       requiere_factura: formCobro.requiereFactura,
+      factura_concepto: formCobro.requiereFactura ? (formCobro.facturaConcepto === 'Otro' ? formCobro.facturaConceptoOtro : formCobro.facturaConcepto) : null,
+      factura_notas: formCobro.requiereFactura ? formCobro.facturaNotas : null,
       estado: 'pagado',
     }).eq('id', cobroActivo.id)
 
@@ -530,7 +534,7 @@ export default function Home() {
           setUrlWhatsAppPendiente(`https://wa.me/${String(pacienteInfo.telefono).replace(/\D/g, '')}?text=${encodeURIComponent(texto)}`)
         }
       }
-      await cargarDatos(esFullAccess); setCobroActivo(null); setFormCobro({ efectivo: '', tarjeta: '', transferencia: '', requiereFactura: false, recibo: 'whatsapp' })
+      await cargarDatos(esFullAccess); setCobroActivo(null); setFormCobro({ efectivo: '', tarjeta: '', transferencia: '', requiereFactura: false, recibo: 'whatsapp', facturaConcepto: 'Honorarios Médicos', facturaConceptoOtro: '', facturaNotas: '' })
       if (formCobro.recibo !== 'pdf') mostrarToast('Cobro procesado con éxito', 'exito')
     } else mostrarToast('Error de red: ' + error.message, 'error')
     setProcesandoCobro(false)
@@ -720,7 +724,7 @@ export default function Home() {
               <p className="text-4xl font-black">${totalEsperadoModal.toLocaleString()}</p>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 mb-6">
+            <div className="grid grid-cols-3 gap-3 mb-2">
               {[{ id: 'efectivo', label: 'Efectivo', val: formCobro.efectivo }, { id: 'tarjeta', label: 'Tarjeta', val: formCobro.tarjeta }, { id: 'transferencia', label: 'Transf.', val: formCobro.transferencia }].map(m => (
                 <div key={m.id} className="border border-slate-200 p-3 rounded-xl focus-within:border-[#0066FF] transition-colors">
                   <p className="text-[10px] font-bold text-slate-400 uppercase text-center mb-2">{m.label}</p>
@@ -728,6 +732,13 @@ export default function Home() {
                 </div>
               ))}
             </div>
+
+            {Number(formCobro.tarjeta) > 0 && (
+              <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mb-6 font-medium">
+                💳 Comisión bancaria estimada ({(COMISION_TARJETA_PCT * 100).toFixed(1)}%): <span className="font-black">${(Number(formCobro.tarjeta) * COMISION_TARJETA_PCT).toFixed(2)}</span> — depósito neto aprox. ${(Number(formCobro.tarjeta) * (1 - COMISION_TARJETA_PCT)).toFixed(2)}
+              </p>
+            )}
+            {Number(formCobro.tarjeta) === 0 && <div className="mb-6" />}
 
             <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6">
               <p className="text-xs font-bold text-slate-800 mb-3 uppercase tracking-widest">Emisión de Comprobante</p>
@@ -745,6 +756,38 @@ export default function Home() {
                   <div className={`w-3 h-3 bg-white rounded-full shadow-sm transition-transform ${formCobro.requiereFactura ? 'translate-x-5' : 'translate-x-0'}`}></div>
                 </div>
               </div>
+
+              {formCobro.requiereFactura && (
+                <div className="mt-4 pt-4 border-t border-slate-200 space-y-4">
+                  <p className="text-[11px] text-blue-700 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 font-medium">
+                    📌 La factura es más el {(IVA_FACTURA_PCT * 100).toFixed(0)}% de IVA: <span className="font-black">${(totalEsperadoModal * IVA_FACTURA_PCT).toFixed(2)}</span> — total con factura ${(totalEsperadoModal * (1 + IVA_FACTURA_PCT)).toFixed(2)}
+                  </p>
+
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Concepto de Factura</p>
+                    <div className="flex flex-wrap gap-2">
+                      {['Honorarios Médicos', 'Gastos en Generales', 'Otro'].map(op => (
+                        <button
+                          key={op}
+                          type="button"
+                          onClick={() => setFormCobro({ ...formCobro, facturaConcepto: op })}
+                          className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${formCobro.facturaConcepto === op ? 'bg-[#0066FF] border-[#0066FF] text-white shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-blue-300'}`}
+                        >
+                          {op}
+                        </button>
+                      ))}
+                    </div>
+                    {formCobro.facturaConcepto === 'Otro' && (
+                      <input type="text" value={formCobro.facturaConceptoOtro} onChange={e => setFormCobro({ ...formCobro, facturaConceptoOtro: e.target.value })} placeholder="Especifica el concepto..." className="w-full mt-2 p-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-[#0066FF]" />
+                    )}
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Notas de la Factura (opcional)</p>
+                    <textarea value={formCobro.facturaNotas} onChange={e => setFormCobro({ ...formCobro, facturaNotas: e.target.value })} placeholder="Ej. esta factura es solo de la consulta, no incluye suplementos..." rows={2} className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-[#0066FF]" />
+                  </div>
+                </div>
+              )}
             </div>
 
             {totalPagadoModal > 0 && balanceModal < 0 && <p className="text-rose-500 text-xs font-bold text-center mb-4">Faltan ${Math.abs(balanceModal).toLocaleString()}</p>}
