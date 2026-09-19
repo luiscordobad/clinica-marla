@@ -151,6 +151,7 @@ export default function Home() {
   }
 
   const getOriginalCitasCount = (dateStr: string) => citas.filter(c => c.fecha_cita === dateStr && c.estado !== 'cancelada' && c.estado !== 'ausente').length
+  const esDiaBloqueado = (dateStr: string) => citas.some(c => c.fecha_cita === dateStr && c.tipo === 'bloqueo' && c.estado !== 'cancelada' && c.estado !== 'ausente')
 
   useEffect(() => {
     const verificarSesion = async () => {
@@ -1017,13 +1018,14 @@ export default function Home() {
                           <div className="text-[10px] text-slate-400 font-bold text-center py-2 border-r border-slate-100 bg-white">{hora}</div>
 
                           {(vistaAgenda === 'Semana' ? diasSemanales.map(d => d.iso) : [fechaSeleccionada]).map((isoDate, colIdx) => {
-                            const citasEnCelda = citas.filter(c => c.fecha_cita === isoDate && c.hora_cita.startsWith(hora.substring(0, 2)) && c.estado !== 'cancelada' && c.estado !== 'ausente')
+                            const citasEnCelda = citas.filter(c => c.fecha_cita === isoDate && c.estado !== 'cancelada' && c.estado !== 'ausente' && (c.tipo === 'bloqueo' || c.hora_cita.startsWith(hora.substring(0, 2))))
+                            const bloqueada = citasEnCelda.some(c => c.tipo === 'bloqueo')
 
                             return (
                               <div
                                 key={colIdx}
                                 className={`border-r border-slate-100 relative p-1 transition-colors cursor-pointer group hover:bg-slate-50 ${isoDate === hoyFechaFormat ? 'bg-blue-50/10' : 'bg-transparent'}`}
-                                onClick={() => { if (citasEnCelda.length === 0) abrirAgendadorRapido(isoDate, hora) }}
+                                onClick={() => { if (!bloqueada && citasEnCelda.length === 0) abrirAgendadorRapido(isoDate, hora) }}
                               >
                                 {citasEnCelda.map(c => {
                                   const isCheckedIn = c.estado === 'en_espera'
@@ -1046,7 +1048,7 @@ export default function Home() {
 
                                   if (esBloqueo) {
                                     return (
-                                      <div key={c.id} style={{ height: `calc(${numBlocks * 100}% - 4px)` }} onClick={(e) => { e.stopPropagation(); setCitaSeleccionada(c) }} className="absolute top-0.5 left-0.5 right-0.5 rounded bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,#f1f5f9_10px,#f1f5f9_20px)] border border-slate-200 opacity-80 flex items-center justify-center hover:opacity-100 z-20 cursor-pointer">
+                                      <div key={c.id} onClick={(e) => { e.stopPropagation(); setCitaSeleccionada(c) }} className="absolute inset-0.5 rounded bg-[repeating-linear-gradient(45deg,transparent,transparent_10px,#f1f5f9_10px,#f1f5f9_20px)] border border-slate-200 opacity-80 flex items-center justify-center hover:opacity-100 z-20 cursor-pointer">
                                         <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest bg-white px-2 py-1 rounded shadow-sm border border-slate-100">Bloqueado</span>
                                       </div>
                                     )
@@ -1097,14 +1099,15 @@ export default function Home() {
                   <div className="grid grid-cols-7 gap-x-1 gap-y-2 text-center text-xs font-bold">
                     {obtenerDiasMes(fechaSeleccionada).map((d, i) => {
                       const hasCitas = getOriginalCitasCount(d.iso) > 0
+                      const bloqueado = esDiaBloqueado(d.iso)
                       return (
                         <div
                           key={i}
                           onClick={() => { setFechaSeleccionada(d.iso); setVistaAgenda('Dia') }}
-                          className={`w-9 h-9 flex flex-col items-center justify-center rounded-full mx-auto cursor-pointer relative transition-colors ${d.iso === fechaSeleccionada ? 'bg-[#0066FF] text-white shadow-md' : d.iso === hoyFechaFormat ? 'bg-blue-50 text-[#0066FF]' : d.enMes ? 'text-slate-700 hover:bg-slate-100' : 'text-slate-300'}`}
+                          className={`w-9 h-9 flex flex-col items-center justify-center rounded-full mx-auto cursor-pointer relative transition-colors ${d.iso === fechaSeleccionada ? 'bg-[#0066FF] text-white shadow-md' : bloqueado ? 'bg-slate-100 text-slate-400 line-through' : d.iso === hoyFechaFormat ? 'bg-blue-50 text-[#0066FF]' : d.enMes ? 'text-slate-700 hover:bg-slate-100' : 'text-slate-300'}`}
                         >
                           <span>{d.dateObj.getDate()}</span>
-                          {hasCitas && d.iso !== fechaSeleccionada && <div className="absolute bottom-1 w-1 h-1 bg-amber-400 rounded-full"></div>}
+                          {hasCitas && d.iso !== fechaSeleccionada && <div className={`absolute bottom-1 w-1 h-1 rounded-full ${bloqueado ? 'bg-slate-400' : 'bg-amber-400'}`}></div>}
                         </div>
                       )
                     })}
@@ -1183,15 +1186,16 @@ export default function Home() {
                 {diasSemanales.map((d, i) => {
                   const seleccionado = d.iso === fechaSeleccionada
                   const hasCitas = getOriginalCitasCount(d.iso) > 0
+                  const bloqueado = esDiaBloqueado(d.iso)
                   return (
                     <button
                       key={d.iso}
                       onClick={() => setFechaSeleccionada(d.iso)}
-                      className={`shrink-0 w-14 py-2.5 rounded-2xl flex flex-col items-center gap-0.5 border transition-colors ${seleccionado ? 'bg-[#0066FF] border-[#0066FF] text-white shadow-md' : d.iso === hoyFechaFormat ? 'bg-blue-50 border-blue-100 text-[#0066FF]' : 'bg-white border-slate-200 text-slate-600'}`}
+                      className={`shrink-0 w-14 py-2.5 rounded-2xl flex flex-col items-center gap-0.5 border transition-colors ${seleccionado ? 'bg-[#0066FF] border-[#0066FF] text-white shadow-md' : bloqueado ? 'bg-slate-100 border-slate-200 text-slate-400' : d.iso === hoyFechaFormat ? 'bg-blue-50 border-blue-100 text-[#0066FF]' : 'bg-white border-slate-200 text-slate-600'}`}
                     >
                       <span className="text-[9px] font-black uppercase opacity-70">{DIAS_NOMBRES[i]}</span>
                       <span className="text-base font-black leading-none">{d.dateObj.getDate()}</span>
-                      <div className={`w-1 h-1 rounded-full mt-0.5 ${hasCitas ? (seleccionado ? 'bg-white' : 'bg-amber-400') : 'bg-transparent'}`}></div>
+                      <div className={`w-1 h-1 rounded-full mt-0.5 ${bloqueado ? (seleccionado ? 'bg-white' : 'bg-slate-400') : hasCitas ? (seleccionado ? 'bg-white' : 'bg-amber-400') : 'bg-transparent'}`}></div>
                     </button>
                   )
                 })}

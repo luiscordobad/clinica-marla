@@ -73,6 +73,7 @@ const ETIQUETAS_INBODY: Record<string, string> = {
   agua_total_lt: 'Agua Corporal Total (Lts)',
   peso_ideal_kg: 'Peso Ideal Configurado (kg)',
   grasa_bajar_kg: 'Grasa a bajar (kg)',
+  grasa_subir_kg: 'Grasa a subir (kg)',
   musculo_subir_kg: 'Músculo a subir (kg)',
 }
 
@@ -134,7 +135,7 @@ function CamposDetalle({ datos, etiquetas }: { datos: Record<string, any> | null
       {entradas.map(([clave, etiqueta]) => (
         <div key={clave}>
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{etiqueta}</p>
-          <p className="text-sm font-bold text-slate-700">{String(datos[clave])}</p>
+          <p className="text-sm font-bold text-slate-700">{String(datos[clave]).split(',').join(', ')}</p>
         </div>
       ))}
     </div>
@@ -192,6 +193,36 @@ function Segmentado({ opciones, valor, onSeleccionar }: { opciones: { v: string;
   )
 }
 
+function SegmentadoMulti({ opciones, valor, onCambiar }: { opciones: { v: string; l: string }[]; valor: string; onCambiar: (v: string) => void }) {
+  const seleccionados = valor ? valor.split(',').filter(Boolean) : []
+  const alternar = (v: string) => {
+    const nuevo = seleccionados.includes(v) ? seleccionados.filter(s => s !== v) : [...seleccionados, v]
+    onCambiar(nuevo.join(','))
+  }
+  return (
+    <div className="flex flex-wrap gap-2">
+      {opciones.map(o => (
+        <button
+          key={o.v}
+          type="button"
+          onClick={() => alternar(o.v)}
+          className={`px-3.5 py-2 rounded-full text-xs font-bold border transition-all ${seleccionados.includes(o.v) ? 'bg-[#0066FF] border-[#0066FF] text-white shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-blue-300'}`}
+        >
+          {o.l}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function colorGrasaPct(valor: string): string {
+  const n = parseFloat(valor)
+  if (isNaN(n)) return 'text-slate-700'
+  if (n > 30) return 'text-red-500'
+  if (n >= 20) return 'text-emerald-500'
+  return 'text-amber-500'
+}
+
 const HEREDO_ITEMS = [
   { k: 'heredo_dm', l: 'Diabetes (DM)' }, { k: 'heredo_hat', l: 'Hipertensión (HAT)' }, { k: 'heredo_obesidad', l: 'Obesidad' },
 ]
@@ -226,7 +257,7 @@ const FORM_CLINICO_VACIO = {
   gluteo: '', muslo: '', pecho: '',
   p_abdominal: '', p_triceps: '', p_biceps: '', p_subescapular: '', p_suprailiaco: '', p_muslo: '', p_pantorrilla: '', p_pectoral: '', p_medio_axilar: '',
   peso_kg: '', musculo_esqu_kg: '', masa_grasa_kg: '', grasa_pct: '', grasa_visceral: '',
-  tmb_kcal: '', agua_total_lt: '', peso_ideal_kg: '', grasa_bajar_kg: '', musculo_subir_kg: '',
+  tmb_kcal: '', agua_total_lt: '', peso_ideal_kg: '', grasa_bajar_kg: '', grasa_subir_kg: '', musculo_subir_kg: '',
   alergias_intolerancias: '', alcohol: 'No', cigarro: 'No', vape: 'No', drogas: 'No', agua_diaria: '', ansiedad: 'No',
   recordatorio_24h: '', restricciones_alimentarias: '', alimentos_mas_consumidos: '', alimentos_menos_consumidos: '',
   actividad_fisica_freq: '', actividad_fisica_duracion: '', actividad_fisica_intensidad: 'Moderada',
@@ -277,6 +308,9 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
   const mostrarToast = (mensaje: string, tipo: 'exito' | 'error' | 'advertencia') => { setToast({ mensaje, tipo }); setTimeout(() => setToast(null), 4000) }
 
   const [formClinico, setFormClinico] = useState(FORM_CLINICO_VACIO)
+  const [borradorDisponible, setBorradorDisponible] = useState<{ guardadoEn: string; esPrimeraVez: boolean } | null>(null)
+  const [ultimoAutoguardado, setUltimoAutoguardado] = useState<Date | null>(null)
+  const claveBorrador = `expediente_borrador_${params.id}`
 
   const [checkout, setCheckout] = useState({
     concepto: '', precio: '', tipo_descuento: 'Ninguno', valor_descuento: '',
@@ -325,6 +359,57 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
     }
     cargarReferidos()
   }, [paciente?.id, paciente?.referido_por_paciente_id])
+
+  // Detecta un borrador sin guardar (ej. por navegación accidental hacia atrás)
+  useEffect(() => {
+    if (!paciente || modoConsulta) return
+    try {
+      const raw = window.localStorage.getItem(claveBorrador)
+      if (!raw) return
+      const guardado = JSON.parse(raw)
+      if (guardado?.formClinico) setBorradorDisponible({ guardadoEn: guardado.guardadoEn, esPrimeraVez: guardado.esPrimeraVez })
+    } catch { /* borrador corrupto, se ignora */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paciente?.id])
+
+  // Autoguardado del wizard clínico: evita perder el avance por una navegación
+  // accidental (botón atrás, recargar, cerrar pestaña) mientras se llena el expediente.
+  useEffect(() => {
+    if (!modoConsulta) return
+    const guardar = setTimeout(() => {
+      try {
+        const ahora = new Date()
+        window.localStorage.setItem(claveBorrador, JSON.stringify({
+          formClinico, plicometriaValores, realizarPlicometria, seccionActiva, esPrimeraVez,
+          guardadoEn: ahora.toISOString(),
+        }))
+        setUltimoAutoguardado(ahora)
+      } catch { /* almacenamiento lleno o no disponible, se ignora */ }
+    }, 500)
+    return () => clearTimeout(guardar)
+  }, [modoConsulta, formClinico, plicometriaValores, realizarPlicometria, seccionActiva, esPrimeraVez, claveBorrador])
+
+  const retomarBorrador = () => {
+    try {
+      const raw = window.localStorage.getItem(claveBorrador)
+      if (!raw) return
+      const guardado = JSON.parse(raw)
+      setFormClinico(prev => ({ ...prev, ...guardado.formClinico }))
+      setPlicometriaValores(guardado.plicometriaValores || {})
+      setRealizarPlicometria(guardado.realizarPlicometria || 'No')
+      setSeccionActiva(guardado.seccionActiva || 'antecedentes')
+      setBorradorDisponible(null)
+      setModoConsulta(true)
+      mostrarToast('Borrador recuperado.', 'exito')
+    } catch {
+      mostrarToast('No se pudo recuperar el borrador.', 'error')
+    }
+  }
+
+  const descartarBorrador = () => {
+    try { window.localStorage.removeItem(claveBorrador) } catch { /* ignorar */ }
+    setBorradorDisponible(null)
+  }
 
   const cargarDatos = async (esFull: boolean) => {
     const { data: pData } = await supabase.from('pacientes').select('*').eq('id', params.id).single()
@@ -640,7 +725,7 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
       peso_kg: formClinico.peso_kg, musculo_esqu_kg: formClinico.musculo_esqu_kg, masa_grasa_kg: formClinico.masa_grasa_kg,
       grasa_pct: formClinico.grasa_pct, grasa_visceral: formClinico.grasa_visceral, tmb_kcal: formClinico.tmb_kcal,
       agua_total_lt: formClinico.agua_total_lt, peso_ideal_kg: formClinico.peso_ideal_kg, grasa_bajar_kg: formClinico.grasa_bajar_kg,
-      musculo_subir_kg: formClinico.musculo_subir_kg,
+      grasa_subir_kg: formClinico.grasa_subir_kg, musculo_subir_kg: formClinico.musculo_subir_kg,
     }
 
     const estilo_vida = {
@@ -719,8 +804,9 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
     }
 
     await cargarDatos(esFullAccess)
+    try { window.localStorage.removeItem(claveBorrador) } catch { /* ignorar */ }
     setShowCheckout(false); setModoConsulta(false); setProductosVenta([''])
-    setFormClinico(FORM_CLINICO_VACIO); setPlicometriaValores({}); setRealizarPlicometria('No')
+    setFormClinico(FORM_CLINICO_VACIO); setPlicometriaValores({}); setRealizarPlicometria('No'); setUltimoAutoguardado(null)
     mostrarToast('¡Listo! El paciente fue enviado a recepción para el cobro.', 'exito')
   }
 
@@ -739,6 +825,12 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
               {esPrimeraVez ? 'Estudio de Primera Vez' : 'Control de Seguimiento'}
             </span>
             <h2 className="text-white font-black text-md truncate">{paciente.nombre_completo}</h2>
+            {ultimoAutoguardado && (
+              <p className="text-[9px] text-slate-500 font-bold mt-1.5 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                Guardado {ultimoAutoguardado.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            )}
           </div>
           <div className="flex lg:flex-col overflow-x-auto lg:overflow-y-auto p-3 gap-1 flex-1">
             {esPrimeraVez ? (
@@ -820,7 +912,7 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
                     <GrupoSiNo items={SUPLEMENTOS_SI_NO_ITEMS} valores={formClinico} onToggle={alternarSiNo} />
                     <div>
                       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Magnesio</p>
-                      <Segmentado opciones={[{ v: '', l: 'No toma' }, { v: 'TL', l: 'TL' }, { v: 'CT', l: 'CT' }, { v: 'Otro', l: 'Otro' }]} valor={formClinico.sup_magnesio} onSeleccionar={(v) => setCampoClinico('sup_magnesio', v)} />
+                      <Segmentado opciones={[{ v: '', l: 'No toma' }, { v: 'GL', l: 'GL' }, { v: 'CT', l: 'CT' }, { v: 'Otro', l: 'Otro' }]} valor={formClinico.sup_magnesio} onSeleccionar={(v) => setCampoClinico('sup_magnesio', v)} />
                     </div>
                     <input type="text" name="suplementos_actuales" value={formClinico.suplementos_actuales} onChange={handleFormChange} placeholder="Otro / detalle..." className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500" />
                   </div>
@@ -900,12 +992,13 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
                   <div><label className="block text-xs font-bold text-slate-600 mb-1.5 ml-1">Peso Total Actual (kg)</label><input type="number" step="0.1" name="peso_kg" value={formClinico.peso_kg} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-teal-500" /></div>
                   <div><label className="block text-xs font-bold text-slate-600 mb-1.5 ml-1">Masa Muscular Esquelética (kg)</label><input type="number" step="0.1" name="musculo_esqu_kg" value={formClinico.musculo_esqu_kg} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-teal-500" /></div>
                   <div><label className="block text-xs font-bold text-slate-600 mb-1.5 ml-1">Masa Grasa Corporal (kg)</label><input type="number" step="0.1" name="masa_grasa_kg" value={formClinico.masa_grasa_kg} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
-                  <div><label className="block text-xs font-bold text-slate-600 mb-1.5 ml-1">Porcentaje de Grasa (%)</label><input type="number" step="0.1" name="grasa_pct" value={formClinico.grasa_pct} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-red-500 outline-none focus:ring-2 focus:ring-teal-500" /></div>
+                  <div><label className="block text-xs font-bold text-slate-600 mb-1.5 ml-1">Porcentaje de Grasa (%)</label><input type="number" step="0.1" name="grasa_pct" value={formClinico.grasa_pct} onChange={handleFormChange} className={`w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-teal-500 ${colorGrasaPct(formClinico.grasa_pct)}`} /></div>
                   <div><label className="block text-xs font-bold text-slate-600 mb-1.5 ml-1">Grasa Visceral (Nivel)</label><input type="number" name="grasa_visceral" value={formClinico.grasa_visceral} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
                   <div><label className="block text-xs font-bold text-slate-600 mb-1.5 ml-1">TMB (kcal)</label><input type="number" name="tmb_kcal" value={formClinico.tmb_kcal} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
                   <div><label className="block text-xs font-bold text-slate-600 mb-1.5 ml-1">Agua Corporal Total (Lts)</label><input type="number" step="0.1" name="agua_total_lt" value={formClinico.agua_total_lt} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
                   <div><label className="block text-xs font-bold text-slate-600 mb-1.5 ml-1">Peso Ideal Configurado (kg)</label><input type="number" step="0.1" name="peso_ideal_kg" value={formClinico.peso_ideal_kg} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
                   <div><label className="block text-xs font-bold text-red-600 mb-1.5 ml-1">Grasa a bajar (kg)</label><input type="number" step="0.1" name="grasa_bajar_kg" value={formClinico.grasa_bajar_kg} onChange={handleFormChange} className="w-full p-4 bg-red-50 border border-red-200 text-red-700 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-red-500" /></div>
+                  <div><label className="block text-xs font-bold text-sky-600 mb-1.5 ml-1">Grasa a subir (kg)</label><input type="number" step="0.1" name="grasa_subir_kg" value={formClinico.grasa_subir_kg} onChange={handleFormChange} className="w-full p-4 bg-sky-50 border border-sky-200 text-sky-700 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-sky-500" /></div>
                   <div><label className="block text-xs font-bold text-teal-600 mb-1.5 ml-1">Músculo a subir (kg)</label><input type="number" step="0.1" name="musculo_subir_kg" value={formClinico.musculo_subir_kg} onChange={handleFormChange} className="w-full p-4 bg-teal-50 border border-teal-200 text-teal-700 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-teal-500" /></div>
                 </div>
               </div>
@@ -950,14 +1043,14 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
                     </div>
                     <div>
                       <p className="text-[11px] font-bold text-slate-600 mb-1.5 ml-1">Disciplina / Deporte</p>
-                      <Segmentado
+                      <SegmentadoMulti
                         opciones={[
                           { v: 'Gimnasio', l: 'Gimnasio' }, { v: 'Funcional', l: 'Funcional' }, { v: 'Calistenia', l: 'Calistenia' }, { v: 'Barre', l: 'Barré' }, { v: 'Pilates', l: 'Pilates' },
                           { v: 'Natacion', l: 'Natación' }, { v: 'Bicicleta', l: 'Bicicleta' }, { v: 'Indoor Cycling', l: 'Indoor Cycling' }, { v: 'Crossfit', l: 'Crossfit' }, { v: 'Box', l: 'Box' }, { v: 'MMA', l: 'MMA' }, { v: 'Cardio', l: 'Cardio' },
                           { v: 'Carrera_5k', l: 'Carrera 5 km' }, { v: 'Carrera_8k', l: 'Carrera 8 km' }, { v: 'Carrera_10k', l: 'Carrera 10 km' }, { v: 'Carrera_12k', l: 'Carrera 12 km' }, { v: 'Carrera_15k', l: 'Carrera 15 km' }, { v: 'Carrera_20k', l: 'Carrera 20 km' }, { v: 'Carrera_21k', l: 'Medio Maratón (21k+)' },
                         ]}
                         valor={formClinico.deporte_disciplina}
-                        onSeleccionar={(v) => setCampoClinico('deporte_disciplina', v)}
+                        onCambiar={(v) => setCampoClinico('deporte_disciplina', v)}
                       />
                     </div>
                   </div>
@@ -1155,6 +1248,22 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
       )}
 
       <div className="max-w-5xl mx-auto space-y-6">
+        {borradorDisponible && esFullAccess && (
+          <div className="bg-amber-50 border border-amber-200 rounded-3xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">📝</span>
+              <div>
+                <p className="text-sm font-black text-amber-900">Tienes un borrador de consulta sin guardar</p>
+                <p className="text-xs text-amber-700 font-medium mt-0.5">Se guardó automáticamente el {new Date(borradorDisponible.guardadoEn).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })}. Puedes retomarlo donde lo dejaste.</p>
+              </div>
+            </div>
+            <div className="flex gap-2 shrink-0 w-full sm:w-auto">
+              <button onClick={descartarBorrador} className="flex-1 sm:flex-none px-4 py-2.5 bg-white border border-amber-200 text-amber-700 rounded-xl text-xs font-bold hover:bg-amber-100 transition-colors">Descartar</button>
+              <button onClick={retomarBorrador} className="flex-1 sm:flex-none px-4 py-2.5 bg-amber-500 text-white rounded-xl text-xs font-black hover:bg-amber-600 transition-colors">Retomar borrador</button>
+            </div>
+          </div>
+        )}
+
         <div className="flex justify-between items-center bg-white p-5 rounded-3xl shadow-sm border border-slate-200">
           <Link href="/" className="text-sm font-bold text-slate-500 hover:text-slate-800 flex items-center gap-2"><span className="text-lg">&larr;</span> Directorio</Link>
 

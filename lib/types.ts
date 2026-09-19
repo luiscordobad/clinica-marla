@@ -169,6 +169,7 @@ export type InBody = {
   agua_total_lt?: string
   peso_ideal_kg?: string
   grasa_bajar_kg?: string
+  grasa_subir_kg?: string
   musculo_subir_kg?: string
 }
 
