@@ -42,6 +42,18 @@ export default function Home() {
   const [formCobro, setFormCobro] = useState({ efectivo: '', tarjeta: '', transferencia: '', requiereFactura: false, recibo: 'whatsapp', facturaConcepto: 'Honorarios Médicos', facturaConceptoOtro: '', facturaNotas: '' })
   const COMISION_TARJETA_PCT = 0.025
   const IVA_FACTURA_PCT = 0.16
+
+  const [showVentaSuplementos, setShowVentaSuplementos] = useState(false)
+  const [busquedaProductoFarmacia, setBusquedaProductoFarmacia] = useState('')
+  const FORM_VENTA_VACIO = {
+    pacienteId: '', nombreWalkin: '',
+    items: [{ productoId: '', cantidad: '1' }] as { productoId: string; cantidad: string }[],
+    efectivo: '', tarjeta: '', transferencia: '',
+    requiereFactura: false, facturaConcepto: 'Honorarios Médicos', facturaConceptoOtro: '', facturaNotas: '',
+    recibo: 'whatsapp',
+  }
+  const [formVenta, setFormVenta] = useState(FORM_VENTA_VACIO)
+  const [procesandoVenta, setProcesandoVenta] = useState(false)
   const [procesandoCobro, setProcesandoCobro] = useState(false)
   const [urlWhatsAppPendiente, setUrlWhatsAppPendiente] = useState<string | null>(null)
 
@@ -94,6 +106,13 @@ export default function Home() {
   const totalPagadoModal = Number(formCobro.efectivo) + Number(formCobro.tarjeta) + Number(formCobro.transferencia)
   const totalEsperadoModal = cobroActivo ? Number(cobroActivo.monto_esperado) : 0
   const balanceModal = totalPagadoModal - totalEsperadoModal
+
+  const totalVenta = formVenta.items.reduce((sum, it) => {
+    const prod = inventario.find(p => p.id === it.productoId)
+    return sum + (prod ? prod.precio_venta * (Number(it.cantidad) || 0) : 0)
+  }, 0)
+  const totalPagadoVenta = Number(formVenta.efectivo) + Number(formVenta.tarjeta) + Number(formVenta.transferencia)
+  const balanceVenta = totalPagadoVenta - totalVenta
 
   const HORAS_SMART = ['07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00']
   const DIAS_NOMBRES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
@@ -540,6 +559,99 @@ export default function Home() {
     setProcesandoCobro(false)
   }
 
+  // ============================================================================
+  // VENTA DIRECTA DE SUPLEMENTOS (sin pasar por una consulta clínica)
+  // ============================================================================
+  const agregarRenglonVenta = () => setFormVenta(prev => ({ ...prev, items: [...prev.items, { productoId: '', cantidad: '1' }] }))
+  const quitarRenglonVenta = (idx: number) => setFormVenta(prev => ({ ...prev, items: prev.items.filter((_, i) => i !== idx) }))
+  const actualizarRenglonVenta = (idx: number, campo: 'productoId' | 'cantidad', valor: string) => {
+    setFormVenta(prev => ({ ...prev, items: prev.items.map((it, i) => i === idx ? { ...it, [campo]: valor } : it) }))
+  }
+
+  const registrarVentaSuplementos = async () => {
+    const renglones = formVenta.items.filter(it => it.productoId && Number(it.cantidad) > 0)
+    if (renglones.length === 0) return mostrarToast('Agrega al menos un suplemento con cantidad.', 'advertencia')
+    if (!formVenta.pacienteId && !formVenta.nombreWalkin.trim()) return mostrarToast('Indica el paciente o el nombre del cliente.', 'advertencia')
+    if (totalPagadoVenta < totalVenta) return mostrarToast('El monto cobrado no cubre el total.', 'advertencia')
+
+    for (const it of renglones) {
+      const prod = inventario.find(p => p.id === it.productoId)
+      if (prod && Number(it.cantidad) > prod.stock) {
+        if (!window.confirm(`${prod.producto} tiene solo ${prod.stock} en stock y quieres vender ${it.cantidad}. ¿Continuar de todas formas?`)) return
+      }
+    }
+
+    setProcesandoVenta(true)
+    const pacienteInfo = formVenta.pacienteId ? pacientes.find(p => p.id === formVenta.pacienteId) : null
+    const concepto = pacienteInfo ? 'Venta de Suplementos' : `Venta de Suplementos — ${formVenta.nombreWalkin.trim()}`
+
+    const { data: pagoCreado, error: errPago } = await supabase.from('pagos').insert([{
+      paciente_id: formVenta.pacienteId || null,
+      cita_id: null,
+      consulta_id: null,
+      concepto,
+      monto_esperado: totalVenta,
+      monto_efectivo: Number(formVenta.efectivo) || 0,
+      monto_tarjeta: Number(formVenta.tarjeta) || 0,
+      monto_transferencia: Number(formVenta.transferencia) || 0,
+      estado: 'pagado',
+      requiere_factura: formVenta.requiereFactura,
+      factura_concepto: formVenta.requiereFactura ? (formVenta.facturaConcepto === 'Otro' ? formVenta.facturaConceptoOtro : formVenta.facturaConcepto) : null,
+      factura_notas: formVenta.requiereFactura ? formVenta.facturaNotas : null,
+      descuento_tipo: 'ninguno',
+      descuento_valor: 0,
+      created_by: sesion?.usuario.id,
+    }]).select('id').single()
+
+    if (errPago || !pagoCreado) { mostrarToast('Error registrando la venta: ' + errPago?.message, 'error'); setProcesandoVenta(false); return }
+
+    const nombresProdsVenta: string[] = []
+    for (const it of renglones) {
+      const prod = inventario.find(p => p.id === it.productoId)
+      if (!prod) continue
+      const cant = Number(it.cantidad)
+      await supabase.from('pago_productos').insert([{ pago_id: pagoCreado.id, producto_id: prod.id, cantidad: cant, precio_unit: prod.precio_venta }])
+      await supabase.from('inventario').update({ stock: prod.stock - cant }).eq('id', prod.id)
+      nombresProdsVenta.push(`${prod.producto} × ${cant}`)
+    }
+
+    const metodosArray = []
+    if (Number(formVenta.efectivo) > 0) metodosArray.push('Efectivo')
+    if (Number(formVenta.tarjeta) > 0) metodosArray.push('Tarjeta')
+    if (Number(formVenta.transferencia) > 0) metodosArray.push('Transf.')
+
+    if (formVenta.recibo === 'pdf') {
+      setReciboParaImprimir({
+        paciente: pacienteInfo?.nombre_completo || formVenta.nombreWalkin.trim() || 'Cliente',
+        concepto: 'Venta de Suplementos',
+        fecha: new Date().toLocaleDateString('es-MX', { day: 'numeric', month: 'long', year: 'numeric' }),
+        productos: nombresProdsVenta,
+        metodos: [
+          ...(Number(formVenta.efectivo) > 0 ? [{ label: 'Efectivo', monto: Number(formVenta.efectivo) }] : []),
+          ...(Number(formVenta.tarjeta) > 0 ? [{ label: 'Tarjeta', monto: Number(formVenta.tarjeta) }] : []),
+          ...(Number(formVenta.transferencia) > 0 ? [{ label: 'Transferencia', monto: Number(formVenta.transferencia) }] : []),
+        ],
+        total: totalVenta,
+        requiereFactura: formVenta.requiereFactura,
+      })
+      mostrarToast('Generando Ticket PDF...', 'exito')
+      setTimeout(() => window.print(), 300)
+    } else if (formVenta.recibo === 'whatsapp' && pacienteInfo?.telefono) {
+      let texto = `*Clínica Marla - Ticket de Servicio* 🌿\n\nHola *${pacienteInfo.nombre_completo}*, tu compra se procesó exitosamente.\n\n*Suplementos:*\n`
+      nombresProdsVenta.forEach(n => texto += `💊 ${n}\n`)
+      texto += `\n*Total Abonado:* $${totalVenta.toLocaleString()}\n💳 *Pago:* ${metodosArray.join(', ')}\n`
+      if (formVenta.requiereFactura) texto += `\n📌 _Tu factura CFDI será enviada a tu correo registrado en breve._\n`
+      texto += `\n¡Gracias por tu visita! ✨`
+      setUrlWhatsAppPendiente(`https://wa.me/${String(pacienteInfo.telefono).replace(/\D/g, '')}?text=${encodeURIComponent(texto)}`)
+    }
+
+    await cargarDatos(esFullAccess)
+    setShowVentaSuplementos(false)
+    setFormVenta(FORM_VENTA_VACIO)
+    setProcesandoVenta(false)
+    if (formVenta.recibo !== 'pdf') mostrarToast('Venta registrada con éxito', 'exito')
+  }
+
   const pacientesFiltrados = pacientes.filter(p => {
     if (!mostrarArchivados && !p.activo) return false
     const soloDigitos = searchTerm.replace(/\D/g, '')
@@ -797,6 +909,137 @@ export default function Home() {
               <button onClick={() => setCobroActivo(null)} className="px-5 py-3 bg-slate-100 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors">Cancelar</button>
               <button onClick={finalizarCobroEnRecepcion} disabled={procesandoCobro || balanceModal < 0} className="flex-1 bg-[#0066FF] text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 transition-colors">
                 {procesandoCobro ? 'Procesando...' : 'Completar y Emitir Ticket'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showVentaSuplementos && (
+        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
+            <h3 className="text-xl font-black mb-1">💊 Venta de Suplementos</h3>
+            <p className="text-sm text-slate-500 mb-6">Registra una venta sin necesidad de una consulta.</p>
+
+            <div className="mb-5">
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Cliente</p>
+              <div className="flex gap-2 mb-2">
+                <button onClick={() => setFormVenta({ ...formVenta, nombreWalkin: '' })} className={`flex-1 p-2 rounded-lg text-[11px] font-bold border transition-colors ${formVenta.pacienteId !== '' || formVenta.nombreWalkin === '' ? 'bg-[#0066FF] text-white border-[#0066FF] shadow-sm' : 'bg-white text-slate-500 hover:bg-slate-100'}`}>Paciente Registrado</button>
+                <button onClick={() => setFormVenta({ ...formVenta, pacienteId: '' })} className={`flex-1 p-2 rounded-lg text-[11px] font-bold border transition-colors ${formVenta.pacienteId === '' && formVenta.nombreWalkin !== '' ? 'bg-[#0066FF] text-white border-[#0066FF] shadow-sm' : 'bg-white text-slate-500 hover:bg-slate-100'}`}>Cliente sin registro</button>
+              </div>
+              {formVenta.nombreWalkin === '' ? (
+                <select value={formVenta.pacienteId} onChange={e => setFormVenta({ ...formVenta, pacienteId: e.target.value })} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-[#0066FF]">
+                  <option value="">Selecciona un paciente...</option>
+                  {pacientes.filter(p => p.activo).sort((a, b) => a.nombre_completo.localeCompare(b.nombre_completo)).map(p => (
+                    <option key={p.id} value={p.id}>{p.nombre_completo}</option>
+                  ))}
+                </select>
+              ) : (
+                <input type="text" value={formVenta.nombreWalkin} onChange={e => setFormVenta({ ...formVenta, nombreWalkin: e.target.value, pacienteId: '' })} placeholder="Nombre del cliente..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-[#0066FF]" />
+              )}
+            </div>
+
+            <div className="mb-5">
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Suplementos</p>
+              <div className="space-y-2">
+                {formVenta.items.map((it, idx) => (
+                  <div key={idx} className="flex gap-2 items-center">
+                    <select value={it.productoId} onChange={e => actualizarRenglonVenta(idx, 'productoId', e.target.value)} className="flex-1 p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold outline-none focus:ring-2 focus:ring-[#0066FF]">
+                      <option value="">Selecciona producto...</option>
+                      {inventario.sort((a, b) => a.producto.localeCompare(b.producto)).map(p => (
+                        <option key={p.id} value={p.id}>{p.producto} — ${p.precio_venta} ({p.stock} en stock)</option>
+                      ))}
+                    </select>
+                    <input type="number" min="1" value={it.cantidad} onChange={e => actualizarRenglonVenta(idx, 'cantidad', e.target.value)} className="w-14 p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-center outline-none focus:ring-2 focus:ring-[#0066FF]" />
+                    {formVenta.items.length > 1 && (
+                      <button onClick={() => quitarRenglonVenta(idx)} className="text-slate-400 hover:text-rose-500 text-lg px-1">×</button>
+                    )}
+                  </div>
+                ))}
+              </div>
+              {formVenta.items.length < 6 && (
+                <button onClick={agregarRenglonVenta} className="mt-2 text-[#0066FF] text-xs font-bold hover:underline">+ Agregar otro suplemento</button>
+              )}
+            </div>
+
+            <div className="bg-blue-50 text-[#0066FF] rounded-xl p-6 text-center mb-6 border border-blue-100">
+              <p className="text-xs font-black uppercase tracking-widest mb-1">Total a Cobrar</p>
+              <p className="text-4xl font-black">${totalVenta.toLocaleString()}</p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 mb-2">
+              {[{ id: 'efectivo', label: 'Efectivo', val: formVenta.efectivo }, { id: 'tarjeta', label: 'Tarjeta', val: formVenta.tarjeta }, { id: 'transferencia', label: 'Transf.', val: formVenta.transferencia }].map(m => (
+                <div key={m.id} className="border border-slate-200 p-3 rounded-xl focus-within:border-[#0066FF] transition-colors">
+                  <p className="text-[10px] font-bold text-slate-400 uppercase text-center mb-2">{m.label}</p>
+                  <input type="number" value={m.val} onChange={e => setFormVenta({ ...formVenta, [m.id]: e.target.value })} className="w-full text-center text-sm font-bold outline-none" placeholder="$0" />
+                </div>
+              ))}
+            </div>
+
+            {Number(formVenta.tarjeta) > 0 && (
+              <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mb-6 font-medium">
+                💳 Comisión bancaria estimada ({(COMISION_TARJETA_PCT * 100).toFixed(1)}%): <span className="font-black">${(Number(formVenta.tarjeta) * COMISION_TARJETA_PCT).toFixed(2)}</span> — depósito neto aprox. ${(Number(formVenta.tarjeta) * (1 - COMISION_TARJETA_PCT)).toFixed(2)}
+              </p>
+            )}
+            {Number(formVenta.tarjeta) === 0 && <div className="mb-6" />}
+
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 mb-6">
+              <p className="text-xs font-bold text-slate-800 mb-3 uppercase tracking-widest">Emisión de Comprobante</p>
+              <div className="flex gap-2 mb-4">
+                <button className={`flex-1 p-2 rounded-lg text-[10px] font-bold border transition-colors ${formVenta.recibo === 'whatsapp' ? 'bg-[#25D366] text-white border-[#25D366] shadow-sm' : 'bg-white text-slate-500 hover:bg-slate-100'}`} onClick={() => setFormVenta({ ...formVenta, recibo: 'whatsapp' })}>📱 WhatsApp</button>
+                <button className={`flex-1 p-2 rounded-lg text-[10px] font-bold border transition-colors ${formVenta.recibo === 'pdf' ? 'bg-slate-800 text-white border-slate-800 shadow-sm' : 'bg-white text-slate-500 hover:bg-slate-100'}`} onClick={() => setFormVenta({ ...formVenta, recibo: 'pdf' })}>📄 Imprimir (PDF)</button>
+                <button className={`flex-1 p-2 rounded-lg text-[10px] font-bold border transition-colors ${formVenta.recibo === 'ninguno' ? 'bg-slate-200 text-slate-600 border-slate-300' : 'bg-white text-slate-500 hover:bg-slate-100'}`} onClick={() => setFormVenta({ ...formVenta, recibo: 'ninguno' })}>❌ Ninguno</button>
+              </div>
+              <div className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg cursor-pointer hover:border-[#0066FF] transition-colors" onClick={() => setFormVenta({ ...formVenta, requiereFactura: !formVenta.requiereFactura })}>
+                <div>
+                  <p className="text-sm font-bold text-slate-800">¿Generar Factura (CFDI)?</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Se pedirán los datos fiscales al paciente.</p>
+                </div>
+                <div className={`w-10 h-5 rounded-full p-1 transition-colors ${formVenta.requiereFactura ? 'bg-[#0066FF]' : 'bg-slate-200'}`}>
+                  <div className={`w-3 h-3 bg-white rounded-full shadow-sm transition-transform ${formVenta.requiereFactura ? 'translate-x-5' : 'translate-x-0'}`}></div>
+                </div>
+              </div>
+
+              {formVenta.requiereFactura && (
+                <div className="mt-4 pt-4 border-t border-slate-200 space-y-4">
+                  <p className="text-[11px] text-blue-700 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 font-medium">
+                    📌 La factura es más el {(IVA_FACTURA_PCT * 100).toFixed(0)}% de IVA: <span className="font-black">${(totalVenta * IVA_FACTURA_PCT).toFixed(2)}</span> — total con factura ${(totalVenta * (1 + IVA_FACTURA_PCT)).toFixed(2)}
+                  </p>
+
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Concepto de Factura</p>
+                    <div className="flex flex-wrap gap-2">
+                      {['Honorarios Médicos', 'Gastos en Generales', 'Otro'].map(op => (
+                        <button
+                          key={op}
+                          type="button"
+                          onClick={() => setFormVenta({ ...formVenta, facturaConcepto: op })}
+                          className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${formVenta.facturaConcepto === op ? 'bg-[#0066FF] border-[#0066FF] text-white shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-blue-300'}`}
+                        >
+                          {op}
+                        </button>
+                      ))}
+                    </div>
+                    {formVenta.facturaConcepto === 'Otro' && (
+                      <input type="text" value={formVenta.facturaConceptoOtro} onChange={e => setFormVenta({ ...formVenta, facturaConceptoOtro: e.target.value })} placeholder="Especifica el concepto..." className="w-full mt-2 p-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-[#0066FF]" />
+                    )}
+                  </div>
+
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Notas de la Factura (opcional)</p>
+                    <textarea value={formVenta.facturaNotas} onChange={e => setFormVenta({ ...formVenta, facturaNotas: e.target.value })} placeholder="Ej. esta factura es solo de los suplementos..." rows={2} className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-[#0066FF]" />
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {totalPagadoVenta > 0 && balanceVenta < 0 && <p className="text-rose-500 text-xs font-bold text-center mb-4">Faltan ${Math.abs(balanceVenta).toLocaleString()}</p>}
+            {totalPagadoVenta > 0 && balanceVenta >= 0 && <p className="text-[#00D084] text-xs font-bold text-center mb-4">Cambio a entregar: ${balanceVenta.toLocaleString()}</p>}
+
+            <div className="flex gap-3">
+              <button onClick={() => { setShowVentaSuplementos(false); setFormVenta(FORM_VENTA_VACIO) }} className="px-5 py-3 bg-slate-100 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors">Cancelar</button>
+              <button onClick={registrarVentaSuplementos} disabled={procesandoVenta || balanceVenta < 0} className="flex-1 bg-[#0066FF] text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                {procesandoVenta ? 'Procesando...' : 'Completar Venta'}
               </button>
             </div>
           </div>
@@ -1576,12 +1819,50 @@ export default function Home() {
 
           {/* VISTA 4: ALMACÉN */}
           {activeTab === 'Almacen' && esFullAccess && (
-            <div className="flex-1 overflow-y-auto p-4 sm:p-8 pb-24 md:pb-8 flex items-center justify-center">
-              <div className="max-w-md w-full text-center bg-white p-12 rounded-3xl border border-slate-200 shadow-sm">
-                <div className="w-20 h-20 bg-[#0066FF]/10 text-[#0066FF] rounded-full flex items-center justify-center mx-auto mb-6 text-3xl">📦</div>
-                <h2 className="text-2xl font-black text-slate-800 mb-2">Almacén General</h2>
-                <p className="text-slate-500 mb-8 text-sm">Control de stock e inventario de suplementos y enzimas.</p>
-                <Link href="/inventario" className="bg-[#0066FF] text-white px-8 py-3.5 rounded-xl font-bold hover:bg-blue-700 inline-block shadow-md hover:shadow-lg hover:shadow-blue-500/30 transition-all">Abrir Inventario Completo &rarr;</Link>
+            <div className="flex-1 overflow-y-auto p-4 sm:p-8 pb-24 md:pb-8">
+              <div className="max-w-3xl mx-auto space-y-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div>
+                    <h2 className="text-2xl font-black text-slate-800">💊 Farmacia</h2>
+                    <p className="text-slate-500 text-sm">Precios rápidos para cotizar y venta de suplementos.</p>
+                  </div>
+                  <div className="flex gap-2 w-full sm:w-auto">
+                    <button onClick={() => setShowVentaSuplementos(true)} className="flex-1 sm:flex-none bg-[#0066FF] text-white px-5 py-3 rounded-xl font-bold hover:bg-blue-700 shadow-md transition-all text-sm">+ Venta de Suplementos</button>
+                    <Link href="/inventario" className="flex-1 sm:flex-none text-center bg-slate-100 text-slate-600 px-5 py-3 rounded-xl font-bold hover:bg-slate-200 transition-all text-sm">Inventario Completo</Link>
+                  </div>
+                </div>
+
+                <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
+                  <div className="p-5 border-b border-slate-100 bg-slate-50/50">
+                    <div className="relative">
+                      <span className="absolute left-4 top-2.5 text-slate-400">🔍</span>
+                      <input
+                        type="text"
+                        placeholder="Buscar suplemento para cotizar..."
+                        value={busquedaProductoFarmacia}
+                        onChange={(e) => setBusquedaProductoFarmacia(e.target.value)}
+                        className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-bold focus:ring-2 focus:ring-[#0066FF] transition-all shadow-sm"
+                      />
+                    </div>
+                  </div>
+                  <div className="divide-y divide-slate-50 max-h-[60vh] overflow-y-auto">
+                    {inventario
+                      .filter(p => p.producto.toLowerCase().includes(busquedaProductoFarmacia.toLowerCase()))
+                      .sort((a, b) => a.producto.localeCompare(b.producto))
+                      .map(p => (
+                        <div key={p.id} className="flex items-center justify-between px-5 py-4">
+                          <div className="min-w-0">
+                            <p className="font-bold text-slate-800 truncate">{p.producto}</p>
+                            <p className={`text-[10px] font-bold uppercase tracking-widest ${p.stock <= 5 ? 'text-red-500' : p.stock <= 15 ? 'text-amber-500' : 'text-emerald-500'}`}>{p.stock} en stock</p>
+                          </div>
+                          <p className="text-xl font-black text-[#0066FF] shrink-0 ml-4">${p.precio_venta.toLocaleString()}</p>
+                        </div>
+                      ))}
+                    {inventario.filter(p => p.producto.toLowerCase().includes(busquedaProductoFarmacia.toLowerCase())).length === 0 && (
+                      <p className="text-center py-12 text-slate-400 font-bold text-sm">No se encontraron suplementos.</p>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           )}
