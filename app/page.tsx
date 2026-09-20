@@ -1468,7 +1468,21 @@ export default function Home() {
 
             {/* AGENDA MÓVIL: lista del día en vez de la cuadrícula semanal */}
             <div className="md:hidden flex-1 overflow-y-auto pb-24">
-              <div className="flex gap-2 overflow-x-auto px-4 pt-4 pb-2 -mx-1">
+              <div className="flex items-center justify-between px-4 pt-4 gap-2">
+                <button onClick={() => cambiarSemana(-1)} className="w-8 h-8 shrink-0 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 bg-white font-bold active:bg-slate-100">&lt;</button>
+                <span className="text-xs font-black text-slate-600 capitalize truncate">{getMesYAnioTexto(fechaSeleccionada)}</span>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {fechaSeleccionada !== hoyFechaFormat && (
+                    <button onClick={() => setFechaSeleccionada(hoyFechaFormat)} className="text-[10px] font-bold text-[#0066FF] border border-blue-100 bg-blue-50 px-2 py-1.5 rounded-lg">Hoy</button>
+                  )}
+                  <label className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 bg-white font-bold active:bg-slate-100 relative cursor-pointer">
+                    📅
+                    <input type="date" value={fechaSeleccionada} onChange={(e) => e.target.value && setFechaSeleccionada(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer" />
+                  </label>
+                  <button onClick={() => cambiarSemana(1)} className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 bg-white font-bold active:bg-slate-100">&gt;</button>
+                </div>
+              </div>
+              <div className="flex gap-2 overflow-x-auto px-4 pt-2 pb-2 -mx-1">
                 {diasSemanales.map((d, i) => {
                   const seleccionado = d.iso === fechaSeleccionada
                   const hasCitas = getOriginalCitasCount(d.iso) > 0
