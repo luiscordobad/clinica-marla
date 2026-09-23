@@ -847,7 +847,7 @@ export default function Home() {
 
             {Number(formCobro.tarjeta) > 0 && (
               <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mb-6 font-medium">
-                💳 Comisión bancaria estimada ({(COMISION_TARJETA_PCT * 100).toFixed(1)}%): <span className="font-black">${(Number(formCobro.tarjeta) * COMISION_TARJETA_PCT).toFixed(2)}</span> — depósito neto aprox. ${(Number(formCobro.tarjeta) * (1 - COMISION_TARJETA_PCT)).toFixed(2)}
+                💳 Para que te queden ${Number(formCobro.tarjeta).toFixed(2)} netos, cobra <span className="font-black">${(Number(formCobro.tarjeta) * (1 + COMISION_TARJETA_PCT)).toFixed(2)}</span> en la terminal (comisión bancaria +{(COMISION_TARJETA_PCT * 100).toFixed(1)}%: ${(Number(formCobro.tarjeta) * COMISION_TARJETA_PCT).toFixed(2)})
               </p>
             )}
             {Number(formCobro.tarjeta) === 0 && <div className="mb-6" />}
@@ -978,7 +978,7 @@ export default function Home() {
 
             {Number(formVenta.tarjeta) > 0 && (
               <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 mb-6 font-medium">
-                💳 Comisión bancaria estimada ({(COMISION_TARJETA_PCT * 100).toFixed(1)}%): <span className="font-black">${(Number(formVenta.tarjeta) * COMISION_TARJETA_PCT).toFixed(2)}</span> — depósito neto aprox. ${(Number(formVenta.tarjeta) * (1 - COMISION_TARJETA_PCT)).toFixed(2)}
+                💳 Para que te queden ${Number(formVenta.tarjeta).toFixed(2)} netos, cobra <span className="font-black">${(Number(formVenta.tarjeta) * (1 + COMISION_TARJETA_PCT)).toFixed(2)}</span> en la terminal (comisión bancaria +{(COMISION_TARJETA_PCT * 100).toFixed(1)}%: ${(Number(formVenta.tarjeta) * COMISION_TARJETA_PCT).toFixed(2)})
               </p>
             )}
             {Number(formVenta.tarjeta) === 0 && <div className="mb-6" />}

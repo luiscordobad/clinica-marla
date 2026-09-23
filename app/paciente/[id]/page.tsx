@@ -821,6 +821,12 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
       <main className="min-h-screen bg-[#F5F5F7] flex flex-col lg:flex-row">
         <div className="w-full lg:w-72 bg-slate-900 text-slate-300 flex flex-col sticky top-0 lg:h-screen z-20">
           <div className="p-5 bg-slate-950 border-b border-slate-800">
+            <button
+              onClick={() => { if (window.confirm('¿Salir de la consulta? Tu progreso se guardó automáticamente y podrás retomarlo desde el perfil del paciente.')) setModoConsulta(false) }}
+              className="mb-3 flex items-center gap-1.5 text-[11px] font-bold text-slate-400 hover:text-white transition-colors"
+            >
+              <span className="text-sm">&larr;</span> Salir sin terminar
+            </button>
             <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-black uppercase mb-1.5 ${esPrimeraVez ? 'bg-amber-500 text-amber-950' : 'bg-teal-500 text-teal-950'}`}>
               {esPrimeraVez ? 'Estudio de Primera Vez' : 'Control de Seguimiento'}
             </span>
@@ -848,10 +854,11 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
             ) : (
               [
                 { id: 'seguimiento_notas', label: '1. Notas de Evolución', icon: '🗣️' },
-                { id: 'mediciones', label: '2. Control Corporal', icon: '⚖️' },
-                { id: 'enfoque', label: '3. Ajuste de Plan', icon: '🔄' },
-                { id: 'antecedentes', label: '4. Actualizar Antecedentes', icon: '📝' },
-                { id: 'estilo', label: '5. Actualizar Estilo de Vida', icon: '🥗' },
+                { id: 'mediciones', label: '2. Control Corporal', icon: '📏' },
+                { id: 'peso', label: '3. Peso e InBody', icon: '⚖️' },
+                { id: 'enfoque', label: '4. Ajuste de Plan', icon: '🔄' },
+                { id: 'antecedentes', label: '5. Actualizar Antecedentes', icon: '📝' },
+                { id: 'estilo', label: '6. Actualizar Estilo de Vida', icon: '🥗' },
               ].map(tab => (
                 <button key={tab.id} onClick={() => setSeccionActiva(tab.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold text-left whitespace-nowrap transition-all ${seccionActiva === tab.id ? 'bg-teal-600 text-white shadow-md' : 'hover:bg-slate-800'}`}>
                   <span>{tab.icon}</span> {tab.label}
