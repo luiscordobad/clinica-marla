@@ -13,6 +13,7 @@ type ActividadItem = {
   id: string
   cuando: string
   quien: string
+  quienId: string
   texto: string
   icono: string
 }
@@ -44,6 +45,9 @@ export default function Usuarios() {
   const [nuevoCorreo, setNuevoCorreo] = useState('')
   const [cambiandoCorreo, setCambiandoCorreo] = useState(false)
   const [avisoCorreo, setAvisoCorreo] = useState<string | null>(null)
+  const [cerrandoTodo, setCerrandoTodo] = useState(false)
+
+  const [filtroActividad, setFiltroActividad] = useState('')
 
   const [ultimoAcceso, setUltimoAcceso] = useState<Record<string, string | null>>({})
 
@@ -95,9 +99,9 @@ export default function Usuarios() {
     usuariosCargados.forEach(u => { nombrePorId[u.id] = u.nombre })
 
     const [{ data: citasData }, { data: pagosData }, { data: consultasData }] = await Promise.all([
-      supabase.from('citas').select('id, created_at, created_by, nombre_paciente, tipo').order('created_at', { ascending: false }).limit(15),
-      supabase.from('pagos').select('id, fecha, created_by, monto_esperado, estado, concepto').order('fecha', { ascending: false }).limit(15),
-      supabase.from('consultas').select('id, created_at, realizada_por, tipo, paciente_id').order('created_at', { ascending: false }).limit(15),
+      supabase.from('citas').select('id, created_at, created_by, nombre_paciente, tipo').order('created_at', { ascending: false }).limit(30),
+      supabase.from('pagos').select('id, fecha, created_by, monto_esperado, estado, concepto').order('fecha', { ascending: false }).limit(30),
+      supabase.from('consultas').select('id, created_at, realizada_por, tipo, paciente_id').order('created_at', { ascending: false }).limit(30),
     ])
 
     let nombresPacientes: Record<string, string> = {}
@@ -112,6 +116,7 @@ export default function Usuarios() {
         id: 'cita-' + c.id,
         cuando: c.created_at,
         quien: nombrePorId[c.created_by] || 'Sistema',
+        quienId: c.created_by || '',
         texto: `Agendó una cita ${c.tipo === 'bloqueo' ? '(bloqueo)' : `para ${c.nombre_paciente || 'paciente'}`}`,
         icono: '📅',
       })),
@@ -119,6 +124,7 @@ export default function Usuarios() {
         id: 'pago-' + p.id,
         cuando: p.fecha,
         quien: nombrePorId[p.created_by] || 'Sistema',
+        quienId: p.created_by || '',
         texto: `${p.estado === 'pagado' ? 'Cobró' : 'Generó cuenta de'} $${p.monto_esperado} — ${p.concepto || 'servicio'}`,
         icono: '💳',
       })),
@@ -126,10 +132,11 @@ export default function Usuarios() {
         id: 'consulta-' + c.id,
         cuando: c.created_at,
         quien: nombrePorId[c.realizada_por] || 'Sistema',
+        quienId: c.realizada_por || '',
         texto: `Registró consulta (${c.tipo === 'primera_vez' ? 'primera vez' : 'seguimiento'}) de ${nombresPacientes[c.paciente_id] || 'paciente'}`,
         icono: '📝',
       })),
-    ].sort((a, b) => new Date(b.cuando).getTime() - new Date(a.cuando).getTime()).slice(0, 25)
+    ].sort((a, b) => new Date(b.cuando).getTime() - new Date(a.cuando).getTime()).slice(0, 60)
 
     setActividad(items)
     setCargandoActividad(false)
@@ -208,6 +215,13 @@ export default function Usuarios() {
     if (error) return setErrorPassword('No se pudo cambiar: ' + error.message)
     setFormPassword({ nueva: '', confirmar: '' })
     mostrarToast('Contraseña actualizada')
+  }
+
+  const cerrarTodasLasSesiones = async () => {
+    if (!window.confirm('Esto cerrará tu sesión en todos los dispositivos donde hayas iniciado sesión (celular, computadora, etc.), incluida esta. ¿Continuar?')) return
+    setCerrandoTodo(true)
+    await supabase.auth.signOut({ scope: 'global' })
+    window.location.href = '/login'
   }
 
   const actualizarUsuario = async (id: string, cambios: Partial<Pick<Usuario, 'rol' | 'activo'>>) => {
@@ -373,6 +387,14 @@ export default function Usuarios() {
                 {cambiandoPassword ? 'Actualizando...' : 'Cambiar Contraseña'}
               </button>
             </div>
+
+            <div className="space-y-3 pt-6 border-t border-slate-100">
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Seguridad</p>
+              <p className="text-xs text-slate-500">Si perdiste tu celular o computadora con la sesión abierta, cierra el acceso desde todos lados.</p>
+              <button onClick={cerrarTodasLasSesiones} disabled={cerrandoTodo} className="w-full py-3 bg-rose-50 text-rose-600 border border-rose-200 rounded-xl text-sm font-black hover:bg-rose-100 transition-colors disabled:opacity-50">
+                {cerrandoTodo ? 'Cerrando...' : '🔒 Cerrar sesión en todos los dispositivos'}
+              </button>
+            </div>
           </div>
         )}
 
@@ -533,12 +555,22 @@ export default function Usuarios() {
 
         {vista === 'actividad' && sesion?.esFullAccess && (
           <div>
-            <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Actividad Reciente</h2>
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Actividad Reciente</h2>
+              <select
+                value={filtroActividad}
+                onChange={(e) => setFiltroActividad(e.target.value)}
+                className="p-2 bg-white border border-slate-200 rounded-lg text-xs font-bold outline-none focus:ring-2 focus:ring-[#28363E]"
+              >
+                <option value="">Todos</option>
+                {usuarios.map(u => <option key={u.id} value={u.id}>{u.nombre}</option>)}
+              </select>
+            </div>
             {cargandoActividad ? (
               <p className="text-center text-sm text-slate-400 py-10 animate-pulse">Cargando...</p>
             ) : (
               <div className="space-y-2.5">
-                {actividad.map(a => (
+                {actividad.filter(a => !filtroActividad || a.quienId === filtroActividad).map(a => (
                   <div key={a.id} className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
                     <span className="text-lg shrink-0">{a.icono}</span>
                     <div className="min-w-0 flex-1">
@@ -547,7 +579,7 @@ export default function Usuarios() {
                     </div>
                   </div>
                 ))}
-                {actividad.length === 0 && <p className="text-center text-sm text-slate-400 py-10">Sin actividad registrada todavía.</p>}
+                {actividad.filter(a => !filtroActividad || a.quienId === filtroActividad).length === 0 && <p className="text-center text-sm text-slate-400 py-10">Sin actividad registrada para este filtro.</p>}
               </div>
             )}
           </div>
