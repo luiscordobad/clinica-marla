@@ -35,6 +35,10 @@ export default function Usuarios() {
   const [guardandoPerfil, setGuardandoPerfil] = useState(false)
   const [subiendoAvatar, setSubiendoAvatar] = useState(false)
 
+  const [formPassword, setFormPassword] = useState({ nueva: '', confirmar: '' })
+  const [cambiandoPassword, setCambiandoPassword] = useState(false)
+  const [errorPassword, setErrorPassword] = useState<string | null>(null)
+
   const cargar = async () => {
     const { data } = await supabase.from('usuarios').select('*').order('created_at', { ascending: true })
     if (data) setUsuarios(data as Usuario[])
@@ -155,6 +159,18 @@ export default function Usuarios() {
     setSubiendoAvatar(false)
   }
 
+  const cambiarPassword = async () => {
+    setErrorPassword(null)
+    if (formPassword.nueva.length < 6) return setErrorPassword('La contraseña debe tener al menos 6 caracteres.')
+    if (formPassword.nueva !== formPassword.confirmar) return setErrorPassword('Las contraseñas no coinciden.')
+    setCambiandoPassword(true)
+    const { error } = await supabase.auth.updateUser({ password: formPassword.nueva })
+    setCambiandoPassword(false)
+    if (error) return setErrorPassword('No se pudo cambiar: ' + error.message)
+    setFormPassword({ nueva: '', confirmar: '' })
+    mostrarToast('Contraseña actualizada')
+  }
+
   const actualizarUsuario = async (id: string, cambios: Partial<Pick<Usuario, 'rol' | 'activo'>>) => {
     setGuardandoId(id)
     const { error } = await supabase.from('usuarios').update(cambios).eq('id', id)
@@ -268,6 +284,24 @@ export default function Usuarios() {
               </div>
               <button onClick={guardarPerfil} disabled={guardandoPerfil} className="w-full py-3 bg-[#28363E] text-white rounded-xl text-sm font-black hover:bg-[#1C262C] transition-colors disabled:opacity-50">
                 {guardandoPerfil ? 'Guardando...' : 'Guardar Cambios'}
+              </button>
+            </div>
+
+            <div className="space-y-4 pt-6 border-t border-slate-100">
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Cambiar Contraseña</p>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Nueva contraseña</label>
+                <input type="password" value={formPassword.nueva} onChange={(e) => setFormPassword({ ...formPassword, nueva: e.target.value })} placeholder="••••••••" className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#28363E]" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Confirma la nueva contraseña</label>
+                <input type="password" value={formPassword.confirmar} onChange={(e) => setFormPassword({ ...formPassword, confirmar: e.target.value })} placeholder="••••••••" className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#28363E]" />
+              </div>
+              {errorPassword && (
+                <div className="bg-rose-50 text-rose-600 p-3 rounded-xl text-xs text-center border border-rose-200 font-bold">{errorPassword}</div>
+              )}
+              <button onClick={cambiarPassword} disabled={cambiandoPassword || !formPassword.nueva} className="w-full py-3 bg-slate-800 text-white rounded-xl text-sm font-black hover:bg-slate-900 transition-colors disabled:opacity-50">
+                {cambiandoPassword ? 'Actualizando...' : 'Cambiar Contraseña'}
               </button>
             </div>
           </div>

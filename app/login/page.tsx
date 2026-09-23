@@ -6,7 +6,7 @@ import { useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { obtenerEstadoSesion } from '../../lib/auth'
 
-type Modo = 'login' | 'registro'
+type Modo = 'login' | 'registro' | 'recuperar'
 
 export default function Login() {
   const [modo, setModo] = useState<Modo>('login')
@@ -92,13 +92,33 @@ export default function Login() {
     await entrarSegunEstado()
   }
 
+  const handleRecuperar = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
+    setAviso(null)
+
+    const { error: recuperarError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/actualizar-password`,
+    })
+
+    if (recuperarError) {
+      setError('No se pudo enviar el correo. Verifica que esté bien escrito e intenta de nuevo.')
+      setLoading(false)
+      return
+    }
+
+    setAviso('Si ese correo tiene una cuenta, te enviamos un link para restablecer tu contraseña. Revisa tu bandeja de entrada (y spam).')
+    setLoading(false)
+  }
+
   return (
     <main className="min-h-screen bg-[#F4F6F9] flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 border border-slate-100">
         <div className="text-center mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/logo-marla-completo.png" alt="Marla Polo — Nutrición Clínica & Diabetes" className="h-16 w-auto mx-auto mb-4" />
-          <p className="text-slate-500 mt-1 text-sm">{modo === 'login' ? 'Inicia sesión en tu cuenta' : 'Crea tu cuenta de acceso'}</p>
+          <p className="text-slate-500 mt-1 text-sm">{modo === 'login' ? 'Inicia sesión en tu cuenta' : modo === 'registro' ? 'Crea tu cuenta de acceso' : 'Recupera el acceso a tu cuenta'}</p>
         </div>
 
         {aviso && (
@@ -107,7 +127,7 @@ export default function Login() {
           </div>
         )}
 
-        <form onSubmit={modo === 'login' ? handleLogin : handleRegistro} className="space-y-5">
+        <form onSubmit={modo === 'login' ? handleLogin : modo === 'registro' ? handleRegistro : handleRecuperar} className="space-y-5">
           {modo === 'registro' && (
             <div>
               <label className="block text-sm font-bold text-slate-600 mb-2">Nombre completo</label>
@@ -134,17 +154,24 @@ export default function Login() {
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-bold text-slate-600 mb-2">Contraseña</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#28363E] focus:border-[#28363E] outline-none transition-all text-slate-800"
-              placeholder="••••••••"
-              required
-            />
-          </div>
+          {modo !== 'recuperar' && (
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="block text-sm font-bold text-slate-600">Contraseña</label>
+                {modo === 'login' && (
+                  <button type="button" onClick={() => { setModo('recuperar'); setError(null); setAviso(null) }} className="text-xs font-bold text-[#28363E] hover:underline">¿Olvidaste tu contraseña?</button>
+                )}
+              </div>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#28363E] focus:border-[#28363E] outline-none transition-all text-slate-800"
+                placeholder="••••••••"
+                required
+              />
+            </div>
+          )}
 
           {modo === 'registro' && (
             <div>
@@ -171,16 +198,25 @@ export default function Login() {
             disabled={loading}
             className="w-full bg-[#28363E] text-white font-black py-3.5 rounded-xl hover:bg-[#1C262C] transition-colors disabled:opacity-50 shadow-sm"
           >
-            {loading ? 'Un momento...' : modo === 'login' ? 'Entrar al Sistema' : 'Crear mi cuenta'}
+            {loading ? 'Un momento...' : modo === 'login' ? 'Entrar al Sistema' : modo === 'registro' ? 'Crear mi cuenta' : 'Enviar link de recuperación'}
           </button>
         </form>
 
-        <button
-          onClick={() => { setModo(modo === 'login' ? 'registro' : 'login'); setError(null); setAviso(null) }}
-          className="w-full text-center text-sm font-bold text-slate-500 hover:text-[#28363E] transition-colors mt-6"
-        >
-          {modo === 'login' ? '¿Personal nuevo? Crea tu cuenta aquí' : '¿Ya tienes cuenta? Inicia sesión'}
-        </button>
+        {modo === 'recuperar' ? (
+          <button
+            onClick={() => { setModo('login'); setError(null); setAviso(null) }}
+            className="w-full text-center text-sm font-bold text-slate-500 hover:text-[#28363E] transition-colors mt-6"
+          >
+            ← Regresar a iniciar sesión
+          </button>
+        ) : (
+          <button
+            onClick={() => { setModo(modo === 'login' ? 'registro' : 'login'); setError(null); setAviso(null) }}
+            className="w-full text-center text-sm font-bold text-slate-500 hover:text-[#28363E] transition-colors mt-6"
+          >
+            {modo === 'login' ? '¿Personal nuevo? Crea tu cuenta aquí' : '¿Ya tienes cuenta? Inicia sesión'}
+          </button>
+        )}
 
         {modo === 'registro' && (
           <p className="text-[11px] text-slate-400 text-center mt-3 leading-relaxed">

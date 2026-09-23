@@ -1229,7 +1229,10 @@ export default function Home() {
                     <img src={sesion.usuario.avatar_url} alt={sesion.usuario.nombre} className="w-full h-full object-cover" />
                   ) : getInitials(sesion.usuario.nombre)}
                 </div>
-                <span className="text-sm font-bold text-slate-700 hidden sm:inline pr-1">{sesion.usuario.nombre}</span>
+                <span className="hidden sm:flex flex-col items-start pr-1 leading-tight">
+                  <span className="text-sm font-bold text-slate-700">{sesion.usuario.nombre}</span>
+                  {sesion.usuario.puesto && <span className="text-[10px] text-slate-400 font-bold">{sesion.usuario.puesto}</span>}
+                </span>
                 <span className="text-slate-400 text-[10px] hidden sm:inline">▾</span>
               </button>
               {showMenuPerfil && (
@@ -1238,7 +1241,7 @@ export default function Home() {
                   <div className="absolute right-0 top-12 w-64 bg-white rounded-2xl shadow-xl border border-slate-200 z-20 overflow-hidden animate-in fade-in zoom-in-95">
                     <div className="p-4 border-b border-slate-100">
                       <p className="text-sm font-black text-slate-800 truncate">{sesion.usuario.nombre}</p>
-                      <p className="text-xs text-slate-400 truncate">{sesion.usuario.email}</p>
+                      <p className="text-xs text-slate-400 truncate">{sesion.usuario.puesto ? `${sesion.usuario.puesto} · ` : ''}{sesion.usuario.email}</p>
                     </div>
                     <button onClick={() => { setShowModalCalendario(true); setShowMenuPerfil(false) }} className="w-full text-left px-4 py-3 text-sm font-bold text-slate-600 hover:bg-slate-50 flex items-center gap-2.5 transition-colors">
                       📆 Sincronizar con iPhone
