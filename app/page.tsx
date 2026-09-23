@@ -665,7 +665,7 @@ export default function Home() {
   const horaCitaSeleccionadaYaPaso = citaSeleccionada ? new Date(`${citaSeleccionada.fecha_cita}T${citaSeleccionada.hora_cita}`) <= horaActual : false
   const telefonoLimpioCita = pacienteCitaSeleccionada?.telefono ? String(pacienteCitaSeleccionada.telefono).replace(/\D/g, '') : null
 
-  if (loading || !sesion) return <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center"><p className="animate-pulse font-bold text-[#0066FF]">Cargando plataforma...</p></div>
+  if (loading || !sesion) return <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center"><p className="animate-pulse font-bold text-[#28363E]">Cargando plataforma...</p></div>
 
   return (
     <div className="flex h-dvh md:h-screen bg-[#F4F6F9] font-sans text-slate-800 overflow-hidden">
@@ -684,7 +684,7 @@ export default function Home() {
           <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 border border-slate-200" onClick={e => e.stopPropagation()}>
 
             <div className={`p-6 text-white ${citaSeleccionada.tipo === 'bloqueo' ? 'bg-slate-600' :
-              (new Date(`${citaSeleccionada.fecha_cita}T${citaSeleccionada.hora_cita}`) < horaActual && citaSeleccionada.estado === 'programada' && citaSeleccionada.fecha_cita === hoyFechaFormat) ? 'bg-rose-500' : 'bg-[#0066FF]'}`}>
+              (new Date(`${citaSeleccionada.fecha_cita}T${citaSeleccionada.hora_cita}`) < horaActual && citaSeleccionada.estado === 'programada' && citaSeleccionada.fecha_cita === hoyFechaFormat) ? 'bg-rose-500' : 'bg-[#28363E]'}`}>
               <div className="flex justify-between items-start mb-2">
                 <span className="bg-white/20 px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest shadow-sm">
                   {citaSeleccionada.estado === 'programada' && new Date(`${citaSeleccionada.fecha_cita}T${citaSeleccionada.hora_cita}`) < horaActual && citaSeleccionada.fecha_cita === hoyFechaFormat ? '⚠️ Retraso Detectado' : citaSeleccionada.estado}
@@ -700,35 +700,35 @@ export default function Home() {
                 <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
                   <div>
                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Tipo de Cita</label>
-                    <select value={formEdicion.tipo} onChange={e => setFormEdicion({ ...formEdicion, tipo: e.target.value as TipoCita })} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-[#0066FF]">
+                    <select value={formEdicion.tipo} onChange={e => setFormEdicion({ ...formEdicion, tipo: e.target.value as TipoCita })} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-[#28363E]">
                       {(Object.keys(ETIQUETA_TIPO_CITA) as TipoCita[]).filter(t => t !== 'bloqueo').map(t => <option key={t} value={t}>{ETIQUETA_TIPO_CITA[t]}</option>)}
                     </select>
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Fecha</label>
-                      <input type="date" value={formEdicion.fecha} onChange={e => setFormEdicion({ ...formEdicion, fecha: e.target.value })} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-[#0066FF]" />
+                      <input type="date" value={formEdicion.fecha} onChange={e => setFormEdicion({ ...formEdicion, fecha: e.target.value })} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-[#28363E]" />
                     </div>
                     <div>
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 block">Hora</label>
-                      <input type="time" value={formEdicion.hora} onChange={e => setFormEdicion({ ...formEdicion, hora: e.target.value })} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-[#0066FF]" />
+                      <input type="time" value={formEdicion.hora} onChange={e => setFormEdicion({ ...formEdicion, hora: e.target.value })} className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-[#28363E]" />
                     </div>
                   </div>
                   <div className="flex gap-2 pt-2">
                     <button onClick={() => setModoEdicionCita(false)} className="px-4 py-3 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-200">Cancelar</button>
-                    <button onClick={guardarEdicionCita} className="flex-1 bg-[#0066FF] text-white rounded-xl text-xs font-bold shadow-sm hover:bg-blue-700">💾 Guardar Cambios</button>
+                    <button onClick={guardarEdicionCita} className="flex-1 bg-[#28363E] text-white rounded-xl text-xs font-bold shadow-sm hover:bg-[#1C262C]">💾 Guardar Cambios</button>
                   </div>
                 </div>
               ) : (
                 <div className="space-y-5">
                   <div className="flex items-center gap-4 text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xl">📅</div>
+                    <div className="w-10 h-10 rounded-full bg-slate-200 text-[#28363E] flex items-center justify-center text-xl">📅</div>
                     <div>
                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Fecha y Hora</p>
                       <p className="text-sm font-black text-slate-800">
                         {new Date(citaSeleccionada.fecha_cita + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}
                         <br />
-                        <span className="text-[#0066FF]">
+                        <span className="text-[#28363E]">
                           {citaSeleccionada.hora_cita.substring(0, 5)} - {
                             (() => {
                               const minFinal = timeToMins(citaSeleccionada.hora_cita.substring(0, 5)) + citaSeleccionada.duracion_min
@@ -776,7 +776,7 @@ export default function Home() {
                           </div>
                         )}
                         {citaSeleccionada.estado === 'en_espera' && esFullAccess && (
-                          <Link href={`/paciente/${citaSeleccionada.paciente_id}`} className="col-span-2 py-3.5 flex items-center justify-center gap-2 bg-[#0066FF] text-white rounded-xl text-sm font-black shadow-md hover:bg-blue-700 transition-colors mb-2">
+                          <Link href={`/paciente/${citaSeleccionada.paciente_id}`} className="col-span-2 py-3.5 flex items-center justify-center gap-2 bg-[#28363E] text-white rounded-xl text-sm font-black shadow-md hover:bg-[#1C262C] transition-colors mb-2">
                             🩺 Iniciar Consulta Médica
                           </Link>
                         )}
@@ -831,14 +831,14 @@ export default function Home() {
             <h3 className="text-xl font-black mb-1">Check-Out: {pacientes.find(p => p.id === cobroActivo.paciente_id)?.nombre_completo || 'Paciente'}</h3>
             <p className="text-sm text-slate-500 mb-6">{cobroActivo.concepto}</p>
 
-            <div className="bg-blue-50 text-[#0066FF] rounded-xl p-6 text-center mb-6 border border-blue-100">
+            <div className="bg-slate-50 text-[#28363E] rounded-xl p-6 text-center mb-6 border border-slate-200">
               <p className="text-xs font-black uppercase tracking-widest mb-1">Total a Cobrar</p>
               <p className="text-4xl font-black">${totalEsperadoModal.toLocaleString()}</p>
             </div>
 
             <div className="grid grid-cols-3 gap-3 mb-2">
               {[{ id: 'efectivo', label: 'Efectivo', val: formCobro.efectivo }, { id: 'tarjeta', label: 'Tarjeta', val: formCobro.tarjeta }, { id: 'transferencia', label: 'Transf.', val: formCobro.transferencia }].map(m => (
-                <div key={m.id} className="border border-slate-200 p-3 rounded-xl focus-within:border-[#0066FF] transition-colors">
+                <div key={m.id} className="border border-slate-200 p-3 rounded-xl focus-within:border-[#28363E] transition-colors">
                   <p className="text-[10px] font-bold text-slate-400 uppercase text-center mb-2">{m.label}</p>
                   <input type="number" value={m.val} onChange={e => setFormCobro({ ...formCobro, [m.id]: e.target.value })} className="w-full text-center text-sm font-bold outline-none" placeholder="$0" />
                 </div>
@@ -859,19 +859,19 @@ export default function Home() {
                 <button className={`flex-1 p-2 rounded-lg text-[10px] font-bold border transition-colors ${formCobro.recibo === 'pdf' ? 'bg-slate-800 text-white border-slate-800 shadow-sm' : 'bg-white text-slate-500 hover:bg-slate-100'}`} onClick={() => setFormCobro({ ...formCobro, recibo: 'pdf' })}>📄 Imprimir (PDF)</button>
                 <button className={`flex-1 p-2 rounded-lg text-[10px] font-bold border transition-colors ${formCobro.recibo === 'ninguno' ? 'bg-slate-200 text-slate-600 border-slate-300' : 'bg-white text-slate-500 hover:bg-slate-100'}`} onClick={() => setFormCobro({ ...formCobro, recibo: 'ninguno' })}>❌ Ninguno</button>
               </div>
-              <div className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg cursor-pointer hover:border-[#0066FF] transition-colors" onClick={() => setFormCobro({ ...formCobro, requiereFactura: !formCobro.requiereFactura })}>
+              <div className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg cursor-pointer hover:border-[#28363E] transition-colors" onClick={() => setFormCobro({ ...formCobro, requiereFactura: !formCobro.requiereFactura })}>
                 <div>
                   <p className="text-sm font-bold text-slate-800">¿Generar Factura (CFDI)?</p>
                   <p className="text-[10px] text-slate-500 mt-0.5">Se pedirán los datos fiscales al paciente.</p>
                 </div>
-                <div className={`w-10 h-5 rounded-full p-1 transition-colors ${formCobro.requiereFactura ? 'bg-[#0066FF]' : 'bg-slate-200'}`}>
+                <div className={`w-10 h-5 rounded-full p-1 transition-colors ${formCobro.requiereFactura ? 'bg-[#28363E]' : 'bg-slate-200'}`}>
                   <div className={`w-3 h-3 bg-white rounded-full shadow-sm transition-transform ${formCobro.requiereFactura ? 'translate-x-5' : 'translate-x-0'}`}></div>
                 </div>
               </div>
 
               {formCobro.requiereFactura && (
                 <div className="mt-4 pt-4 border-t border-slate-200 space-y-4">
-                  <p className="text-[11px] text-blue-700 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 font-medium">
+                  <p className="text-[11px] text-[#28363E] bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-medium">
                     📌 La factura es más el {(IVA_FACTURA_PCT * 100).toFixed(0)}% de IVA: <span className="font-black">${(totalEsperadoModal * IVA_FACTURA_PCT).toFixed(2)}</span> — total con factura ${(totalEsperadoModal * (1 + IVA_FACTURA_PCT)).toFixed(2)}
                   </p>
 
@@ -883,20 +883,20 @@ export default function Home() {
                           key={op}
                           type="button"
                           onClick={() => setFormCobro({ ...formCobro, facturaConcepto: op })}
-                          className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${formCobro.facturaConcepto === op ? 'bg-[#0066FF] border-[#0066FF] text-white shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-blue-300'}`}
+                          className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${formCobro.facturaConcepto === op ? 'bg-[#28363E] border-[#28363E] text-white shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'}`}
                         >
                           {op}
                         </button>
                       ))}
                     </div>
                     {formCobro.facturaConcepto === 'Otro' && (
-                      <input type="text" value={formCobro.facturaConceptoOtro} onChange={e => setFormCobro({ ...formCobro, facturaConceptoOtro: e.target.value })} placeholder="Especifica el concepto..." className="w-full mt-2 p-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-[#0066FF]" />
+                      <input type="text" value={formCobro.facturaConceptoOtro} onChange={e => setFormCobro({ ...formCobro, facturaConceptoOtro: e.target.value })} placeholder="Especifica el concepto..." className="w-full mt-2 p-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-[#28363E]" />
                     )}
                   </div>
 
                   <div>
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Notas de la Factura (opcional)</p>
-                    <textarea value={formCobro.facturaNotas} onChange={e => setFormCobro({ ...formCobro, facturaNotas: e.target.value })} placeholder="Ej. esta factura es solo de la consulta, no incluye suplementos..." rows={2} className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-[#0066FF]" />
+                    <textarea value={formCobro.facturaNotas} onChange={e => setFormCobro({ ...formCobro, facturaNotas: e.target.value })} placeholder="Ej. esta factura es solo de la consulta, no incluye suplementos..." rows={2} className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-[#28363E]" />
                   </div>
                 </div>
               )}
@@ -907,7 +907,7 @@ export default function Home() {
 
             <div className="flex gap-3">
               <button onClick={() => setCobroActivo(null)} className="px-5 py-3 bg-slate-100 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors">Cancelar</button>
-              <button onClick={finalizarCobroEnRecepcion} disabled={procesandoCobro || balanceModal < 0} className="flex-1 bg-[#0066FF] text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 transition-colors">
+              <button onClick={finalizarCobroEnRecepcion} disabled={procesandoCobro || balanceModal < 0} className="flex-1 bg-[#28363E] text-white rounded-xl font-bold hover:bg-[#1C262C] disabled:opacity-50 transition-colors">
                 {procesandoCobro ? 'Procesando...' : 'Completar y Emitir Ticket'}
               </button>
             </div>
@@ -924,18 +924,18 @@ export default function Home() {
             <div className="mb-5">
               <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Cliente</p>
               <div className="flex gap-2 mb-2">
-                <button onClick={() => setFormVenta({ ...formVenta, nombreWalkin: '' })} className={`flex-1 p-2 rounded-lg text-[11px] font-bold border transition-colors ${formVenta.pacienteId !== '' || formVenta.nombreWalkin === '' ? 'bg-[#0066FF] text-white border-[#0066FF] shadow-sm' : 'bg-white text-slate-500 hover:bg-slate-100'}`}>Paciente Registrado</button>
-                <button onClick={() => setFormVenta({ ...formVenta, pacienteId: '' })} className={`flex-1 p-2 rounded-lg text-[11px] font-bold border transition-colors ${formVenta.pacienteId === '' && formVenta.nombreWalkin !== '' ? 'bg-[#0066FF] text-white border-[#0066FF] shadow-sm' : 'bg-white text-slate-500 hover:bg-slate-100'}`}>Cliente sin registro</button>
+                <button onClick={() => setFormVenta({ ...formVenta, nombreWalkin: '' })} className={`flex-1 p-2 rounded-lg text-[11px] font-bold border transition-colors ${formVenta.pacienteId !== '' || formVenta.nombreWalkin === '' ? 'bg-[#28363E] text-white border-[#28363E] shadow-sm' : 'bg-white text-slate-500 hover:bg-slate-100'}`}>Paciente Registrado</button>
+                <button onClick={() => setFormVenta({ ...formVenta, pacienteId: '' })} className={`flex-1 p-2 rounded-lg text-[11px] font-bold border transition-colors ${formVenta.pacienteId === '' && formVenta.nombreWalkin !== '' ? 'bg-[#28363E] text-white border-[#28363E] shadow-sm' : 'bg-white text-slate-500 hover:bg-slate-100'}`}>Cliente sin registro</button>
               </div>
               {formVenta.nombreWalkin === '' ? (
-                <select value={formVenta.pacienteId} onChange={e => setFormVenta({ ...formVenta, pacienteId: e.target.value })} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-[#0066FF]">
+                <select value={formVenta.pacienteId} onChange={e => setFormVenta({ ...formVenta, pacienteId: e.target.value })} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-[#28363E]">
                   <option value="">Selecciona un paciente...</option>
                   {pacientes.filter(p => p.activo).sort((a, b) => a.nombre_completo.localeCompare(b.nombre_completo)).map(p => (
                     <option key={p.id} value={p.id}>{p.nombre_completo}</option>
                   ))}
                 </select>
               ) : (
-                <input type="text" value={formVenta.nombreWalkin} onChange={e => setFormVenta({ ...formVenta, nombreWalkin: e.target.value, pacienteId: '' })} placeholder="Nombre del cliente..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-[#0066FF]" />
+                <input type="text" value={formVenta.nombreWalkin} onChange={e => setFormVenta({ ...formVenta, nombreWalkin: e.target.value, pacienteId: '' })} placeholder="Nombre del cliente..." className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-[#28363E]" />
               )}
             </div>
 
@@ -944,13 +944,13 @@ export default function Home() {
               <div className="space-y-2">
                 {formVenta.items.map((it, idx) => (
                   <div key={idx} className="flex gap-2 items-center">
-                    <select value={it.productoId} onChange={e => actualizarRenglonVenta(idx, 'productoId', e.target.value)} className="flex-1 p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold outline-none focus:ring-2 focus:ring-[#0066FF]">
+                    <select value={it.productoId} onChange={e => actualizarRenglonVenta(idx, 'productoId', e.target.value)} className="flex-1 p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold outline-none focus:ring-2 focus:ring-[#28363E]">
                       <option value="">Selecciona producto...</option>
                       {inventario.sort((a, b) => a.producto.localeCompare(b.producto)).map(p => (
                         <option key={p.id} value={p.id}>{p.producto} — ${p.precio_venta} ({p.stock} en stock)</option>
                       ))}
                     </select>
-                    <input type="number" min="1" value={it.cantidad} onChange={e => actualizarRenglonVenta(idx, 'cantidad', e.target.value)} className="w-14 p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-center outline-none focus:ring-2 focus:ring-[#0066FF]" />
+                    <input type="number" min="1" value={it.cantidad} onChange={e => actualizarRenglonVenta(idx, 'cantidad', e.target.value)} className="w-14 p-2.5 bg-slate-50 border border-slate-200 rounded-lg text-xs font-bold text-center outline-none focus:ring-2 focus:ring-[#28363E]" />
                     {formVenta.items.length > 1 && (
                       <button onClick={() => quitarRenglonVenta(idx)} className="text-slate-400 hover:text-rose-500 text-lg px-1">×</button>
                     )}
@@ -958,18 +958,18 @@ export default function Home() {
                 ))}
               </div>
               {formVenta.items.length < 6 && (
-                <button onClick={agregarRenglonVenta} className="mt-2 text-[#0066FF] text-xs font-bold hover:underline">+ Agregar otro suplemento</button>
+                <button onClick={agregarRenglonVenta} className="mt-2 text-[#28363E] text-xs font-bold hover:underline">+ Agregar otro suplemento</button>
               )}
             </div>
 
-            <div className="bg-blue-50 text-[#0066FF] rounded-xl p-6 text-center mb-6 border border-blue-100">
+            <div className="bg-slate-50 text-[#28363E] rounded-xl p-6 text-center mb-6 border border-slate-200">
               <p className="text-xs font-black uppercase tracking-widest mb-1">Total a Cobrar</p>
               <p className="text-4xl font-black">${totalVenta.toLocaleString()}</p>
             </div>
 
             <div className="grid grid-cols-3 gap-3 mb-2">
               {[{ id: 'efectivo', label: 'Efectivo', val: formVenta.efectivo }, { id: 'tarjeta', label: 'Tarjeta', val: formVenta.tarjeta }, { id: 'transferencia', label: 'Transf.', val: formVenta.transferencia }].map(m => (
-                <div key={m.id} className="border border-slate-200 p-3 rounded-xl focus-within:border-[#0066FF] transition-colors">
+                <div key={m.id} className="border border-slate-200 p-3 rounded-xl focus-within:border-[#28363E] transition-colors">
                   <p className="text-[10px] font-bold text-slate-400 uppercase text-center mb-2">{m.label}</p>
                   <input type="number" value={m.val} onChange={e => setFormVenta({ ...formVenta, [m.id]: e.target.value })} className="w-full text-center text-sm font-bold outline-none" placeholder="$0" />
                 </div>
@@ -990,19 +990,19 @@ export default function Home() {
                 <button className={`flex-1 p-2 rounded-lg text-[10px] font-bold border transition-colors ${formVenta.recibo === 'pdf' ? 'bg-slate-800 text-white border-slate-800 shadow-sm' : 'bg-white text-slate-500 hover:bg-slate-100'}`} onClick={() => setFormVenta({ ...formVenta, recibo: 'pdf' })}>📄 Imprimir (PDF)</button>
                 <button className={`flex-1 p-2 rounded-lg text-[10px] font-bold border transition-colors ${formVenta.recibo === 'ninguno' ? 'bg-slate-200 text-slate-600 border-slate-300' : 'bg-white text-slate-500 hover:bg-slate-100'}`} onClick={() => setFormVenta({ ...formVenta, recibo: 'ninguno' })}>❌ Ninguno</button>
               </div>
-              <div className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg cursor-pointer hover:border-[#0066FF] transition-colors" onClick={() => setFormVenta({ ...formVenta, requiereFactura: !formVenta.requiereFactura })}>
+              <div className="flex items-center justify-between p-3 bg-white border border-slate-200 rounded-lg cursor-pointer hover:border-[#28363E] transition-colors" onClick={() => setFormVenta({ ...formVenta, requiereFactura: !formVenta.requiereFactura })}>
                 <div>
                   <p className="text-sm font-bold text-slate-800">¿Generar Factura (CFDI)?</p>
                   <p className="text-[10px] text-slate-500 mt-0.5">Se pedirán los datos fiscales al paciente.</p>
                 </div>
-                <div className={`w-10 h-5 rounded-full p-1 transition-colors ${formVenta.requiereFactura ? 'bg-[#0066FF]' : 'bg-slate-200'}`}>
+                <div className={`w-10 h-5 rounded-full p-1 transition-colors ${formVenta.requiereFactura ? 'bg-[#28363E]' : 'bg-slate-200'}`}>
                   <div className={`w-3 h-3 bg-white rounded-full shadow-sm transition-transform ${formVenta.requiereFactura ? 'translate-x-5' : 'translate-x-0'}`}></div>
                 </div>
               </div>
 
               {formVenta.requiereFactura && (
                 <div className="mt-4 pt-4 border-t border-slate-200 space-y-4">
-                  <p className="text-[11px] text-blue-700 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2 font-medium">
+                  <p className="text-[11px] text-[#28363E] bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 font-medium">
                     📌 La factura es más el {(IVA_FACTURA_PCT * 100).toFixed(0)}% de IVA: <span className="font-black">${(totalVenta * IVA_FACTURA_PCT).toFixed(2)}</span> — total con factura ${(totalVenta * (1 + IVA_FACTURA_PCT)).toFixed(2)}
                   </p>
 
@@ -1014,20 +1014,20 @@ export default function Home() {
                           key={op}
                           type="button"
                           onClick={() => setFormVenta({ ...formVenta, facturaConcepto: op })}
-                          className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${formVenta.facturaConcepto === op ? 'bg-[#0066FF] border-[#0066FF] text-white shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-blue-300'}`}
+                          className={`px-3 py-1.5 rounded-full text-xs font-bold border transition-all ${formVenta.facturaConcepto === op ? 'bg-[#28363E] border-[#28363E] text-white shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'}`}
                         >
                           {op}
                         </button>
                       ))}
                     </div>
                     {formVenta.facturaConcepto === 'Otro' && (
-                      <input type="text" value={formVenta.facturaConceptoOtro} onChange={e => setFormVenta({ ...formVenta, facturaConceptoOtro: e.target.value })} placeholder="Especifica el concepto..." className="w-full mt-2 p-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-[#0066FF]" />
+                      <input type="text" value={formVenta.facturaConceptoOtro} onChange={e => setFormVenta({ ...formVenta, facturaConceptoOtro: e.target.value })} placeholder="Especifica el concepto..." className="w-full mt-2 p-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-[#28363E]" />
                     )}
                   </div>
 
                   <div>
                     <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-2">Notas de la Factura (opcional)</p>
-                    <textarea value={formVenta.facturaNotas} onChange={e => setFormVenta({ ...formVenta, facturaNotas: e.target.value })} placeholder="Ej. esta factura es solo de los suplementos..." rows={2} className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-[#0066FF]" />
+                    <textarea value={formVenta.facturaNotas} onChange={e => setFormVenta({ ...formVenta, facturaNotas: e.target.value })} placeholder="Ej. esta factura es solo de los suplementos..." rows={2} className="w-full p-2.5 bg-white border border-slate-200 rounded-lg text-xs outline-none focus:ring-2 focus:ring-[#28363E]" />
                   </div>
                 </div>
               )}
@@ -1038,7 +1038,7 @@ export default function Home() {
 
             <div className="flex gap-3">
               <button onClick={() => { setShowVentaSuplementos(false); setFormVenta(FORM_VENTA_VACIO) }} className="px-5 py-3 bg-slate-100 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors">Cancelar</button>
-              <button onClick={registrarVentaSuplementos} disabled={procesandoVenta || balanceVenta < 0} className="flex-1 bg-[#0066FF] text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 transition-colors">
+              <button onClick={registrarVentaSuplementos} disabled={procesandoVenta || balanceVenta < 0} className="flex-1 bg-[#28363E] text-white rounded-xl font-bold hover:bg-[#1C262C] disabled:opacity-50 transition-colors">
                 {procesandoVenta ? 'Procesando...' : 'Completar Venta'}
               </button>
             </div>
@@ -1054,7 +1054,7 @@ export default function Home() {
             <div className="space-y-4 mb-6">
               <div>
                 <label className="text-xs font-bold text-slate-500 ml-1 mb-1 block">Tipo de Cita</label>
-                <select value={formCita.tipo} onChange={e => setFormCita({ ...formCita, tipo: e.target.value as TipoCita })} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-[#0066FF] transition-colors cursor-pointer">
+                <select value={formCita.tipo} onChange={e => setFormCita({ ...formCita, tipo: e.target.value as TipoCita })} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-[#28363E] transition-colors cursor-pointer">
                   {(Object.keys(ETIQUETA_TIPO_CITA) as TipoCita[]).map(t => (
                     <option key={t} value={t}>{t === 'bloqueo' ? '🛑 Bloqueo de Horario (Personal)' : `${ETIQUETA_TIPO_CITA[t]} (${DURACION_POR_TIPO[t]} min)`}</option>
                   ))}
@@ -1064,7 +1064,7 @@ export default function Home() {
               {formCita.tipo !== 'bloqueo' && (
                 <div>
                   <label className="text-xs font-bold text-slate-500 ml-1 mb-1 block">Paciente</label>
-                  <select value={formCita.paciente_id} onChange={e => setFormCita({ ...formCita, paciente_id: e.target.value })} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-[#0066FF] transition-colors cursor-pointer">
+                  <select value={formCita.paciente_id} onChange={e => setFormCita({ ...formCita, paciente_id: e.target.value })} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-[#28363E] transition-colors cursor-pointer">
                     <option value="">Selecciona paciente...</option>
                     {pacientes.map(p => <option key={p.id} value={p.id}>{p.nombre_completo}</option>)}
                   </select>
@@ -1074,18 +1074,18 @@ export default function Home() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-bold text-slate-500 ml-1 mb-1 block">Fecha</label>
-                  <input type="date" value={formCita.fecha} onChange={e => setFormCita({ ...formCita, fecha: e.target.value })} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-[#0066FF] transition-colors cursor-pointer" />
+                  <input type="date" value={formCita.fecha} onChange={e => setFormCita({ ...formCita, fecha: e.target.value })} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-[#28363E] transition-colors cursor-pointer" />
                 </div>
                 <div>
                   <label className="text-xs font-bold text-slate-500 ml-1 mb-1 block">Hora Inicio</label>
-                  <input type="time" value={formCita.hora} onChange={e => setFormCita({ ...formCita, hora: e.target.value })} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-[#0066FF] transition-colors cursor-pointer" />
+                  <input type="time" value={formCita.hora} onChange={e => setFormCita({ ...formCita, hora: e.target.value })} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-[#28363E] transition-colors cursor-pointer" />
                 </div>
               </div>
 
               {formCita.tipo !== 'bloqueo' && (
                 <div>
                   <label className="text-xs font-bold text-slate-500 ml-1 mb-1 block">Repetición Semanal</label>
-                  <select value={formCita.repeticion} onChange={e => setFormCita({ ...formCita, repeticion: Number(e.target.value) })} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-[#0066FF] transition-colors cursor-pointer">
+                  <select value={formCita.repeticion} onChange={e => setFormCita({ ...formCita, repeticion: Number(e.target.value) })} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:border-[#28363E] transition-colors cursor-pointer">
                     <option value="1">Solo esta vez</option>
                     <option value="2">2 Semanas Seguidas</option>
                     <option value="3">3 Semanas Seguidas</option>
@@ -1099,7 +1099,7 @@ export default function Home() {
 
             <div className="flex gap-3">
               <button onClick={() => setShowModalAgendar(false)} className="px-5 py-3 bg-slate-100 rounded-xl font-bold text-slate-600 hover:bg-slate-200 transition-colors">Cancelar</button>
-              <button onClick={agendarNuevaCita} disabled={hayColisionCita} className="flex-1 bg-[#0066FF] text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 transition-colors">Guardar en Agenda</button>
+              <button onClick={agendarNuevaCita} disabled={hayColisionCita} className="flex-1 bg-[#28363E] text-white rounded-xl font-bold hover:bg-[#1C262C] disabled:opacity-50 transition-colors">Guardar en Agenda</button>
             </div>
           </div>
         </div>
@@ -1108,7 +1108,7 @@ export default function Home() {
       {showModalCalendario && (
         <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4" onClick={() => setShowModalCalendario(false)}>
           <div className="bg-white rounded-3xl shadow-2xl max-w-md w-full p-8 animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
-            <div className="w-14 h-14 bg-[#0066FF]/10 text-[#0066FF] rounded-2xl flex items-center justify-center text-2xl mb-4">📆</div>
+            <div className="w-14 h-14 bg-[#28363E]/10 text-[#28363E] rounded-2xl flex items-center justify-center text-2xl mb-4">📆</div>
             <h3 className="text-xl font-black text-slate-800 mb-1">Sincronizar con tu iPhone</h3>
             <p className="text-sm text-slate-500 mb-6">Verás tu agenda de la clínica directo en la app Calendario de tu iPhone. Se actualiza sola cada rato (no es instantáneo, pero no tienes que hacer nada más).</p>
 
@@ -1116,7 +1116,7 @@ export default function Home() {
               <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Paso 1</p>
               <a
                 href={`webcal://${typeof window !== 'undefined' ? window.location.host : ''}/api/calendario/${sesion.usuario.calendar_token}`}
-                className="block w-full text-center bg-[#0066FF] text-white font-black py-3 rounded-xl shadow-sm hover:bg-blue-700 transition-colors"
+                className="block w-full text-center bg-[#28363E] text-white font-black py-3 rounded-xl shadow-sm hover:bg-[#1C262C] transition-colors"
               >
                 Agregar a Calendario (iPhone) →
               </a>
@@ -1189,12 +1189,12 @@ export default function Home() {
         <img src="/logo-marla-firma.png" alt="Marla Polo" className="w-12 h-auto mb-8" />
 
         <nav className="flex-1 flex flex-col gap-4 w-full px-3">
-          <button onClick={() => setActiveTab('Mi Consultorio')} title="Agenda Clínica" className={`w-full aspect-square rounded-xl flex items-center justify-center text-xl transition-all ${activeTab === 'Mi Consultorio' ? 'bg-[#0066FF]/10 text-[#0066FF]' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}>📅</button>
-          <button onClick={() => setActiveTab('Pacientes')} title="Directorio" className={`w-full aspect-square rounded-xl flex items-center justify-center text-xl transition-all ${activeTab === 'Pacientes' ? 'bg-[#0066FF]/10 text-[#0066FF]' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}>👥</button>
+          <button onClick={() => setActiveTab('Mi Consultorio')} title="Agenda Clínica" className={`w-full aspect-square rounded-xl flex items-center justify-center text-xl transition-all ${activeTab === 'Mi Consultorio' ? 'bg-[#28363E]/10 text-[#28363E]' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}>📅</button>
+          <button onClick={() => setActiveTab('Pacientes')} title="Directorio" className={`w-full aspect-square rounded-xl flex items-center justify-center text-xl transition-all ${activeTab === 'Pacientes' ? 'bg-[#28363E]/10 text-[#28363E]' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}>👥</button>
           {esFullAccess && (
             <>
-              <button onClick={() => setActiveTab('Finanzas')} title="Estela BI (Reportes)" className={`w-full aspect-square rounded-xl flex items-center justify-center text-xl transition-all ${activeTab === 'Finanzas' ? 'bg-[#0066FF]/10 text-[#0066FF]' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}>📊</button>
-              <button onClick={() => setActiveTab('Almacen')} title="Farmacia" className={`w-full aspect-square rounded-xl flex items-center justify-center text-xl transition-all ${activeTab === 'Almacen' ? 'bg-[#0066FF]/10 text-[#0066FF]' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}>📦</button>
+              <button onClick={() => setActiveTab('Finanzas')} title="Estela BI (Reportes)" className={`w-full aspect-square rounded-xl flex items-center justify-center text-xl transition-all ${activeTab === 'Finanzas' ? 'bg-[#28363E]/10 text-[#28363E]' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}>📊</button>
+              <button onClick={() => setActiveTab('Almacen')} title="Farmacia" className={`w-full aspect-square rounded-xl flex items-center justify-center text-xl transition-all ${activeTab === 'Almacen' ? 'bg-[#28363E]/10 text-[#28363E]' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}>📦</button>
               <Link href="/usuarios" title="Ajustes" className="w-full aspect-square rounded-xl flex items-center justify-center text-xl transition-all text-slate-400 hover:bg-slate-50 hover:text-slate-600">⚙️</Link>
             </>
           )}
@@ -1216,11 +1216,11 @@ export default function Home() {
             <span className="bg-slate-100 text-slate-500 text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-widest">{esFullAccess ? 'Acceso Total' : 'Personal Administrativo'}</span>
           </div>
           <div className="flex items-center gap-4">
-            <Link href="/registro" className="text-[#0066FF] font-bold text-sm hover:underline flex items-center gap-1"><span className="hidden sm:inline">+ Nuevo Paciente</span><span className="sm:hidden text-lg leading-none">+</span></Link>
+            <Link href="/registro" className="text-[#28363E] font-bold text-sm hover:underline flex items-center gap-1"><span className="hidden sm:inline">+ Nuevo Paciente</span><span className="sm:hidden text-lg leading-none">+</span></Link>
             <div className="h-6 w-px bg-slate-200"></div>
             <div className="relative">
               <button onClick={() => setShowMenuPerfil(!showMenuPerfil)} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded-lg transition-colors">
-                <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-xs font-bold text-[#0066FF]">{getInitials(sesion.usuario.nombre)}</div>
+                <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-[#28363E]">{getInitials(sesion.usuario.nombre)}</div>
                 <span className="text-sm font-bold text-slate-700 hidden sm:inline pr-1">{sesion.usuario.nombre}</span>
                 <span className="text-slate-400 text-[10px] hidden sm:inline">▾</span>
               </button>
@@ -1276,10 +1276,10 @@ export default function Home() {
                   <div className="flex items-center gap-3">
                     <button onClick={() => setFechaSeleccionada(hoyFechaFormat)} className="text-xs font-bold text-slate-600 border border-slate-200 px-3 py-1.5 rounded-lg hover:bg-slate-50 bg-white">Hoy</button>
                     <div className="flex bg-slate-100/80 p-1 rounded-lg border border-slate-200">
-                      <button onClick={() => setVistaAgenda('Dia')} className={`px-4 py-1 text-xs font-bold rounded-md transition-all ${vistaAgenda === 'Dia' ? 'bg-white shadow-sm text-[#0066FF]' : 'text-slate-500 hover:text-slate-700'}`}>Día</button>
-                      <button onClick={() => setVistaAgenda('Semana')} className={`px-4 py-1 text-xs font-bold rounded-md transition-all ${vistaAgenda === 'Semana' ? 'bg-white shadow-sm text-[#0066FF]' : 'text-slate-500 hover:text-slate-700'}`}>Semana</button>
+                      <button onClick={() => setVistaAgenda('Dia')} className={`px-4 py-1 text-xs font-bold rounded-md transition-all ${vistaAgenda === 'Dia' ? 'bg-white shadow-sm text-[#28363E]' : 'text-slate-500 hover:text-slate-700'}`}>Día</button>
+                      <button onClick={() => setVistaAgenda('Semana')} className={`px-4 py-1 text-xs font-bold rounded-md transition-all ${vistaAgenda === 'Semana' ? 'bg-white shadow-sm text-[#28363E]' : 'text-slate-500 hover:text-slate-700'}`}>Semana</button>
                     </div>
-                    <button onClick={() => setShowModalAgendar(true)} className="bg-[#0066FF] text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-blue-700 shadow-sm transition-colors">+ Nueva Consulta</button>
+                    <button onClick={() => setShowModalAgendar(true)} className="bg-[#28363E] text-white px-4 py-1.5 rounded-lg text-xs font-bold hover:bg-[#1C262C] shadow-sm transition-colors">+ Nueva Consulta</button>
                   </div>
                 </div>
 
@@ -1289,12 +1289,12 @@ export default function Home() {
                     <div className={`grid ${vistaAgenda === 'Semana' ? 'grid-cols-[80px_repeat(7,1fr)]' : 'grid-cols-[80px_1fr]'} border-b border-slate-200 bg-white sticky top-0 z-10 shadow-sm`}>
                       <div className="py-3 text-center text-[10px] font-black uppercase text-slate-400 border-r border-slate-100">Hora</div>
                       {vistaAgenda === 'Semana' ? diasSemanales.map((d, i) => (
-                        <div key={i} className={`py-3 text-center border-r border-slate-100 ${d.iso === hoyFechaFormat ? 'text-[#0066FF] font-black bg-blue-50/30 border-b-2 border-b-[#0066FF]' : 'text-slate-600 font-bold border-b-2 border-transparent'}`}>
+                        <div key={i} className={`py-3 text-center border-r border-slate-100 ${d.iso === hoyFechaFormat ? 'text-[#28363E] font-black bg-slate-50/30 border-b-2 border-b-[#28363E]' : 'text-slate-600 font-bold border-b-2 border-transparent'}`}>
                           <span className="text-[10px] uppercase block leading-none opacity-60 mb-0.5">{DIAS_NOMBRES[i]}</span>
                           <span className="text-base leading-none">{d.dateObj.getDate()}</span>
                         </div>
                       )) : (
-                        <div className="py-3 text-center text-[#0066FF] font-black bg-blue-50/30 border-r border-slate-100 flex flex-col justify-center border-b-2 border-b-[#0066FF]">
+                        <div className="py-3 text-center text-[#28363E] font-black bg-slate-50/30 border-r border-slate-100 flex flex-col justify-center border-b-2 border-b-[#28363E]">
                           <span className="text-[10px] uppercase opacity-60 mb-0.5">{new Date(fechaSeleccionada + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'long' })}</span>
                           <span className="text-base">{new Date(fechaSeleccionada + 'T12:00:00').getDate()} {getMesYAnioTexto(fechaSeleccionada)}</span>
                         </div>
@@ -1313,7 +1313,7 @@ export default function Home() {
                             return (
                               <div
                                 key={colIdx}
-                                className={`border-r border-slate-100 relative p-1 transition-colors cursor-pointer group hover:bg-slate-50 ${isoDate === hoyFechaFormat ? 'bg-blue-50/10' : 'bg-transparent'}`}
+                                className={`border-r border-slate-100 relative p-1 transition-colors cursor-pointer group hover:bg-slate-50 ${isoDate === hoyFechaFormat ? 'bg-slate-50/10' : 'bg-transparent'}`}
                                 onClick={() => { if (!bloqueada && citasEnCelda.length === 0) abrirAgendadorRapido(isoDate, hora) }}
                               >
                                 {citasEnCelda.map(c => {
@@ -1327,7 +1327,7 @@ export default function Home() {
                                   const dCita = new Date(`${c.fecha_cita}T${c.hora_cita}`)
                                   const isLate = dCita < horaActual && c.fecha_cita === hoyFechaFormat && !isCheckedIn && !isTerminado && !isEnCaja && !esBloqueo
 
-                                  let bgClass = 'bg-blue-50 border-blue-400 text-blue-900'
+                                  let bgClass = 'bg-slate-50 border-[#28363E] text-[#1C262C]'
                                   if (c.tipo === 'seguimiento') bgClass = 'bg-emerald-50 border-emerald-400 text-emerald-900'
                                   if (c.tipo === 'solo_inbody') bgClass = 'bg-orange-50 border-orange-400 text-orange-900'
                                   if (c.tipo === 'enzimas') bgClass = 'bg-purple-50 border-purple-400 text-purple-900'
@@ -1365,7 +1365,7 @@ export default function Home() {
                                     </div>
                                   )
                                 })}
-                                {citasEnCelda.length === 0 && <div className="absolute inset-1 border-2 border-dashed border-[#0066FF]/30 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[#0066FF] text-xl font-black">+</div>}
+                                {citasEnCelda.length === 0 && <div className="absolute inset-1 border-2 border-dashed border-[#28363E]/30 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-[#28363E] text-xl font-black">+</div>}
                               </div>
                             )
                           })}
@@ -1393,7 +1393,7 @@ export default function Home() {
                         <div
                           key={i}
                           onClick={() => { setFechaSeleccionada(d.iso); setVistaAgenda('Dia') }}
-                          className={`w-9 h-9 flex flex-col items-center justify-center rounded-full mx-auto cursor-pointer relative transition-colors ${d.iso === fechaSeleccionada ? 'bg-[#0066FF] text-white shadow-md' : bloqueado ? 'bg-slate-100 text-slate-400 line-through' : d.iso === hoyFechaFormat ? 'bg-blue-50 text-[#0066FF]' : d.enMes ? 'text-slate-700 hover:bg-slate-100' : 'text-slate-300'}`}
+                          className={`w-9 h-9 flex flex-col items-center justify-center rounded-full mx-auto cursor-pointer relative transition-colors ${d.iso === fechaSeleccionada ? 'bg-[#28363E] text-white shadow-md' : bloqueado ? 'bg-slate-100 text-slate-400 line-through' : d.iso === hoyFechaFormat ? 'bg-slate-50 text-[#28363E]' : d.enMes ? 'text-slate-700 hover:bg-slate-100' : 'text-slate-300'}`}
                         >
                           <span>{d.dateObj.getDate()}</span>
                           {hasCitas && d.iso !== fechaSeleccionada && <div className={`absolute bottom-1 w-1 h-1 rounded-full ${bloqueado ? 'bg-slate-400' : 'bg-amber-400'}`}></div>}
@@ -1476,7 +1476,7 @@ export default function Home() {
                 <span className="text-xs font-black text-slate-600 capitalize truncate">{getMesYAnioTexto(fechaSeleccionada)}</span>
                 <div className="flex items-center gap-1.5 shrink-0">
                   {fechaSeleccionada !== hoyFechaFormat && (
-                    <button onClick={() => setFechaSeleccionada(hoyFechaFormat)} className="text-[10px] font-bold text-[#0066FF] border border-blue-100 bg-blue-50 px-2 py-1.5 rounded-lg">Hoy</button>
+                    <button onClick={() => setFechaSeleccionada(hoyFechaFormat)} className="text-[10px] font-bold text-[#28363E] border border-slate-200 bg-slate-50 px-2 py-1.5 rounded-lg">Hoy</button>
                   )}
                   <label className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 text-slate-500 bg-white font-bold active:bg-slate-100 relative cursor-pointer">
                     📅
@@ -1494,7 +1494,7 @@ export default function Home() {
                     <button
                       key={d.iso}
                       onClick={() => setFechaSeleccionada(d.iso)}
-                      className={`shrink-0 w-14 py-2.5 rounded-2xl flex flex-col items-center gap-0.5 border transition-colors ${seleccionado ? 'bg-[#0066FF] border-[#0066FF] text-white shadow-md' : bloqueado ? 'bg-slate-100 border-slate-200 text-slate-400' : d.iso === hoyFechaFormat ? 'bg-blue-50 border-blue-100 text-[#0066FF]' : 'bg-white border-slate-200 text-slate-600'}`}
+                      className={`shrink-0 w-14 py-2.5 rounded-2xl flex flex-col items-center gap-0.5 border transition-colors ${seleccionado ? 'bg-[#28363E] border-[#28363E] text-white shadow-md' : bloqueado ? 'bg-slate-100 border-slate-200 text-slate-400' : d.iso === hoyFechaFormat ? 'bg-slate-50 border-slate-200 text-[#28363E]' : 'bg-white border-slate-200 text-slate-600'}`}
                     >
                       <span className="text-[9px] font-black uppercase opacity-70">{DIAS_NOMBRES[i]}</span>
                       <span className="text-base font-black leading-none">{d.dateObj.getDate()}</span>
@@ -1568,7 +1568,7 @@ export default function Home() {
                     const dCita = new Date(`${c.fecha_cita}T${c.hora_cita}`)
                     const isLate = dCita < horaActual && c.fecha_cita === hoyFechaFormat && !isCheckedIn && !isTerminado && !esBloqueo
 
-                    let borde = 'border-l-blue-400'
+                    let borde = 'border-l-[#28363E]'
                     if (c.tipo === 'seguimiento') borde = 'border-l-emerald-400'
                     if (c.tipo === 'solo_inbody') borde = 'border-l-orange-400'
                     if (c.tipo === 'enzimas') borde = 'border-l-purple-400'
@@ -1601,7 +1601,7 @@ export default function Home() {
 
             <button
               onClick={() => abrirAgendadorRapido(fechaSeleccionada, '09:00')}
-              className="md:hidden fixed right-5 bottom-24 z-20 w-14 h-14 rounded-full bg-[#0066FF] text-white text-2xl font-black shadow-xl flex items-center justify-center active:scale-95 transition-transform"
+              className="md:hidden fixed right-5 bottom-24 z-20 w-14 h-14 rounded-full bg-[#28363E] text-white text-2xl font-black shadow-xl flex items-center justify-center active:scale-95 transition-transform"
               aria-label="Agendar cita"
             >
               +
@@ -1627,16 +1627,16 @@ export default function Home() {
                     {pacientesFiltrados.map(p => (
                       <Link href={`/paciente/${p.id}`} key={p.id} className={`flex justify-between items-center p-6 sm:px-8 hover:bg-slate-50 transition-colors group ${!p.activo ? 'opacity-50' : ''}`}>
                         <div className="flex items-center gap-5">
-                          <div className="w-12 h-12 rounded-full bg-blue-50 text-[#0066FF] flex items-center justify-center font-black text-sm border border-blue-100 shrink-0">{getInitials(p.nombre_completo)}</div>
+                          <div className="w-12 h-12 rounded-full bg-slate-50 text-[#28363E] flex items-center justify-center font-black text-sm border border-slate-200 shrink-0">{getInitials(p.nombre_completo)}</div>
                           <div>
-                            <span className="text-base font-black text-slate-800 group-hover:text-[#0066FF] transition-colors flex items-center gap-2">
+                            <span className="text-base font-black text-slate-800 group-hover:text-[#28363E] transition-colors flex items-center gap-2">
                               {p.nombre_completo}
                               {!p.activo && <span className="text-[9px] font-black uppercase tracking-widest bg-slate-200 text-slate-500 px-1.5 py-0.5 rounded">Archivado</span>}
                             </span>
                             <p className="text-xs text-slate-500 mt-1 font-medium">📞 {p.telefono} • {getTextoUltimaVisita(p.id, biDatos.ultimasVisitasDict)}</p>
                           </div>
                         </div>
-                        <span className="text-slate-300 group-hover:text-[#0066FF] text-xl font-black">&rarr;</span>
+                        <span className="text-slate-300 group-hover:text-[#28363E] text-xl font-black">&rarr;</span>
                       </Link>
                     ))}
                     {pacientesFiltrados.length === 0 && <div className="p-12 text-center text-slate-400 text-sm font-bold">No se encontraron pacientes.</div>}
@@ -1651,10 +1651,10 @@ export default function Home() {
             <div className="flex-1 overflow-y-auto p-4 sm:p-8 pb-24 md:pb-8">
               <div className="max-w-6xl mx-auto space-y-6">
 
-                <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex justify-between items-center bg-gradient-to-r from-blue-900 to-slate-900 text-white">
+                <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 flex justify-between items-center bg-gradient-to-r from-[#1C262C] to-slate-900 text-white">
                   <div>
                     <h2 className="font-black text-2xl flex items-center gap-2">📊 Estela BI</h2>
-                    <p className="text-sm text-blue-200 mt-1">Analítica y reportes de desempeño de tu clínica.</p>
+                    <p className="text-sm text-slate-300 mt-1">Analítica y reportes de desempeño de tu clínica.</p>
                   </div>
                   <select value={filtroTiempo} onChange={(e) => setFiltroTiempo(e.target.value)} className="p-2.5 rounded-xl text-xs font-bold text-slate-900 outline-none cursor-pointer">
                     <option value="Mes Actual">Mes Actual</option><option value="Mes Anterior">Mes Anterior</option><option value="Últimos 3 Meses">Últimos 3 Meses</option>
@@ -1663,7 +1663,7 @@ export default function Home() {
 
                 <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                   {[
-                    { t: 'Ingresos Totales', v: `$${biDatos.kpis.ingresosTotales.toLocaleString('es-MX')}`, color: 'text-[#0066FF]' },
+                    { t: 'Ingresos Totales', v: `$${biDatos.kpis.ingresosTotales.toLocaleString('es-MX')}`, color: 'text-[#28363E]' },
                     { t: 'Consultas Efectivas', v: biDatos.kpis.totalTrx, color: 'text-slate-800' },
                     { t: 'Servicios Clínicos', v: `$${biDatos.kpis.ingresosServicios.toLocaleString('es-MX')}`, color: 'text-emerald-600' },
                     { t: 'Ventas Farmacia', v: `$${biDatos.kpis.ingresosFarmacia.toLocaleString('es-MX')}`, color: 'text-purple-600' },
@@ -1697,7 +1697,7 @@ export default function Home() {
                   </div>
                   <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Proyectado 14 días</p>
-                    <p className="text-3xl font-black tracking-tight text-[#0066FF]">${biDatos.ingresoProyectado.toLocaleString('es-MX')}</p>
+                    <p className="text-3xl font-black tracking-tight text-[#28363E]">${biDatos.ingresoProyectado.toLocaleString('es-MX')}</p>
                     <p className="text-[9px] text-slate-400 font-bold mt-2 uppercase">según citas ya agendadas</p>
                   </div>
                   <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm">
@@ -1735,7 +1735,7 @@ export default function Home() {
                       {biDatos.tendencia.slice(-14).map((d, i) => (
                         <div key={i} className="flex-1 min-w-[28px] flex flex-col items-center justify-end h-full group">
                           <span className="text-[9px] font-black text-slate-500 mb-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">${d.total.toLocaleString('es-MX')}</span>
-                          <div className="w-full bg-gradient-to-t from-[#0066FF] to-cyan-400 rounded-t-md transition-all" style={{ height: `${Math.max((d.total / biDatos.maxTendencia) * 100, 3)}%` }} />
+                          <div className="w-full bg-gradient-to-t from-[#28363E] to-cyan-400 rounded-t-md transition-all" style={{ height: `${Math.max((d.total / biDatos.maxTendencia) * 100, 3)}%` }} />
                           <span className="text-[9px] font-bold text-slate-400 mt-1.5 whitespace-nowrap">{d.dia}</span>
                         </div>
                       ))}
@@ -1785,7 +1785,7 @@ export default function Home() {
                             <span className="font-black text-slate-900 text-sm">{p.cantidad} <span className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">unid.</span></span>
                           </div>
                           <div className="w-full bg-slate-100 rounded-full h-3 overflow-hidden">
-                            <div className="bg-gradient-to-r from-purple-400 to-indigo-500 h-full rounded-full transition-all group-hover:from-[#0066FF] group-hover:to-cyan-400" style={{ width: `${(p.cantidad / biDatos.maxFarmacia) * 100}%` }} />
+                            <div className="bg-gradient-to-r from-purple-400 to-indigo-500 h-full rounded-full transition-all group-hover:from-[#28363E] group-hover:to-cyan-400" style={{ width: `${(p.cantidad / biDatos.maxFarmacia) * 100}%` }} />
                           </div>
                         </div>
                       ))}
@@ -1799,8 +1799,8 @@ export default function Home() {
                   </div>
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="space-y-3 lg:col-span-1">
-                      <input type="date" value={formGasto.fecha} onChange={e => setFormGasto({ ...formGasto, fecha: e.target.value })} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-[#0066FF]" />
-                      <select value={formGasto.categoria} onChange={e => setFormGasto({ ...formGasto, categoria: e.target.value })} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-[#0066FF]">
+                      <input type="date" value={formGasto.fecha} onChange={e => setFormGasto({ ...formGasto, fecha: e.target.value })} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-[#28363E]" />
+                      <select value={formGasto.categoria} onChange={e => setFormGasto({ ...formGasto, categoria: e.target.value })} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-[#28363E]">
                         <option>Fijos (Renta, Servicios)</option>
                         <option>Insumos Clínicos</option>
                         <option>Marketing y Publicidad</option>
@@ -1808,9 +1808,9 @@ export default function Home() {
                         <option>Impuestos / Contabilidad</option>
                         <option>Otros</option>
                       </select>
-                      <input type="text" placeholder="Concepto (Ej. Pago de CFE)" value={formGasto.concepto} onChange={e => setFormGasto({ ...formGasto, concepto: e.target.value })} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-[#0066FF]" />
-                      <input type="number" placeholder="Monto ($)" value={formGasto.monto} onChange={e => setFormGasto({ ...formGasto, monto: e.target.value })} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-[#0066FF]" />
-                      <button onClick={registrarGasto} className="w-full bg-slate-900 text-white font-black py-3 rounded-xl hover:bg-[#0066FF] transition-all shadow-md">Guardar Gasto</button>
+                      <input type="text" placeholder="Concepto (Ej. Pago de CFE)" value={formGasto.concepto} onChange={e => setFormGasto({ ...formGasto, concepto: e.target.value })} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-[#28363E]" />
+                      <input type="number" placeholder="Monto ($)" value={formGasto.monto} onChange={e => setFormGasto({ ...formGasto, monto: e.target.value })} className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-[#28363E]" />
+                      <button onClick={registrarGasto} className="w-full bg-slate-900 text-white font-black py-3 rounded-xl hover:bg-[#28363E] transition-all shadow-md">Guardar Gasto</button>
                     </div>
                     <div className="lg:col-span-2 overflow-x-auto max-h-72 overflow-y-auto">
                       <table className="w-full text-left border-collapse">
@@ -1844,7 +1844,7 @@ export default function Home() {
                     <p className="text-slate-500 text-sm">Precios rápidos para cotizar y venta de suplementos.</p>
                   </div>
                   <div className="flex gap-2 w-full sm:w-auto">
-                    <button onClick={() => setShowVentaSuplementos(true)} className="flex-1 sm:flex-none bg-[#0066FF] text-white px-5 py-3 rounded-xl font-bold hover:bg-blue-700 shadow-md transition-all text-sm">+ Venta de Suplementos</button>
+                    <button onClick={() => setShowVentaSuplementos(true)} className="flex-1 sm:flex-none bg-[#28363E] text-white px-5 py-3 rounded-xl font-bold hover:bg-[#1C262C] shadow-md transition-all text-sm">+ Venta de Suplementos</button>
                     <Link href="/inventario" className="flex-1 sm:flex-none text-center bg-slate-100 text-slate-600 px-5 py-3 rounded-xl font-bold hover:bg-slate-200 transition-all text-sm">Inventario Completo</Link>
                   </div>
                 </div>
@@ -1858,7 +1858,7 @@ export default function Home() {
                         placeholder="Buscar suplemento para cotizar..."
                         value={busquedaProductoFarmacia}
                         onChange={(e) => setBusquedaProductoFarmacia(e.target.value)}
-                        className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-bold focus:ring-2 focus:ring-[#0066FF] transition-all shadow-sm"
+                        className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl outline-none text-sm font-bold focus:ring-2 focus:ring-[#28363E] transition-all shadow-sm"
                       />
                     </div>
                   </div>
@@ -1872,7 +1872,7 @@ export default function Home() {
                             <p className="font-bold text-slate-800 truncate">{p.producto}</p>
                             <p className={`text-[10px] font-bold uppercase tracking-widest ${p.stock <= 5 ? 'text-red-500' : p.stock <= 15 ? 'text-amber-500' : 'text-emerald-500'}`}>{p.stock} en stock</p>
                           </div>
-                          <p className="text-xl font-black text-[#0066FF] shrink-0 ml-4">${p.precio_venta.toLocaleString()}</p>
+                          <p className="text-xl font-black text-[#28363E] shrink-0 ml-4">${p.precio_venta.toLocaleString()}</p>
                         </div>
                       ))}
                     {inventario.filter(p => p.producto.toLowerCase().includes(busquedaProductoFarmacia.toLowerCase())).length === 0 && (
@@ -1921,21 +1921,21 @@ export default function Home() {
 
       {/* BARRA DE NAVEGACIÓN INFERIOR (MÓVIL) */}
       <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-white border-t border-slate-200 flex items-stretch px-2 pt-1.5" style={{ paddingBottom: 'env(safe-area-inset-bottom, 6px)' }}>
-        <button onClick={() => setActiveTab('Mi Consultorio')} className={`flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-xl transition-colors ${activeTab === 'Mi Consultorio' ? 'text-[#0066FF]' : 'text-slate-400'}`}>
+        <button onClick={() => setActiveTab('Mi Consultorio')} className={`flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-xl transition-colors ${activeTab === 'Mi Consultorio' ? 'text-[#28363E]' : 'text-slate-400'}`}>
           <span className="text-xl">📅</span>
           <span className="text-[10px] font-bold">Agenda</span>
         </button>
-        <button onClick={() => setActiveTab('Pacientes')} className={`flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-xl transition-colors ${activeTab === 'Pacientes' ? 'text-[#0066FF]' : 'text-slate-400'}`}>
+        <button onClick={() => setActiveTab('Pacientes')} className={`flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-xl transition-colors ${activeTab === 'Pacientes' ? 'text-[#28363E]' : 'text-slate-400'}`}>
           <span className="text-xl">👥</span>
           <span className="text-[10px] font-bold">Pacientes</span>
         </button>
         {esFullAccess && (
           <>
-            <button onClick={() => setActiveTab('Finanzas')} className={`flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-xl transition-colors ${activeTab === 'Finanzas' ? 'text-[#0066FF]' : 'text-slate-400'}`}>
+            <button onClick={() => setActiveTab('Finanzas')} className={`flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-xl transition-colors ${activeTab === 'Finanzas' ? 'text-[#28363E]' : 'text-slate-400'}`}>
               <span className="text-xl">📊</span>
               <span className="text-[10px] font-bold">Finanzas</span>
             </button>
-            <button onClick={() => setActiveTab('Almacen')} className={`flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-xl transition-colors ${activeTab === 'Almacen' ? 'text-[#0066FF]' : 'text-slate-400'}`}>
+            <button onClick={() => setActiveTab('Almacen')} className={`flex-1 flex flex-col items-center gap-0.5 py-1.5 rounded-xl transition-colors ${activeTab === 'Almacen' ? 'text-[#28363E]' : 'text-slate-400'}`}>
               <span className="text-xl">📦</span>
               <span className="text-[10px] font-bold">Almacén</span>
             </button>

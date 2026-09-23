@@ -96,7 +96,7 @@ export default function ModuloInventario() {
         <p className="text-4xl mb-3">🔒</p>
         <p className="font-black text-slate-800 mb-1">Sección restringida</p>
         <p className="text-sm text-slate-500 mb-6">El almacén y sus costos solo los puede ver una cuenta con Acceso Total.</p>
-        <Link href="/" className="text-[#0066FF] font-bold text-sm hover:underline">← Volver al Dashboard</Link>
+        <Link href="/" className="text-[#28363E] font-bold text-sm hover:underline">← Volver al Dashboard</Link>
       </div>
     </div>
   )

@@ -147,7 +147,7 @@ export default function Usuarios() {
     setGuardandoClinica(false)
   }
 
-  if (cargando) return <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center"><p className="animate-pulse font-bold text-[#0066FF]">Cargando...</p></div>
+  if (cargando) return <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center"><p className="animate-pulse font-bold text-[#28363E]">Cargando...</p></div>
 
   const pendientes = usuarios.filter(u => !u.activo)
   const activos = usuarios.filter(u => u.activo)
@@ -164,7 +164,7 @@ export default function Usuarios() {
             <h1 className="text-2xl font-black text-slate-800">Ajustes</h1>
             <p className="text-sm text-slate-500 mt-1">Accesos, catálogo de servicios, perfil de la clínica y actividad reciente.</p>
           </div>
-          <Link href="/" className="text-sm font-bold text-[#0066FF] hover:underline">← Regresar</Link>
+          <Link href="/" className="text-sm font-bold text-[#28363E] hover:underline">← Regresar</Link>
         </div>
 
         <div className="flex gap-2 mb-8 overflow-x-auto pb-1">
@@ -177,7 +177,7 @@ export default function Usuarios() {
             <button
               key={t.id}
               onClick={() => { setVista(t.id as any); if (t.id === 'actividad' && actividad.length === 0) cargarActividad(usuarios) }}
-              className={`px-4 py-2.5 rounded-xl text-xs font-black whitespace-nowrap transition-colors ${vista === t.id ? 'bg-[#0066FF] text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-500 hover:border-blue-300'}`}
+              className={`px-4 py-2.5 rounded-xl text-xs font-black whitespace-nowrap transition-colors ${vista === t.id ? 'bg-[#28363E] text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-500 hover:border-slate-300'}`}
             >
               {t.l}
             </button>
@@ -229,7 +229,7 @@ export default function Usuarios() {
                 return (
                   <div key={u.id} className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
                     <div>
-                      <p className="font-black text-slate-800">{u.nombre} {esUnoMismo && <span className="text-[10px] text-[#0066FF] font-black ml-1">(TÚ)</span>}</p>
+                      <p className="font-black text-slate-800">{u.nombre} {esUnoMismo && <span className="text-[10px] text-[#28363E] font-black ml-1">(TÚ)</span>}</p>
                       <p className="text-sm text-slate-500">{u.email}</p>
                     </div>
                     <div className="flex items-center gap-3">
@@ -255,7 +255,7 @@ export default function Usuarios() {
               })}
             </div>
 
-            <div className="mt-8 bg-blue-50 border border-blue-100 rounded-2xl p-5 text-sm text-[#0066FF]">
+            <div className="mt-8 bg-slate-50 border border-slate-200 rounded-2xl p-5 text-sm text-[#28363E]">
               <p className="font-bold mb-1">¿Cómo le doy acceso a alguien nuevo?</p>
               <p>Pídele que entre a la pantalla de inicio de sesión y toque "Personal nuevo, crea tu cuenta aquí". En cuanto se registre, aparecerá aquí arriba en "Pendientes de aprobación" para que le asignes su nivel de acceso.</p>
             </div>
@@ -266,7 +266,7 @@ export default function Usuarios() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Catálogo de Servicios ({servicios.length})</h2>
-              <button onClick={agregarServicio} className="bg-[#0066FF] text-white text-xs font-black px-3.5 py-2 rounded-lg hover:bg-blue-700 transition-colors">+ Agregar</button>
+              <button onClick={agregarServicio} className="bg-[#28363E] text-white text-xs font-black px-3.5 py-2 rounded-lg hover:bg-[#1C262C] transition-colors">+ Agregar</button>
             </div>
             <p className="text-xs text-slate-500 mb-4">Estos son los servicios que aparecen al cobrar en el expediente del paciente. Cambia el nombre o precio y se guarda solo.</p>
             <div className="space-y-3">
@@ -277,7 +277,7 @@ export default function Usuarios() {
                     type="text"
                     defaultValue={s.nombre}
                     onBlur={(e) => e.target.value !== s.nombre && actualizarServicio(s.id, { nombre: e.target.value })}
-                    className="flex-1 min-w-[140px] p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500"
+                    className="flex-1 min-w-[140px] p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-[#28363E]"
                   />
                   <div className="flex items-center gap-1">
                     <span className="text-slate-400 text-sm">$</span>
@@ -285,7 +285,7 @@ export default function Usuarios() {
                       type="number"
                       defaultValue={s.precio}
                       onBlur={(e) => Number(e.target.value) !== s.precio && actualizarServicio(s.id, { precio: Number(e.target.value) || 0 })}
-                      className="w-24 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-blue-500 text-center"
+                      className="w-24 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-[#28363E] text-center"
                     />
                   </div>
                   <button
@@ -308,21 +308,21 @@ export default function Usuarios() {
             <p className="text-xs text-slate-500 -mt-2">Esta información aparece en el portal del paciente y se usa como referencia en tickets.</p>
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Nombre de la Clínica</label>
-              <input type="text" value={formClinica.nombre_clinica} onChange={(e) => setFormClinica({ ...formClinica, nombre_clinica: e.target.value })} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-blue-500" />
+              <input type="text" value={formClinica.nombre_clinica} onChange={(e) => setFormClinica({ ...formClinica, nombre_clinica: e.target.value })} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-[#28363E]" />
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Dirección</label>
-              <input type="text" value={formClinica.direccion} onChange={(e) => setFormClinica({ ...formClinica, direccion: e.target.value })} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+              <input type="text" value={formClinica.direccion} onChange={(e) => setFormClinica({ ...formClinica, direccion: e.target.value })} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#28363E]" />
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Teléfono de Contacto</label>
-              <input type="text" value={formClinica.telefono_contacto} onChange={(e) => setFormClinica({ ...formClinica, telefono_contacto: e.target.value })} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+              <input type="text" value={formClinica.telefono_contacto} onChange={(e) => setFormClinica({ ...formClinica, telefono_contacto: e.target.value })} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#28363E]" />
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Horario de Atención</label>
-              <input type="text" value={formClinica.horario} onChange={(e) => setFormClinica({ ...formClinica, horario: e.target.value })} placeholder="Ej. Lunes a Viernes 9am - 6pm" className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500" />
+              <input type="text" value={formClinica.horario} onChange={(e) => setFormClinica({ ...formClinica, horario: e.target.value })} placeholder="Ej. Lunes a Viernes 9am - 6pm" className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#28363E]" />
             </div>
-            <button onClick={guardarClinica} disabled={guardandoClinica} className="w-full py-3 bg-[#0066FF] text-white rounded-xl text-sm font-black hover:bg-blue-700 transition-colors disabled:opacity-50">
+            <button onClick={guardarClinica} disabled={guardandoClinica} className="w-full py-3 bg-[#28363E] text-white rounded-xl text-sm font-black hover:bg-[#1C262C] transition-colors disabled:opacity-50">
               {guardandoClinica ? 'Guardando...' : 'Guardar Cambios'}
             </button>
           </div>

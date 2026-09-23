@@ -102,7 +102,7 @@ export default function Login() {
         </div>
 
         {aviso && (
-          <div className="bg-blue-50 text-[#0066FF] p-4 rounded-xl text-sm text-center border border-blue-100 mb-6 font-medium">
+          <div className="bg-slate-50 text-[#28363E] p-4 rounded-xl text-sm text-center border border-slate-200 mb-6 font-medium">
             {aviso}
           </div>
         )}
@@ -115,7 +115,7 @@ export default function Login() {
                 type="text"
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0066FF] focus:border-[#0066FF] outline-none transition-all text-slate-800"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#28363E] focus:border-[#28363E] outline-none transition-all text-slate-800"
                 placeholder="Marla Pérez"
                 required
               />
@@ -128,7 +128,7 @@ export default function Login() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0066FF] focus:border-[#0066FF] outline-none transition-all text-slate-800"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#28363E] focus:border-[#28363E] outline-none transition-all text-slate-800"
               placeholder="correo@ejemplo.com"
               required
             />
@@ -140,7 +140,7 @@ export default function Login() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0066FF] focus:border-[#0066FF] outline-none transition-all text-slate-800"
+              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#28363E] focus:border-[#28363E] outline-none transition-all text-slate-800"
               placeholder="••••••••"
               required
             />
@@ -153,7 +153,7 @@ export default function Login() {
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0066FF] focus:border-[#0066FF] outline-none transition-all text-slate-800"
+                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#28363E] focus:border-[#28363E] outline-none transition-all text-slate-800"
                 placeholder="••••••••"
                 required
               />
@@ -169,7 +169,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#0066FF] text-white font-black py-3.5 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 shadow-sm"
+            className="w-full bg-[#28363E] text-white font-black py-3.5 rounded-xl hover:bg-[#1C262C] transition-colors disabled:opacity-50 shadow-sm"
           >
             {loading ? 'Un momento...' : modo === 'login' ? 'Entrar al Sistema' : 'Crear mi cuenta'}
           </button>
@@ -177,7 +177,7 @@ export default function Login() {
 
         <button
           onClick={() => { setModo(modo === 'login' ? 'registro' : 'login'); setError(null); setAviso(null) }}
-          className="w-full text-center text-sm font-bold text-slate-500 hover:text-[#0066FF] transition-colors mt-6"
+          className="w-full text-center text-sm font-bold text-slate-500 hover:text-[#28363E] transition-colors mt-6"
         >
           {modo === 'login' ? '¿Personal nuevo? Crea tu cuenta aquí' : '¿Ya tienes cuenta? Inicia sesión'}
         </button>

@@ -85,7 +85,7 @@ export default function RegistroPaciente() {
     setLoading(false)
   }
 
-  if (verificando) return <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center"><p className="animate-pulse font-bold text-[#0066FF]">Cargando...</p></div>
+  if (verificando) return <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center"><p className="animate-pulse font-bold text-[#28363E]">Cargando...</p></div>
 
   return (
     <main className="min-h-screen bg-[#F4F6F9] py-12 px-4 sm:px-6">
@@ -96,7 +96,7 @@ export default function RegistroPaciente() {
             <h1 className="text-2xl font-black text-slate-800">Registro de Nuevo Paciente</h1>
             <p className="text-sm text-slate-500 mt-1">Datos básicos de contacto. El expediente clínico se llena en su primera consulta.</p>
           </div>
-          <Link href="/" className="text-[#0066FF] hover:underline text-sm font-bold whitespace-nowrap ml-4">
+          <Link href="/" className="text-[#28363E] hover:underline text-sm font-bold whitespace-nowrap ml-4">
             ← Volver
           </Link>
         </div>
@@ -105,7 +105,7 @@ export default function RegistroPaciente() {
           <div className={`p-4 rounded-xl mb-6 text-sm font-bold flex items-center justify-between gap-3 ${mensaje.tipo === 'error' ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-700'}`}>
             <span>{mensaje.texto}</span>
             {mensaje.pacienteId && (
-              <Link href={`/paciente/${mensaje.pacienteId}`} className="bg-[#0066FF] text-white px-3 py-1.5 rounded-lg text-xs whitespace-nowrap hover:bg-blue-700 transition-colors">
+              <Link href={`/paciente/${mensaje.pacienteId}`} className="bg-[#28363E] text-white px-3 py-1.5 rounded-lg text-xs whitespace-nowrap hover:bg-[#1C262C] transition-colors">
                 Ir al Expediente →
               </Link>
             )}
@@ -137,15 +137,15 @@ export default function RegistroPaciente() {
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-bold text-slate-600 mb-1">Nombre Completo</label>
-                <input required type="text" name="nombre_completo" value={formData.nombre_completo} onChange={handleChange} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0066FF] focus:border-[#0066FF] outline-none" />
+                <input required type="text" name="nombre_completo" value={formData.nombre_completo} onChange={handleChange} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#28363E] focus:border-[#28363E] outline-none" />
               </div>
               <div>
                 <label className="block text-sm font-bold text-slate-600 mb-1">Fecha de Nacimiento</label>
-                <input required type="date" name="fecha_nacimiento" value={formData.fecha_nacimiento} onChange={handleChange} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0066FF] focus:border-[#0066FF] outline-none" />
+                <input required type="date" name="fecha_nacimiento" value={formData.fecha_nacimiento} onChange={handleChange} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#28363E] focus:border-[#28363E] outline-none" />
               </div>
               <div>
                 <label className="block text-sm font-bold text-slate-600 mb-1">Género</label>
-                <select required name="genero" value={formData.genero} onChange={handleChange} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0066FF] focus:border-[#0066FF] outline-none">
+                <select required name="genero" value={formData.genero} onChange={handleChange} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#28363E] focus:border-[#28363E] outline-none">
                   <option value="">Selecciona...</option>
                   <option value="Femenino">Femenino</option>
                   <option value="Masculino">Masculino</option>
@@ -154,30 +154,30 @@ export default function RegistroPaciente() {
               </div>
               <div>
                 <label className="block text-sm font-bold text-slate-600 mb-1">Teléfono</label>
-                <input required type="tel" name="telefono" value={formData.telefono} onChange={handleChange} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0066FF] focus:border-[#0066FF] outline-none" />
+                <input required type="tel" name="telefono" value={formData.telefono} onChange={handleChange} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#28363E] focus:border-[#28363E] outline-none" />
               </div>
               <div>
                 <label className="block text-sm font-bold text-slate-600 mb-1">Correo Electrónico</label>
-                <input type="email" name="correo" value={formData.correo} onChange={handleChange} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0066FF] focus:border-[#0066FF] outline-none" />
+                <input type="email" name="correo" value={formData.correo} onChange={handleChange} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#28363E] focus:border-[#28363E] outline-none" />
               </div>
             </div>
 
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-bold text-slate-600 mb-1">Origen (Ciudad/Estado)</label>
-                <input type="text" name="origen" value={formData.origen} onChange={handleChange} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0066FF] focus:border-[#0066FF] outline-none" />
+                <input type="text" name="origen" value={formData.origen} onChange={handleChange} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#28363E] focus:border-[#28363E] outline-none" />
               </div>
               <div>
                 <label className="block text-sm font-bold text-slate-600 mb-1">Residencia Actual</label>
-                <input type="text" name="residencia" value={formData.residencia} onChange={handleChange} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0066FF] focus:border-[#0066FF] outline-none" />
+                <input type="text" name="residencia" value={formData.residencia} onChange={handleChange} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#28363E] focus:border-[#28363E] outline-none" />
               </div>
               <div>
                 <label className="block text-sm font-bold text-slate-600 mb-1">Escolaridad</label>
-                <input type="text" name="escolaridad" value={formData.escolaridad} onChange={handleChange} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0066FF] focus:border-[#0066FF] outline-none" />
+                <input type="text" name="escolaridad" value={formData.escolaridad} onChange={handleChange} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#28363E] focus:border-[#28363E] outline-none" />
               </div>
               <div>
                 <label className="block text-sm font-bold text-slate-600 mb-1">Ocupación / Profesión</label>
-                <input type="text" name="profesion" value={formData.profesion} onChange={handleChange} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0066FF] focus:border-[#0066FF] outline-none" />
+                <input type="text" name="profesion" value={formData.profesion} onChange={handleChange} className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#28363E] focus:border-[#28363E] outline-none" />
               </div>
               <div className="relative">
                 <label className="block text-sm font-bold text-slate-600 mb-1">¿Quién lo refirió? (opcional)</label>
@@ -186,7 +186,7 @@ export default function RegistroPaciente() {
                   value={referidoTexto}
                   onChange={(e) => { setReferidoTexto(e.target.value); setReferidoId(null) }}
                   placeholder="Busca por nombre..."
-                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#0066FF] focus:border-[#0066FF] outline-none"
+                  className="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#28363E] focus:border-[#28363E] outline-none"
                 />
                 {referidoTexto.trim().length > 1 && !referidoId && (
                   <div className="absolute z-10 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
@@ -195,7 +195,7 @@ export default function RegistroPaciente() {
                         type="button"
                         key={p.id}
                         onClick={() => { setReferidoId(p.id); setReferidoTexto(p.nombre_completo) }}
-                        className="w-full text-left px-3.5 py-2.5 text-sm font-medium text-slate-700 hover:bg-blue-50 transition-colors"
+                        className="w-full text-left px-3.5 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
                       >
                         {p.nombre_completo}
                       </button>
@@ -212,7 +212,7 @@ export default function RegistroPaciente() {
           </div>
 
           <div className="pt-6 border-t border-slate-100">
-            <button type="submit" disabled={loading} className="w-full bg-[#0066FF] text-white font-black py-3.5 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 shadow-sm">
+            <button type="submit" disabled={loading} className="w-full bg-[#28363E] text-white font-black py-3.5 rounded-xl hover:bg-[#1C262C] transition-colors disabled:opacity-50 shadow-sm">
               {loading ? 'Guardando Paciente...' : 'Registrar Paciente'}
             </button>
           </div>

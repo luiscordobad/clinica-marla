@@ -39,7 +39,7 @@ export default function PortalPaciente({ params }: { params: { token: string } }
   }, [params.token])
 
   if (cargando) {
-    return <div className="min-h-screen bg-[#F4F6F9] flex items-center justify-center"><p className="animate-pulse font-bold text-[#0066FF]">Cargando tu información...</p></div>
+    return <div className="min-h-screen bg-[#F4F6F9] flex items-center justify-center"><p className="animate-pulse font-bold text-[#28363E]">Cargando tu información...</p></div>
   }
 
   if (!datos?.valido) {
@@ -73,7 +73,7 @@ export default function PortalPaciente({ params }: { params: { token: string } }
         {(deltaPeso !== null || (datos.racha || 0) > 0) && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {deltaPeso !== null && (
-              <div className={`rounded-3xl p-6 text-white shadow-sm ${deltaPeso < 0 ? 'bg-gradient-to-br from-[#0066FF] to-cyan-500' : deltaPeso > 0 ? 'bg-gradient-to-br from-teal-500 to-emerald-500' : 'bg-slate-700'}`}>
+              <div className={`rounded-3xl p-6 text-white shadow-sm ${deltaPeso < 0 ? 'bg-gradient-to-br from-[#28363E] to-cyan-500' : deltaPeso > 0 ? 'bg-gradient-to-br from-teal-500 to-emerald-500' : 'bg-slate-700'}`}>
                 <p className="text-[10px] font-black uppercase tracking-widest opacity-80 mb-1">Desde tu primera consulta</p>
                 <p className="text-3xl font-black">{deltaPeso > 0 ? '+' : ''}{deltaPeso.toFixed(1)} kg</p>
               </div>
@@ -90,11 +90,11 @@ export default function PortalPaciente({ params }: { params: { token: string } }
         <div className="bg-white rounded-3xl shadow-sm border border-slate-200 p-6">
           <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">📅 Tu Próxima Cita</h2>
           {datos.proxima_cita ? (
-            <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5">
+            <div className="bg-slate-50 border border-slate-200 rounded-2xl p-5">
               <p className="text-lg font-black text-slate-800">
                 {new Date(datos.proxima_cita.fecha + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })}
               </p>
-              <p className="text-[#0066FF] font-black text-2xl mt-1">{datos.proxima_cita.hora.substring(0, 5)} hrs</p>
+              <p className="text-[#28363E] font-black text-2xl mt-1">{datos.proxima_cita.hora.substring(0, 5)} hrs</p>
               <p className="text-xs font-bold text-slate-500 mt-2 uppercase tracking-wide">{ETIQUETA_TIPO_CITA[datos.proxima_cita.tipo]}</p>
             </div>
           ) : (
@@ -115,7 +115,7 @@ export default function PortalPaciente({ params }: { params: { token: string } }
               {enfoque.aporte_calorico && (
                 <div>
                   <p className="text-[10px] font-bold text-slate-400 uppercase">Kcal Objetivo</p>
-                  <p className="text-lg font-black text-[#0066FF]">{enfoque.aporte_calorico} kcal</p>
+                  <p className="text-lg font-black text-[#28363E]">{enfoque.aporte_calorico} kcal</p>
                 </div>
               )}
               {enfoque.tiempos_comida && (

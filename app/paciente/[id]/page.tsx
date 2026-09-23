@@ -184,7 +184,7 @@ function Segmentado({ opciones, valor, onSeleccionar }: { opciones: { v: string;
           key={o.v}
           type="button"
           onClick={() => onSeleccionar(o.v)}
-          className={`px-3.5 py-2 rounded-full text-xs font-bold border transition-all ${valor === o.v ? 'bg-[#0066FF] border-[#0066FF] text-white shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-blue-300'}`}
+          className={`px-3.5 py-2 rounded-full text-xs font-bold border transition-all ${valor === o.v ? 'bg-[#28363E] border-[#28363E] text-white shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'}`}
         >
           {o.l}
         </button>
@@ -206,7 +206,7 @@ function SegmentadoMulti({ opciones, valor, onCambiar }: { opciones: { v: string
           key={o.v}
           type="button"
           onClick={() => alternar(o.v)}
-          className={`px-3.5 py-2 rounded-full text-xs font-bold border transition-all ${seleccionados.includes(o.v) ? 'bg-[#0066FF] border-[#0066FF] text-white shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-blue-300'}`}
+          className={`px-3.5 py-2 rounded-full text-xs font-bold border transition-all ${seleccionados.includes(o.v) ? 'bg-[#28363E] border-[#28363E] text-white shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'}`}
         >
           {o.l}
         </button>
@@ -1357,7 +1357,7 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
                 <button onClick={alternarArchivado} className={`text-xs flex items-center gap-1 font-bold px-3 py-1 rounded-lg border ${paciente.activo ? 'text-rose-500 hover:text-rose-600 bg-rose-50 border-rose-100' : 'text-emerald-600 hover:text-emerald-700 bg-emerald-50 border-emerald-100'}`}>
                   {paciente.activo ? '🗄️ Archivar' : '♻️ Reactivar'}
                 </button>
-                <button onClick={copiarLinkPortal} className="text-xs text-slate-400 hover:text-[#0066FF] flex items-center gap-1 font-bold bg-slate-50 px-3 py-1 rounded-lg border border-slate-200">🔗 Copiar Link Portal</button>
+                <button onClick={copiarLinkPortal} className="text-xs text-slate-400 hover:text-[#28363E] flex items-center gap-1 font-bold bg-slate-50 px-3 py-1 rounded-lg border border-slate-200">🔗 Copiar Link Portal</button>
                 {paciente.telefono && (
                   <button onClick={enviarLinkPortalWhatsApp} className="text-xs text-[#128C7E] hover:text-white hover:bg-[#25D366] flex items-center gap-1 font-bold bg-[#25D366]/10 px-3 py-1 rounded-lg border border-[#25D366]/20 transition-colors">📱 Enviar Portal</button>
                 )}
@@ -1385,7 +1385,7 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
                 <option value="laboratorio">Laboratorio</option>
                 <option value="otro">Otro</option>
               </select>
-              <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold cursor-pointer transition-colors ${subiendoDocumento ? 'bg-slate-200 text-slate-400' : 'bg-[#0066FF] text-white hover:bg-blue-700'}`}>
+              <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold cursor-pointer transition-colors ${subiendoDocumento ? 'bg-slate-200 text-slate-400' : 'bg-[#28363E] text-white hover:bg-[#1C262C]'}`}>
                 {subiendoDocumento ? 'Subiendo...' : '⬆️ Subir Archivo (PDF, JPG, PNG)'}
                 <input
                   type="file"
@@ -1478,9 +1478,9 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
                               )}
                             </div>
                             {pagoAsociado.requiere_factura && pagoAsociado.factura_notas && (
-                              <div className="mb-4 bg-blue-50 border border-blue-100 rounded-xl p-3">
-                                <p className="text-[10px] font-bold text-blue-400 uppercase tracking-widest mb-1">Notas de Factura</p>
-                                <p className="text-xs font-medium text-blue-900">{pagoAsociado.factura_notas}</p>
+                              <div className="mb-4 bg-slate-50 border border-slate-200 rounded-xl p-3">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Notas de Factura</p>
+                                <p className="text-xs font-medium text-[#1C262C]">{pagoAsociado.factura_notas}</p>
                               </div>
                             )}
                             {productosVendidos.length > 0 && (
@@ -1531,7 +1531,7 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
                         <SeccionDetalle titulo="Enfoque Nutricional" icono="🎯">
                           <CamposDetalle datos={c.enfoque_nutricional} etiquetas={ETIQUETAS_ENFOQUE} />
                           {c.enfoque_nutricional && Object.values(c.enfoque_nutricional).some(v => v !== undefined && v !== null && String(v).trim() !== '') && (
-                            <button onClick={() => generarPlanPDF(c)} className="mt-3 flex items-center gap-1.5 bg-[#0066FF]/10 text-[#0066FF] text-xs font-bold px-3 py-2 rounded-lg hover:bg-[#0066FF] hover:text-white transition-colors">
+                            <button onClick={() => generarPlanPDF(c)} className="mt-3 flex items-center gap-1.5 bg-[#28363E]/10 text-[#28363E] text-xs font-bold px-3 py-2 rounded-lg hover:bg-[#28363E] hover:text-white transition-colors">
                               📄 Generar Plan Nutricional (PDF)
                             </button>
                           )}
