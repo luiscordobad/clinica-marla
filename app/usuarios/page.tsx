@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
 import { obtenerEstadoSesion, type SesionActual } from '../../lib/auth'
+import { useCierreAutomatico } from '../../lib/inactividad'
 import type { RolUsuario, Usuario, Servicio, ConfiguracionClinica } from '../../lib/types'
 
 type ActividadItem = {
@@ -19,6 +20,7 @@ type ActividadItem = {
 export default function Usuarios() {
   const [cargando, setCargando] = useState(true)
   const [sesion, setSesion] = useState<SesionActual | null>(null)
+  useCierreAutomatico(sesion?.usuario.auto_logout_minutos)
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [guardandoId, setGuardandoId] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -31,7 +33,7 @@ export default function Usuarios() {
   const [actividad, setActividad] = useState<ActividadItem[]>([])
   const [cargandoActividad, setCargandoActividad] = useState(false)
 
-  const [formPerfil, setFormPerfil] = useState({ nombre: '', telefono: '', puesto: '' })
+  const [formPerfil, setFormPerfil] = useState({ nombre: '', telefono: '', puesto: '', auto_logout_minutos: null as number | null })
   const [guardandoPerfil, setGuardandoPerfil] = useState(false)
   const [subiendoAvatar, setSubiendoAvatar] = useState(false)
 
@@ -39,9 +41,34 @@ export default function Usuarios() {
   const [cambiandoPassword, setCambiandoPassword] = useState(false)
   const [errorPassword, setErrorPassword] = useState<string | null>(null)
 
+  const [nuevoCorreo, setNuevoCorreo] = useState('')
+  const [cambiandoCorreo, setCambiandoCorreo] = useState(false)
+  const [avisoCorreo, setAvisoCorreo] = useState<string | null>(null)
+
+  const [ultimoAcceso, setUltimoAcceso] = useState<Record<string, string | null>>({})
+
   const cargar = async () => {
     const { data } = await supabase.from('usuarios').select('*').order('created_at', { ascending: true })
     if (data) setUsuarios(data as Usuario[])
+    const { data: accesos } = await supabase.rpc('usuarios_ultimo_acceso')
+    if (accesos) {
+      const mapa: Record<string, string | null> = {}
+      accesos.forEach((a: { id: string; last_sign_in_at: string | null }) => { mapa[a.id] = a.last_sign_in_at })
+      setUltimoAcceso(mapa)
+    }
+  }
+
+  const formatearUltimoAcceso = (fecha: string | null | undefined) => {
+    if (!fecha) return 'Nunca ha iniciado sesión'
+    const diffMs = Date.now() - new Date(fecha).getTime()
+    const minutos = Math.floor(diffMs / 60000)
+    if (minutos < 5) return 'Activo ahora'
+    if (minutos < 60) return `Activo hace ${minutos} min`
+    const horas = Math.floor(minutos / 60)
+    if (horas < 24) return `Activo hace ${horas} ${horas === 1 ? 'hora' : 'horas'}`
+    const dias = Math.floor(horas / 24)
+    if (dias < 30) return `Activo hace ${dias} ${dias === 1 ? 'día' : 'días'}`
+    return `Activo el ${new Date(fecha).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}`
   }
 
   const cargarServicios = async () => {
@@ -113,7 +140,7 @@ export default function Usuarios() {
       const estado = await obtenerEstadoSesion()
       if (estado.tipo !== 'activa') { window.location.href = '/login'; return }
       setSesion(estado.sesion)
-      setFormPerfil({ nombre: estado.sesion.usuario.nombre || '', telefono: estado.sesion.usuario.telefono || '', puesto: estado.sesion.usuario.puesto || '' })
+      setFormPerfil({ nombre: estado.sesion.usuario.nombre || '', telefono: estado.sesion.usuario.telefono || '', puesto: estado.sesion.usuario.puesto || '', auto_logout_minutos: estado.sesion.usuario.auto_logout_minutos })
       if (estado.sesion.esFullAccess) {
         await cargar()
         await cargarServicios()
@@ -139,9 +166,21 @@ export default function Usuarios() {
       nombre: formPerfil.nombre.trim(),
       telefono: formPerfil.telefono.trim() || null,
       puesto: formPerfil.puesto.trim() || null,
+      auto_logout_minutos: formPerfil.auto_logout_minutos,
     }).eq('id', sesion.usuario.id)
     if (!error) { await refrescarSesion(); if (sesion.esFullAccess) await cargar(); mostrarToast('Perfil actualizado') } else mostrarToast('Error: ' + error.message)
     setGuardandoPerfil(false)
+  }
+
+  const cambiarCorreo = async () => {
+    setAvisoCorreo(null)
+    if (!nuevoCorreo.trim() || !nuevoCorreo.includes('@')) return setAvisoCorreo('Escribe un correo válido.')
+    setCambiandoCorreo(true)
+    const { error } = await supabase.auth.updateUser({ email: nuevoCorreo.trim() })
+    setCambiandoCorreo(false)
+    if (error) return setAvisoCorreo('No se pudo cambiar: ' + error.message)
+    setAvisoCorreo('Te enviamos un correo de confirmación a la nueva dirección. Da clic en el link para completar el cambio.')
+    setNuevoCorreo('')
   }
 
   const subirAvatar = async (archivo: File) => {
@@ -282,8 +321,38 @@ export default function Usuarios() {
                 <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Puesto</label>
                 <input type="text" value={formPerfil.puesto} onChange={(e) => setFormPerfil({ ...formPerfil, puesto: e.target.value })} placeholder="Ej. Nutrióloga, Recepción" className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#28363E]" />
               </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Cerrar mi sesión sola por inactividad</label>
+                <p className="text-[11px] text-slate-400 mb-2">Útil en una computadora compartida, ej. recepción.</p>
+                <div className="flex flex-wrap gap-2">
+                  {[{ v: null, l: 'Nunca' }, { v: 5, l: '5 min' }, { v: 15, l: '15 min' }, { v: 30, l: '30 min' }].map(op => (
+                    <button
+                      key={op.l}
+                      type="button"
+                      onClick={() => setFormPerfil({ ...formPerfil, auto_logout_minutos: op.v })}
+                      className={`px-3.5 py-2 rounded-full text-xs font-bold border transition-all ${formPerfil.auto_logout_minutos === op.v ? 'bg-[#28363E] border-[#28363E] text-white shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'}`}
+                    >
+                      {op.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
               <button onClick={guardarPerfil} disabled={guardandoPerfil} className="w-full py-3 bg-[#28363E] text-white rounded-xl text-sm font-black hover:bg-[#1C262C] transition-colors disabled:opacity-50">
                 {guardandoPerfil ? 'Guardando...' : 'Guardar Cambios'}
+              </button>
+            </div>
+
+            <div className="space-y-4 pt-6 border-t border-slate-100">
+              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Cambiar Correo</p>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Nuevo correo electrónico</label>
+                <input type="email" value={nuevoCorreo} onChange={(e) => setNuevoCorreo(e.target.value)} placeholder="nuevo@correo.com" className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#28363E]" />
+              </div>
+              {avisoCorreo && (
+                <div className="bg-slate-50 text-[#28363E] p-3 rounded-xl text-xs text-center border border-slate-200 font-medium">{avisoCorreo}</div>
+              )}
+              <button onClick={cambiarCorreo} disabled={cambiandoCorreo || !nuevoCorreo} className="w-full py-3 bg-slate-800 text-white rounded-xl text-sm font-black hover:bg-slate-900 transition-colors disabled:opacity-50">
+                {cambiandoCorreo ? 'Enviando...' : 'Cambiar Correo'}
               </button>
             </div>
 
@@ -363,6 +432,7 @@ export default function Usuarios() {
                       <div className="min-w-0">
                         <p className="font-black text-slate-800 truncate">{u.nombre} {esUnoMismo && <span className="text-[10px] text-[#28363E] font-black ml-1">(TÚ)</span>}</p>
                         <p className="text-sm text-slate-500 truncate">{u.puesto ? `${u.puesto} · ` : ''}{u.email}</p>
+                        <p className="text-[11px] text-slate-400 font-medium truncate">{formatearUltimoAcceso(ultimoAcceso[u.id])}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">

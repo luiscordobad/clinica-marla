@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
 import { obtenerEstadoSesion } from '../../lib/auth'
+import { useCierreAutomatico } from '../../lib/inactividad'
 
 const FORM_VACIO = {
   nombre_completo: '', fecha_nacimiento: '', genero: '', origen: '',
@@ -25,12 +26,15 @@ export default function RegistroPaciente() {
   const [confirmadoDuplicado, setConfirmadoDuplicado] = useState(false)
   const [referidoTexto, setReferidoTexto] = useState('')
   const [referidoId, setReferidoId] = useState<string | null>(null)
+  const [autoLogoutMinutos, setAutoLogoutMinutos] = useState<number | null>(null)
+  useCierreAutomatico(autoLogoutMinutos)
 
   useEffect(() => {
     const verificar = async () => {
       const estado = await obtenerEstadoSesion()
       if (estado.tipo !== 'activa') { window.location.href = '/login'; return }
       setUsuarioId(estado.sesion.usuario.id)
+      setAutoLogoutMinutos(estado.sesion.usuario.auto_logout_minutos)
       const { data } = await supabase.from('pacientes').select('id, nombre_completo, telefono').eq('activo', true)
       if (data) setPacientesExistentes(data)
       setVerificando(false)

@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { obtenerEstadoSesion, type SesionActual } from '../../../lib/auth'
+import { useCierreAutomatico } from '../../../lib/inactividad'
 import type { Cita, CategoriaDocumento, Consulta, DocumentoPaciente, Paciente, Pago, PagoProducto, Producto, Servicio } from '../../../lib/types'
 import { ETIQUETA_CATEGORIA_DOCUMENTO } from '../../../lib/types'
 import { fechaLocalISO } from '../../../lib/fecha'
@@ -271,6 +272,7 @@ const FORM_CLINICO_VACIO = {
 
 export default function ExpedientePaciente({ params }: { params: { id: string } }) {
   const [sesion, setSesion] = useState<SesionActual | null>(null)
+  useCierreAutomatico(sesion?.usuario.auto_logout_minutos)
 
   const [paciente, setPaciente] = useState<Paciente | null>(null)
   const [citasPaciente, setCitasPaciente] = useState<Cita[]>([])

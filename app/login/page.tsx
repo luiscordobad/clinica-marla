@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { obtenerEstadoSesion } from '../../lib/auth'
 
@@ -17,6 +17,12 @@ export default function Login() {
   const [error, setError] = useState<string | null>(null)
   const [aviso, setAviso] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get('inactividad') === '1') {
+      setAviso('Cerramos tu sesión automáticamente por inactividad. Vuelve a iniciar sesión.')
+    }
+  }, [])
 
   const entrarSegunEstado = async () => {
     const estado = await obtenerEstadoSesion()

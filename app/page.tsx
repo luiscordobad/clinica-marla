@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../lib/supabase'
 import { obtenerEstadoSesion, type SesionActual } from '../lib/auth'
+import { useCierreAutomatico } from '../lib/inactividad'
 import {
   DURACION_POR_TIPO, ETIQUETA_TIPO_CITA, PRECIO_SUGERIDO_POR_TIPO,
   type Cita, type EstadoCita, type Gasto, type Paciente, type Pago, type PagoProducto, type Producto, type TipoCita,
@@ -23,6 +24,7 @@ export default function Home() {
 
   const [loading, setLoading] = useState(true)
   const [sesion, setSesion] = useState<SesionActual | null>(null)
+  useCierreAutomatico(sesion?.usuario.auto_logout_minutos)
 
   const [horaActual, setHoraActual] = useState(new Date())
 

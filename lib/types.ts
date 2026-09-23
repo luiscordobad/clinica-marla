@@ -15,6 +15,7 @@ export type Usuario = {
   avatar_url: string | null
   telefono: string | null
   puesto: string | null
+  auto_logout_minutos: number | null
 }
 
 export type CategoriaDocumento = 'inbody' | 'laboratorio' | 'otro'

@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState, useMemo } from 'react'
 import { supabase } from '../../lib/supabase'
 import { obtenerEstadoSesion } from '../../lib/auth'
+import { useCierreAutomatico } from '../../lib/inactividad'
 import Link from 'next/link'
 import type { Producto } from '../../lib/types'
 
@@ -13,6 +14,8 @@ export default function ModuloInventario() {
   const [loading, setLoading] = useState(true)
   const [sinPermiso, setSinPermiso] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+  const [autoLogoutMinutos, setAutoLogoutMinutos] = useState<number | null>(null)
+  useCierreAutomatico(autoLogoutMinutos)
 
   const [showModal, setShowModal] = useState(false)
   const [productoEdit, setProductoEdit] = useState<Producto | null>(null)
@@ -25,6 +28,7 @@ export default function ModuloInventario() {
     const iniciar = async () => {
       const estado = await obtenerEstadoSesion()
       if (estado.tipo !== 'activa') { window.location.href = '/login'; return }
+      setAutoLogoutMinutos(estado.sesion.usuario.auto_logout_minutos)
       if (!estado.sesion.esFullAccess) { setSinPermiso(true); setLoading(false); return }
       await cargarInventario()
     }
