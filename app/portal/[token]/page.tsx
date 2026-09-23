@@ -64,7 +64,8 @@ export default function PortalPaciente({ params }: { params: { token: string } }
     <main className="min-h-screen bg-[#F4F6F9] p-4 sm:p-8">
       <div className="max-w-lg mx-auto space-y-6">
         <div className="text-center pt-4 pb-2">
-          <div className="w-14 h-14 bg-[#0066FF] rounded-2xl flex items-center justify-center text-white font-black text-2xl mx-auto mb-3 shadow-sm">M</div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-marla-firma.png" alt="Marla Polo" className="h-12 w-auto mx-auto mb-3" />
           <h1 className="text-xl font-black text-slate-800">Hola, {datos.nombre?.split(' ')[0]} 🌿</h1>
           <p className="text-sm text-slate-500 mt-1">Este es tu resumen personal de Clínica Marla</p>
         </div>

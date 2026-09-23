@@ -328,6 +328,15 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
   const yaAtendidoHoy = pagosPaciente.some(p => p.fecha.split('T')[0] === hoyStr)
   const ultimaConsulta = consultas[0]
 
+  const inbodyTieneValores = (c: Consulta | undefined) => !!c?.inbody && (c.inbody.peso_kg?.trim() || c.inbody.grasa_pct?.trim())
+  const ultimaConsultaConInbody = consultas.find(inbodyTieneValores)
+  let consultasSinInbodySeguidas = 0
+  for (const c of consultas) {
+    if (inbodyTieneValores(c)) break
+    consultasSinInbodySeguidas++
+  }
+  const faltaInbody = consultasSinInbodySeguidas >= 2
+
   const formatearFechaDisplay = (val: string) => {
     const d = new Date(val)
     if (isNaN(d.getTime())) return 'Fecha sin registro'
@@ -821,6 +830,8 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
       <main className="min-h-screen bg-[#F5F5F7] flex flex-col lg:flex-row">
         <div className="w-full lg:w-72 bg-slate-900 text-slate-300 flex flex-col sticky top-0 lg:h-screen z-20">
           <div className="p-5 bg-slate-950 border-b border-slate-800">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-marla-firma-blanco.png" alt="Marla Polo" className="h-6 w-auto mb-3" />
             <button
               onClick={() => { if (window.confirm('¿Salir de la consulta? Tu progreso se guardó automáticamente y podrás retomarlo desde el perfil del paciente.')) setModoConsulta(false) }}
               className="mb-3 flex items-center gap-1.5 text-[11px] font-bold text-slate-400 hover:text-white transition-colors"
@@ -995,6 +1006,37 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
             {seccionActiva === 'peso' && (
               <div className="space-y-6 animate-in fade-in">
                 <h3 className="text-2xl font-black text-slate-800 border-b border-slate-100 pb-3">3. Composición Corporal (InBody)</h3>
+
+                {ultimaConsultaConInbody && (
+                  <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">vs. consulta del {formatearFechaDisplay(ultimaConsultaConInbody.fecha)}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {[
+                        { key: 'peso_kg', label: 'Peso', unidad: 'kg' },
+                        { key: 'grasa_pct', label: '% Grasa', unidad: '%' },
+                        { key: 'musculo_esqu_kg', label: 'Músculo', unidad: 'kg' },
+                      ].map(({ key, label, unidad }) => {
+                        const anterior = parseFloat((ultimaConsultaConInbody.inbody as any)?.[key] || '')
+                        const actual = parseFloat((formClinico as any)[key])
+                        const delta = !isNaN(anterior) && !isNaN(actual) ? actual - anterior : null
+                        return (
+                          <div key={key}>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase">{label}</p>
+                            <p className="text-sm font-bold text-slate-700">
+                              {!isNaN(anterior) ? `${anterior}${unidad}` : '—'} <span className="text-slate-300">&rarr;</span> {!isNaN(actual) ? `${actual}${unidad}` : '—'}
+                              {delta !== null && (
+                                <span className={`ml-1.5 font-black ${delta === 0 ? 'text-slate-400' : delta > 0 ? 'text-sky-600' : 'text-emerald-600'}`}>
+                                  ({delta > 0 ? '+' : ''}{delta.toFixed(1)})
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
                   <div><label className="block text-xs font-bold text-slate-600 mb-1.5 ml-1">Peso Total Actual (kg)</label><input type="number" step="0.1" name="peso_kg" value={formClinico.peso_kg} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-teal-500" /></div>
                   <div><label className="block text-xs font-bold text-slate-600 mb-1.5 ml-1">Masa Muscular Esquelética (kg)</label><input type="number" step="0.1" name="musculo_esqu_kg" value={formClinico.musculo_esqu_kg} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-teal-500" /></div>
@@ -1255,6 +1297,16 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
       )}
 
       <div className="max-w-5xl mx-auto space-y-6">
+        {faltaInbody && esFullAccess && paciente.activo && (
+          <div className="bg-rose-50 border border-rose-200 rounded-3xl p-5 flex items-start gap-3 shadow-sm">
+            <span className="text-2xl">⚖️</span>
+            <div>
+              <p className="text-sm font-black text-rose-900">Lleva {consultasSinInbodySeguidas} consultas seguidas sin InBody registrado</p>
+              <p className="text-xs text-rose-700 font-medium mt-0.5">Es parte del estudio y debe checarse en cada consulta — no lo olvides en la próxima.</p>
+            </div>
+          </div>
+        )}
+
         {borradorDisponible && esFullAccess && (
           <div className="bg-amber-50 border border-amber-200 rounded-3xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
             <div className="flex items-start gap-3">
@@ -1497,7 +1549,8 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
       {reciboParaImprimir && (
         <div className="ticket-imprimible hidden print:block p-8 text-black bg-white">
           <div className="max-w-sm mx-auto">
-            <h1 className="text-xl font-black text-center mb-1">Clínica Marla 🌿</h1>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-marla-completo.png" alt="Marla Polo" className="h-14 w-auto mx-auto mb-2" />
             <p className="text-xs text-center text-slate-600 mb-6">Ticket de Servicio</p>
             <div className="border-t border-b border-slate-300 py-3 mb-3 text-sm">
               <p><strong>Paciente:</strong> {reciboParaImprimir.paciente}</p>
@@ -1527,7 +1580,8 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
       {planParaImprimir && (
         <div className="ticket-imprimible hidden print:block p-10 text-black bg-white">
           <div className="max-w-md mx-auto">
-            <h1 className="text-2xl font-black text-center mb-1">Clínica Marla 🌿</h1>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-marla-completo.png" alt="Marla Polo" className="h-16 w-auto mx-auto mb-2" />
             <p className="text-sm text-center text-slate-600 mb-8">Plan Nutricional Personalizado</p>
             <div className="border-t border-b border-slate-300 py-3 mb-6 text-sm flex justify-between">
               <p><strong>Paciente:</strong> {planParaImprimir.paciente}</p>
@@ -1577,7 +1631,8 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
       {expedienteParaImprimir && paciente && (
         <div className="ticket-imprimible hidden print:block p-10 text-black bg-white">
           <div className="max-w-2xl mx-auto">
-            <h1 className="text-2xl font-black text-center mb-1">Clínica Marla 🌿</h1>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-marla-completo.png" alt="Marla Polo" className="h-16 w-auto mx-auto mb-2" />
             <p className="text-sm text-center text-slate-600 mb-1">Expediente Clínico Completo</p>
             <p className="text-sm text-center font-bold mb-8">{paciente.nombre_completo}</p>
 

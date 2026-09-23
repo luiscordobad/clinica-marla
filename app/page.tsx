@@ -1185,7 +1185,8 @@ export default function Home() {
 
       {/* SIDEBAR IZQUIERDO */}
       <aside className="hidden md:flex w-[72px] bg-white border-r border-slate-200 flex-col items-center py-6 shrink-0 z-20">
-        <div className="w-10 h-10 bg-[#0066FF] rounded-lg flex items-center justify-center text-white font-black text-xl mb-8 shadow-sm">M</div>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-marla-firma.png" alt="Marla Polo" className="w-12 h-auto mb-8" />
 
         <nav className="flex-1 flex flex-col gap-4 w-full px-3">
           <button onClick={() => setActiveTab('Mi Consultorio')} title="Agenda Clínica" className={`w-full aspect-square rounded-xl flex items-center justify-center text-xl transition-all ${activeTab === 'Mi Consultorio' ? 'bg-[#0066FF]/10 text-[#0066FF]' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-600'}`}>📅</button>
@@ -1209,7 +1210,9 @@ export default function Home() {
 
         <header className="bg-white h-16 border-b border-slate-200 flex items-center justify-between px-6 shrink-0 z-10">
           <div className="flex items-center gap-4">
-            <span className="text-slate-800 font-black text-lg">Clínica Marla</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-marla-firma.png" alt="Marla Polo" className="h-7 w-auto hidden sm:block" />
+            <span className="text-slate-800 font-black text-lg sm:hidden">Clínica Marla</span>
             <span className="bg-slate-100 text-slate-500 text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-widest">{esFullAccess ? 'Acceso Total' : 'Personal Administrativo'}</span>
           </div>
           <div className="flex items-center gap-4">
@@ -1888,7 +1891,8 @@ export default function Home() {
       {reciboParaImprimir && (
         <div className="ticket-imprimible hidden print:block p-8 text-black bg-white">
           <div className="max-w-sm mx-auto">
-            <h1 className="text-xl font-black text-center mb-1">Clínica Marla 🌿</h1>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-marla-completo.png" alt="Marla Polo" className="h-14 w-auto mx-auto mb-2" />
             <p className="text-xs text-center text-slate-600 mb-6">Ticket de Servicio</p>
             <div className="border-t border-b border-slate-300 py-3 mb-3 text-sm">
               <p><strong>Paciente:</strong> {reciboParaImprimir.paciente}</p>

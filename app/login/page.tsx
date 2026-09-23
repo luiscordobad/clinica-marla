@@ -96,8 +96,8 @@ export default function Login() {
     <main className="min-h-screen bg-[#F4F6F9] flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 border border-slate-100">
         <div className="text-center mb-8">
-          <div className="w-14 h-14 bg-[#0066FF] rounded-2xl flex items-center justify-center text-white font-black text-2xl mx-auto mb-4 shadow-sm">M</div>
-          <h1 className="text-2xl font-black text-slate-800">Clínica Marla</h1>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo-marla-completo.png" alt="Marla Polo — Nutrición Clínica & Diabetes" className="h-16 w-auto mx-auto mb-4" />
           <p className="text-slate-500 mt-1 text-sm">{modo === 'login' ? 'Inicia sesión en tu cuenta' : 'Crea tu cuenta de acceso'}</p>
         </div>
 
