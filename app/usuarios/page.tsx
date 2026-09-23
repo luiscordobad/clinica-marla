@@ -22,7 +22,7 @@ export default function Usuarios() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [guardandoId, setGuardandoId] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
-  const [vista, setVista] = useState<'accesos' | 'servicios' | 'clinica' | 'actividad'>('accesos')
+  const [vista, setVista] = useState<'perfil' | 'accesos' | 'servicios' | 'clinica' | 'actividad'>('perfil')
 
   const [servicios, setServicios] = useState<Servicio[]>([])
   const [configClinica, setConfigClinica] = useState<ConfiguracionClinica | null>(null)
@@ -30,6 +30,10 @@ export default function Usuarios() {
   const [guardandoClinica, setGuardandoClinica] = useState(false)
   const [actividad, setActividad] = useState<ActividadItem[]>([])
   const [cargandoActividad, setCargandoActividad] = useState(false)
+
+  const [formPerfil, setFormPerfil] = useState({ nombre: '', telefono: '', puesto: '' })
+  const [guardandoPerfil, setGuardandoPerfil] = useState(false)
+  const [subiendoAvatar, setSubiendoAvatar] = useState(false)
 
   const cargar = async () => {
     const { data } = await supabase.from('usuarios').select('*').order('created_at', { ascending: true })
@@ -104,17 +108,52 @@ export default function Usuarios() {
     const iniciar = async () => {
       const estado = await obtenerEstadoSesion()
       if (estado.tipo !== 'activa') { window.location.href = '/login'; return }
-      if (!estado.sesion.esFullAccess) { window.location.href = '/'; return }
       setSesion(estado.sesion)
-      await cargar()
-      await cargarServicios()
-      await cargarConfigClinica()
+      setFormPerfil({ nombre: estado.sesion.usuario.nombre || '', telefono: estado.sesion.usuario.telefono || '', puesto: estado.sesion.usuario.puesto || '' })
+      if (estado.sesion.esFullAccess) {
+        await cargar()
+        await cargarServicios()
+        await cargarConfigClinica()
+      }
       setCargando(false)
     }
     iniciar()
   }, [])
 
   const mostrarToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000) }
+
+  const refrescarSesion = async () => {
+    const estado = await obtenerEstadoSesion()
+    if (estado.tipo === 'activa') setSesion(estado.sesion)
+  }
+
+  const guardarPerfil = async () => {
+    if (!sesion) return
+    if (!formPerfil.nombre.trim()) return mostrarToast('El nombre no puede quedar vacío')
+    setGuardandoPerfil(true)
+    const { error } = await supabase.from('usuarios').update({
+      nombre: formPerfil.nombre.trim(),
+      telefono: formPerfil.telefono.trim() || null,
+      puesto: formPerfil.puesto.trim() || null,
+    }).eq('id', sesion.usuario.id)
+    if (!error) { await refrescarSesion(); if (sesion.esFullAccess) await cargar(); mostrarToast('Perfil actualizado') } else mostrarToast('Error: ' + error.message)
+    setGuardandoPerfil(false)
+  }
+
+  const subirAvatar = async (archivo: File) => {
+    if (!sesion) return
+    if (archivo.size > 3 * 1024 * 1024) return mostrarToast('La imagen debe pesar menos de 3MB')
+    setSubiendoAvatar(true)
+    const ext = archivo.name.split('.').pop() || 'jpg'
+    const ruta = `${sesion.usuario.id}/avatar.${ext}`
+    const { error: errSubida } = await supabase.storage.from('avatares').upload(ruta, archivo, { upsert: true })
+    if (errSubida) { mostrarToast('Error subiendo foto: ' + errSubida.message); setSubiendoAvatar(false); return }
+    const { data } = supabase.storage.from('avatares').getPublicUrl(ruta)
+    const avatar_url = `${data.publicUrl}?t=${Date.now()}`
+    const { error: errUpdate } = await supabase.from('usuarios').update({ avatar_url }).eq('id', sesion.usuario.id)
+    if (!errUpdate) { await refrescarSesion(); if (sesion.esFullAccess) await cargar(); mostrarToast('Foto de perfil actualizada') } else mostrarToast('Error: ' + errUpdate.message)
+    setSubiendoAvatar(false)
+  }
 
   const actualizarUsuario = async (id: string, cambios: Partial<Pick<Usuario, 'rol' | 'activo'>>) => {
     setGuardandoId(id)
@@ -162,17 +201,20 @@ export default function Usuarios() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-black text-slate-800">Ajustes</h1>
-            <p className="text-sm text-slate-500 mt-1">Accesos, catálogo de servicios, perfil de la clínica y actividad reciente.</p>
+            <p className="text-sm text-slate-500 mt-1">Tu perfil{sesion?.esFullAccess ? ', accesos, catálogo de servicios, perfil de la clínica y actividad reciente.' : '.'}</p>
           </div>
           <Link href="/" className="text-sm font-bold text-[#28363E] hover:underline">← Regresar</Link>
         </div>
 
         <div className="flex gap-2 mb-8 overflow-x-auto pb-1">
           {[
-            { id: 'accesos', l: '👥 Accesos' },
-            { id: 'servicios', l: '🧾 Servicios' },
-            { id: 'clinica', l: '🏥 Perfil de Clínica' },
-            { id: 'actividad', l: '📋 Actividad' },
+            { id: 'perfil', l: '🙋 Mi Perfil' },
+            ...(sesion?.esFullAccess ? [
+              { id: 'accesos', l: '👥 Accesos' },
+              { id: 'servicios', l: '🧾 Servicios' },
+              { id: 'clinica', l: '🏥 Perfil de Clínica' },
+              { id: 'actividad', l: '📋 Actividad' },
+            ] : []),
           ].map(t => (
             <button
               key={t.id}
@@ -184,7 +226,54 @@ export default function Usuarios() {
           ))}
         </div>
 
-        {vista === 'accesos' && (
+        {vista === 'perfil' && sesion && (
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6 max-w-lg">
+            <div className="flex items-center gap-5">
+              <div className="relative shrink-0">
+                {sesion.usuario.avatar_url ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img src={sesion.usuario.avatar_url} alt={sesion.usuario.nombre} className="w-20 h-20 rounded-full object-cover border border-slate-200" />
+                ) : (
+                  <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center text-2xl font-black text-[#28363E] border border-slate-200">
+                    {sesion.usuario.nombre.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                  </div>
+                )}
+                {subiendoAvatar && <div className="absolute inset-0 bg-white/70 rounded-full flex items-center justify-center text-[10px] font-bold text-slate-500">...</div>}
+              </div>
+              <div>
+                <label className="inline-block cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl transition-colors">
+                  {sesion.usuario.avatar_url ? 'Cambiar foto' : 'Subir foto'}
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) subirAvatar(f) }} disabled={subiendoAvatar} />
+                </label>
+                <p className="text-[11px] text-slate-400 mt-1.5">JPG o PNG, máximo 3MB.</p>
+              </div>
+            </div>
+
+            <div className="space-y-4 pt-2 border-t border-slate-100">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Nombre completo</label>
+                <input type="text" value={formPerfil.nombre} onChange={(e) => setFormPerfil({ ...formPerfil, nombre: e.target.value })} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-[#28363E]" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Correo</label>
+                <input type="text" value={sesion.usuario.email} disabled className="w-full p-3.5 bg-slate-100 border border-slate-200 rounded-xl text-sm text-slate-500 outline-none" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Teléfono</label>
+                <input type="text" value={formPerfil.telefono} onChange={(e) => setFormPerfil({ ...formPerfil, telefono: e.target.value })} placeholder="Ej. 55 1234 5678" className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#28363E]" />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Puesto</label>
+                <input type="text" value={formPerfil.puesto} onChange={(e) => setFormPerfil({ ...formPerfil, puesto: e.target.value })} placeholder="Ej. Nutrióloga, Recepción" className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#28363E]" />
+              </div>
+              <button onClick={guardarPerfil} disabled={guardandoPerfil} className="w-full py-3 bg-[#28363E] text-white rounded-xl text-sm font-black hover:bg-[#1C262C] transition-colors disabled:opacity-50">
+                {guardandoPerfil ? 'Guardando...' : 'Guardar Cambios'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {vista === 'accesos' && sesion?.esFullAccess && (
           <>
             {pendientes.length > 0 && (
               <div className="mb-8">
@@ -228,9 +317,19 @@ export default function Usuarios() {
                 const esUnoMismo = sesion?.usuario.id === u.id
                 return (
                   <div key={u.id} className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
-                    <div>
-                      <p className="font-black text-slate-800">{u.nombre} {esUnoMismo && <span className="text-[10px] text-[#28363E] font-black ml-1">(TÚ)</span>}</p>
-                      <p className="text-sm text-slate-500">{u.email}</p>
+                    <div className="flex items-center gap-3.5 min-w-0">
+                      {u.avatar_url ? (
+                        /* eslint-disable-next-line @next/next/no-img-element */
+                        <img src={u.avatar_url} alt={u.nombre} className="w-11 h-11 rounded-full object-cover border border-slate-200 shrink-0" />
+                      ) : (
+                        <div className="w-11 h-11 rounded-full bg-slate-100 flex items-center justify-center text-sm font-black text-[#28363E] border border-slate-200 shrink-0">
+                          {u.nombre.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="font-black text-slate-800 truncate">{u.nombre} {esUnoMismo && <span className="text-[10px] text-[#28363E] font-black ml-1">(TÚ)</span>}</p>
+                        <p className="text-sm text-slate-500 truncate">{u.puesto ? `${u.puesto} · ` : ''}{u.email}</p>
+                      </div>
                     </div>
                     <div className="flex items-center gap-3">
                       <select
@@ -262,7 +361,7 @@ export default function Usuarios() {
           </>
         )}
 
-        {vista === 'servicios' && (
+        {vista === 'servicios' && sesion?.esFullAccess && (
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Catálogo de Servicios ({servicios.length})</h2>
@@ -302,7 +401,7 @@ export default function Usuarios() {
           </div>
         )}
 
-        {vista === 'clinica' && (
+        {vista === 'clinica' && sesion?.esFullAccess && (
           <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4 max-w-lg">
             <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Perfil de la Clínica</h2>
             <p className="text-xs text-slate-500 -mt-2">Esta información aparece en el portal del paciente y se usa como referencia en tickets.</p>
@@ -328,7 +427,7 @@ export default function Usuarios() {
           </div>
         )}
 
-        {vista === 'actividad' && (
+        {vista === 'actividad' && sesion?.esFullAccess && (
           <div>
             <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Actividad Reciente</h2>
             {cargandoActividad ? (

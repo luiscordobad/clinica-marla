@@ -12,6 +12,9 @@ export type Usuario = {
   activo: boolean
   calendar_token: string
   created_at: string
+  avatar_url: string | null
+  telefono: string | null
+  puesto: string | null
 }
 
 export type CategoriaDocumento = 'inbody' | 'laboratorio' | 'otro'

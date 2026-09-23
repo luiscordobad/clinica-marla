@@ -1200,8 +1200,11 @@ export default function Home() {
           )}
         </nav>
 
-        <button onClick={cerrarSesion} title="Cerrar Sesión" className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-rose-100 hover:text-rose-600 transition-colors mt-auto font-bold text-sm">
-          {getInitials(sesion.usuario.nombre)}
+        <button onClick={cerrarSesion} title="Cerrar Sesión" className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 hover:bg-rose-100 hover:text-rose-600 transition-colors mt-auto font-bold text-sm overflow-hidden">
+          {sesion.usuario.avatar_url ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={sesion.usuario.avatar_url} alt={sesion.usuario.nombre} className="w-full h-full object-cover" />
+          ) : getInitials(sesion.usuario.nombre)}
         </button>
       </aside>
 
@@ -1220,7 +1223,12 @@ export default function Home() {
             <div className="h-6 w-px bg-slate-200"></div>
             <div className="relative">
               <button onClick={() => setShowMenuPerfil(!showMenuPerfil)} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 p-1.5 rounded-lg transition-colors">
-                <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-[#28363E]">{getInitials(sesion.usuario.nombre)}</div>
+                <div className="w-7 h-7 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-[#28363E] overflow-hidden shrink-0">
+                  {sesion.usuario.avatar_url ? (
+                    /* eslint-disable-next-line @next/next/no-img-element */
+                    <img src={sesion.usuario.avatar_url} alt={sesion.usuario.nombre} className="w-full h-full object-cover" />
+                  ) : getInitials(sesion.usuario.nombre)}
+                </div>
                 <span className="text-sm font-bold text-slate-700 hidden sm:inline pr-1">{sesion.usuario.nombre}</span>
                 <span className="text-slate-400 text-[10px] hidden sm:inline">▾</span>
               </button>
