@@ -30,10 +30,11 @@ const CLAVE = 'feriados_ignorados'
 
 // Los feriados que caen en un día que la clínica ya tiene cerrado no se recuerdan.
 // Recordatorios de la agenda: feriados de México que vienen y vacaciones/bloqueos próximos.
-export default function AvisosAgenda({ citas, hoy, horario, onBloquear, onIrAFecha, onGestionar }: {
+export default function AvisosAgenda({ citas, hoy, horario, onAbrirCita, onBloquear, onIrAFecha, onGestionar }: {
   citas: Cita[]
   hoy: string
   horario: HorarioAtencion | null
+  onAbrirCita: (cita: Cita) => void
   onBloquear: (fecha: string, motivo: string) => void
   onIrAFecha: (fecha: string) => void
   onGestionar: () => void
@@ -56,7 +57,9 @@ export default function AvisosAgenda({ citas, hoy, horario, onBloquear, onIrAFec
   const vacaciones = useMemo(() => agruparBloqueos(citas, hoy).filter(r => diasEntre(hoy, r.inicio) <= 21), [citas, hoy])
 
   const [verTodos, setVerTodos] = useState(false)
-  if (feriados.length === 0 && vacaciones.length === 0) return null
+  // Pacientes que pidieron cambiar su cita desde el portal: siempre visibles, van primero.
+  const cambios = citas.filter(c => c.cambio_solicitado_at && c.estado === 'programada' && c.fecha_cita >= hoy).sort((a, b) => (a.fecha_cita + a.hora_cita).localeCompare(b.fecha_cita + b.hora_cita))
+  if (feriados.length === 0 && vacaciones.length === 0 && cambios.length === 0) return null
 
   // Una sola lista por fecha; por defecto solo los 2 más cercanos para no tapar el flujo del día.
   const avisos = [
@@ -71,6 +74,14 @@ export default function AvisosAgenda({ citas, hoy, horario, onBloquear, onIrAFec
         Recordatorios
         <button onClick={onGestionar} className="normal-case tracking-normal text-[10px] font-bold text-[#28363E] dark:text-slate-300 hover:underline">Ver bloqueos</button>
       </h3>
+
+      {cambios.map(c => (
+        <button key={'c' + c.id} onClick={() => onAbrirCita(c)} className="w-full text-left bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800/60 rounded-2xl p-3">
+          <p className="text-[13px] font-black text-slate-800 dark:text-slate-100 leading-tight">🔁 {c.nombre_paciente} pidió cambiar su cita</p>
+          <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">{fechaCorta(c.fecha_cita)} · {c.hora_cita.substring(0, 5)} hrs</p>
+          {c.cambio_mensaje && <p className="text-[11px] font-medium italic text-slate-600 dark:text-slate-300 mt-1">“{c.cambio_mensaje}”</p>}
+        </button>
+      ))}
 
       {visibles.map(a => {
         if (a.feriado) {

@@ -759,6 +759,16 @@ export default function Home() {
             </div>
 
             <div className="p-6">
+              {citaSeleccionada.estado === 'programada' && citaSeleccionada.confirmada_at && (
+                <p className="mb-4 text-xs font-black text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl px-3 py-2.5">✅ El paciente confirmó su asistencia desde el portal</p>
+              )}
+              {citaSeleccionada.estado === 'programada' && citaSeleccionada.cambio_solicitado_at && (
+                <div className="mb-4 text-xs text-amber-800 dark:text-amber-200 bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl px-3 py-2.5">
+                  <p className="font-black">🔁 El paciente pidió cambiar esta cita</p>
+                  {citaSeleccionada.cambio_mensaje && <p className="mt-1 font-medium italic">“{citaSeleccionada.cambio_mensaje}”</p>}
+                  <p className="mt-1 font-medium opacity-80">Al reagendarla, este aviso se quita solo.</p>
+                </div>
+              )}
               {modoEdicionCita ? (
                 <div className="space-y-4 animate-in fade-in slide-in-from-right-4">
                   <div>
@@ -1444,7 +1454,7 @@ export default function Home() {
                                   // La tarjeta se coloca según los minutos (09:30 queda a media celda) para que dos citas en la misma hora no se encimen.
                                   const minutos = parseInt(c.hora_cita.substring(3, 5), 10) || 0
                                   const compacta = c.duracion_min <= 30
-                                  const icono = isTerminado ? '✅' : isEnCaja ? '🛒' : isCheckedIn ? '🛋️' : isLate ? '⏳' : ''
+                                  const icono = isTerminado ? '✅' : isEnCaja ? '🛒' : isCheckedIn ? '🛋️' : c.cambio_solicitado_at ? '🔁' : isLate ? '⏳' : c.confirmada_at ? '✔️' : ''
                                   return (
                                     <div
                                       key={c.id}
@@ -1521,7 +1531,7 @@ export default function Home() {
 
                 <hr className="border-slate-100 dark:border-slate-800" />
 
-                <AvisosAgenda horario={horarioAtencion} citas={citas} hoy={hoyFechaFormat} onBloquear={bloquearDia} onIrAFecha={(f) => { setFechaSeleccionada(f); setVistaAgenda('Dia') }} onGestionar={() => setShowModalVacaciones(true)} />
+                <AvisosAgenda onAbrirCita={setCitaSeleccionada} horario={horarioAtencion} citas={citas} hoy={hoyFechaFormat} onBloquear={bloquearDia} onIrAFecha={(f) => { setFechaSeleccionada(f); setVistaAgenda('Dia') }} onGestionar={() => setShowModalVacaciones(true)} />
 
                 <div>
                   <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3 flex items-center justify-between">
@@ -1571,7 +1581,11 @@ export default function Home() {
                           <div key={c.id} className="bg-white dark:bg-slate-900 p-3 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-emerald-300 transition-colors">
                             <p className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">{c.nombre_paciente}</p>
                             <p className="text-[9px] text-slate-500 dark:text-slate-400 mb-2 mt-0.5 font-bold">{c.hora_cita.substring(0, 5)} hrs • {ETIQUETA_TIPO_CITA[c.tipo]}</p>
-                            {tel ? (
+                            {c.cambio_solicitado_at ? (
+                              <button onClick={() => setCitaSeleccionada(c)} className="block w-full bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-[10px] font-black py-1.5 rounded-lg text-center">🔁 Pidió cambiar la cita</button>
+                            ) : c.confirmada_at ? (
+                              <span className="block w-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-[10px] font-black py-1.5 rounded-lg text-center">✅ Confirmó en el portal</span>
+                            ) : tel ? (
                               <a href={`https://wa.me/${tel}?text=${encodeURIComponent(mensaje)}`} target="_blank" className="flex items-center justify-center gap-1.5 w-full bg-[#25D366]/10 text-[#128C7E] text-[10px] font-black py-1.5 rounded-lg hover:bg-[#25D366] hover:text-white transition-colors">
                                 Confirmar por WhatsApp
                               </a>
@@ -1633,7 +1647,7 @@ export default function Home() {
 
               {fechaSeleccionada === hoyFechaFormat && (
                 <div className="px-4 pt-2 pb-1">
-                  <AvisosAgenda horario={horarioAtencion} citas={citas} hoy={hoyFechaFormat} onBloquear={bloquearDia} onIrAFecha={setFechaSeleccionada} onGestionar={() => setShowModalVacaciones(true)} />
+                  <AvisosAgenda onAbrirCita={setCitaSeleccionada} horario={horarioAtencion} citas={citas} hoy={hoyFechaFormat} onBloquear={bloquearDia} onIrAFecha={setFechaSeleccionada} onGestionar={() => setShowModalVacaciones(true)} />
                 </div>
               )}
 
@@ -1673,7 +1687,11 @@ export default function Home() {
                           <p className="text-xs font-black text-slate-800 dark:text-slate-100 truncate">{c.nombre_paciente}</p>
                           <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">{c.hora_cita.substring(0, 5)} hrs · {ETIQUETA_TIPO_CITA[c.tipo]}</p>
                         </div>
-                        {tel ? (
+                        {c.cambio_solicitado_at ? (
+                          <button onClick={() => setCitaSeleccionada(c)} className="shrink-0 bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 text-[10px] font-black px-3 py-2 rounded-xl">🔁 Pide cambio</button>
+                        ) : c.confirmada_at ? (
+                          <span className="shrink-0 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 text-[10px] font-black px-3 py-2 rounded-xl">✅ Confirmó</span>
+                        ) : tel ? (
                           <a href={`https://wa.me/${tel}?text=${encodeURIComponent(mensaje)}`} target="_blank" className="shrink-0 bg-[#25D366] text-white text-[10px] font-black px-3 py-2 rounded-xl">WhatsApp</a>
                         ) : (
                           <span className="shrink-0 text-[10px] text-slate-400 dark:text-slate-500 font-bold">Sin tel.</span>
