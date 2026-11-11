@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase'
 import { obtenerEstadoSesion, type SesionActual } from '../../../lib/auth'
+import { useCierreAutomatico } from '../../../lib/inactividad'
 import type { Cita, CategoriaDocumento, Consulta, DocumentoPaciente, Paciente, Pago, PagoProducto, Producto, Servicio } from '../../../lib/types'
 import { ETIQUETA_CATEGORIA_DOCUMENTO } from '../../../lib/types'
 import { fechaLocalISO } from '../../../lib/fecha'
@@ -73,6 +74,7 @@ const ETIQUETAS_INBODY: Record<string, string> = {
   agua_total_lt: 'Agua Corporal Total (Lts)',
   peso_ideal_kg: 'Peso Ideal Configurado (kg)',
   grasa_bajar_kg: 'Grasa a bajar (kg)',
+  grasa_subir_kg: 'Grasa a subir (kg)',
   musculo_subir_kg: 'Músculo a subir (kg)',
 }
 
@@ -133,8 +135,8 @@ function CamposDetalle({ datos, etiquetas }: { datos: Record<string, any> | null
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
       {entradas.map(([clave, etiqueta]) => (
         <div key={clave}>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{etiqueta}</p>
-          <p className="text-sm font-bold text-slate-700">{String(datos[clave])}</p>
+          <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{etiqueta}</p>
+          <p className="text-sm font-bold text-slate-700 dark:text-slate-200">{String(datos[clave]).split(',').join(', ')}</p>
         </div>
       ))}
     </div>
@@ -143,8 +145,8 @@ function CamposDetalle({ datos, etiquetas }: { datos: Record<string, any> | null
 
 function SeccionDetalle({ titulo, icono, children }: { titulo: string; icono: string; children: React.ReactNode }) {
   return (
-    <div className="border-t border-slate-100 pt-4 mt-4 first:border-t-0 first:pt-0 first:mt-0">
-      <p className="text-xs font-black text-slate-800 uppercase tracking-wide mb-3 flex items-center gap-1.5">{icono} {titulo}</p>
+    <div className="border-t border-slate-100 dark:border-slate-800 pt-4 mt-4 first:border-t-0 first:pt-0 first:mt-0">
+      <p className="text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-wide mb-3 flex items-center gap-1.5">{icono} {titulo}</p>
       {children}
     </div>
   )
@@ -163,7 +165,7 @@ function GrupoSiNo({ items, valores, onToggle }: { items: { k: string; l: string
             key={item.k}
             type="button"
             onClick={() => onToggle(item.k)}
-            className={`px-3.5 py-2 rounded-full text-xs font-bold border transition-all ${activo ? 'bg-teal-500 border-teal-500 text-white shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-teal-300'}`}
+            className={`px-3.5 py-2 rounded-full text-xs font-bold border transition-all ${activo ? 'bg-teal-500 border-teal-500 text-white shadow-sm' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-teal-300'}`}
           >
             {activo && '✓ '}{item.l}
           </button>
@@ -183,13 +185,43 @@ function Segmentado({ opciones, valor, onSeleccionar }: { opciones: { v: string;
           key={o.v}
           type="button"
           onClick={() => onSeleccionar(o.v)}
-          className={`px-3.5 py-2 rounded-full text-xs font-bold border transition-all ${valor === o.v ? 'bg-[#0066FF] border-[#0066FF] text-white shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-blue-300'}`}
+          className={`px-3.5 py-2 rounded-full text-xs font-bold border transition-all ${valor === o.v ? 'bg-[#28363E] dark:bg-[#3D5360] border-[#28363E] dark:border-[#5B7785] text-white shadow-sm' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500'}`}
         >
           {o.l}
         </button>
       ))}
     </div>
   )
+}
+
+function SegmentadoMulti({ opciones, valor, onCambiar }: { opciones: { v: string; l: string }[]; valor: string; onCambiar: (v: string) => void }) {
+  const seleccionados = valor ? valor.split(',').filter(Boolean) : []
+  const alternar = (v: string) => {
+    const nuevo = seleccionados.includes(v) ? seleccionados.filter(s => s !== v) : [...seleccionados, v]
+    onCambiar(nuevo.join(','))
+  }
+  return (
+    <div className="flex flex-wrap gap-2">
+      {opciones.map(o => (
+        <button
+          key={o.v}
+          type="button"
+          onClick={() => alternar(o.v)}
+          className={`px-3.5 py-2 rounded-full text-xs font-bold border transition-all ${seleccionados.includes(o.v) ? 'bg-[#28363E] dark:bg-[#3D5360] border-[#28363E] dark:border-[#5B7785] text-white shadow-sm' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500'}`}
+        >
+          {o.l}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function colorGrasaPct(valor: string): string {
+  const n = parseFloat(valor)
+  if (isNaN(n)) return 'text-slate-700 dark:text-slate-200'
+  if (n > 30) return 'text-red-500'
+  if (n >= 20) return 'text-emerald-500'
+  return 'text-amber-500'
 }
 
 const HEREDO_ITEMS = [
@@ -226,7 +258,7 @@ const FORM_CLINICO_VACIO = {
   gluteo: '', muslo: '', pecho: '',
   p_abdominal: '', p_triceps: '', p_biceps: '', p_subescapular: '', p_suprailiaco: '', p_muslo: '', p_pantorrilla: '', p_pectoral: '', p_medio_axilar: '',
   peso_kg: '', musculo_esqu_kg: '', masa_grasa_kg: '', grasa_pct: '', grasa_visceral: '',
-  tmb_kcal: '', agua_total_lt: '', peso_ideal_kg: '', grasa_bajar_kg: '', musculo_subir_kg: '',
+  tmb_kcal: '', agua_total_lt: '', peso_ideal_kg: '', grasa_bajar_kg: '', grasa_subir_kg: '', musculo_subir_kg: '',
   alergias_intolerancias: '', alcohol: 'No', cigarro: 'No', vape: 'No', drogas: 'No', agua_diaria: '', ansiedad: 'No',
   recordatorio_24h: '', restricciones_alimentarias: '', alimentos_mas_consumidos: '', alimentos_menos_consumidos: '',
   actividad_fisica_freq: '', actividad_fisica_duracion: '', actividad_fisica_intensidad: 'Moderada',
@@ -240,6 +272,7 @@ const FORM_CLINICO_VACIO = {
 
 export default function ExpedientePaciente({ params }: { params: { id: string } }) {
   const [sesion, setSesion] = useState<SesionActual | null>(null)
+  useCierreAutomatico(sesion?.usuario.auto_logout_minutos)
 
   const [paciente, setPaciente] = useState<Paciente | null>(null)
   const [citasPaciente, setCitasPaciente] = useState<Cita[]>([])
@@ -277,6 +310,9 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
   const mostrarToast = (mensaje: string, tipo: 'exito' | 'error' | 'advertencia') => { setToast({ mensaje, tipo }); setTimeout(() => setToast(null), 4000) }
 
   const [formClinico, setFormClinico] = useState(FORM_CLINICO_VACIO)
+  const [borradorDisponible, setBorradorDisponible] = useState<{ guardadoEn: string; esPrimeraVez: boolean } | null>(null)
+  const [ultimoAutoguardado, setUltimoAutoguardado] = useState<Date | null>(null)
+  const claveBorrador = `expediente_borrador_${params.id}`
 
   const [checkout, setCheckout] = useState({
     concepto: '', precio: '', tipo_descuento: 'Ninguno', valor_descuento: '',
@@ -293,6 +329,15 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
   // no se debe volver a ofrecer Check-In aunque la cita ya no esté "en_espera".
   const yaAtendidoHoy = pagosPaciente.some(p => p.fecha.split('T')[0] === hoyStr)
   const ultimaConsulta = consultas[0]
+
+  const inbodyTieneValores = (c: Consulta | undefined) => !!c?.inbody && (c.inbody.peso_kg?.trim() || c.inbody.grasa_pct?.trim())
+  const ultimaConsultaConInbody = consultas.find(inbodyTieneValores)
+  let consultasSinInbodySeguidas = 0
+  for (const c of consultas) {
+    if (inbodyTieneValores(c)) break
+    consultasSinInbodySeguidas++
+  }
+  const faltaInbody = consultasSinInbodySeguidas >= 2
 
   const formatearFechaDisplay = (val: string) => {
     const d = new Date(val)
@@ -325,6 +370,57 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
     }
     cargarReferidos()
   }, [paciente?.id, paciente?.referido_por_paciente_id])
+
+  // Detecta un borrador sin guardar (ej. por navegación accidental hacia atrás)
+  useEffect(() => {
+    if (!paciente || modoConsulta) return
+    try {
+      const raw = window.localStorage.getItem(claveBorrador)
+      if (!raw) return
+      const guardado = JSON.parse(raw)
+      if (guardado?.formClinico) setBorradorDisponible({ guardadoEn: guardado.guardadoEn, esPrimeraVez: guardado.esPrimeraVez })
+    } catch { /* borrador corrupto, se ignora */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paciente?.id])
+
+  // Autoguardado del wizard clínico: evita perder el avance por una navegación
+  // accidental (botón atrás, recargar, cerrar pestaña) mientras se llena el expediente.
+  useEffect(() => {
+    if (!modoConsulta) return
+    const guardar = setTimeout(() => {
+      try {
+        const ahora = new Date()
+        window.localStorage.setItem(claveBorrador, JSON.stringify({
+          formClinico, plicometriaValores, realizarPlicometria, seccionActiva, esPrimeraVez,
+          guardadoEn: ahora.toISOString(),
+        }))
+        setUltimoAutoguardado(ahora)
+      } catch { /* almacenamiento lleno o no disponible, se ignora */ }
+    }, 500)
+    return () => clearTimeout(guardar)
+  }, [modoConsulta, formClinico, plicometriaValores, realizarPlicometria, seccionActiva, esPrimeraVez, claveBorrador])
+
+  const retomarBorrador = () => {
+    try {
+      const raw = window.localStorage.getItem(claveBorrador)
+      if (!raw) return
+      const guardado = JSON.parse(raw)
+      setFormClinico(prev => ({ ...prev, ...guardado.formClinico }))
+      setPlicometriaValores(guardado.plicometriaValores || {})
+      setRealizarPlicometria(guardado.realizarPlicometria || 'No')
+      setSeccionActiva(guardado.seccionActiva || 'antecedentes')
+      setBorradorDisponible(null)
+      setModoConsulta(true)
+      mostrarToast('Borrador recuperado.', 'exito')
+    } catch {
+      mostrarToast('No se pudo recuperar el borrador.', 'error')
+    }
+  }
+
+  const descartarBorrador = () => {
+    try { window.localStorage.removeItem(claveBorrador) } catch { /* ignorar */ }
+    setBorradorDisponible(null)
+  }
 
   const cargarDatos = async (esFull: boolean) => {
     const { data: pData } = await supabase.from('pacientes').select('*').eq('id', params.id).single()
@@ -640,7 +736,7 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
       peso_kg: formClinico.peso_kg, musculo_esqu_kg: formClinico.musculo_esqu_kg, masa_grasa_kg: formClinico.masa_grasa_kg,
       grasa_pct: formClinico.grasa_pct, grasa_visceral: formClinico.grasa_visceral, tmb_kcal: formClinico.tmb_kcal,
       agua_total_lt: formClinico.agua_total_lt, peso_ideal_kg: formClinico.peso_ideal_kg, grasa_bajar_kg: formClinico.grasa_bajar_kg,
-      musculo_subir_kg: formClinico.musculo_subir_kg,
+      grasa_subir_kg: formClinico.grasa_subir_kg, musculo_subir_kg: formClinico.musculo_subir_kg,
     }
 
     const estilo_vida = {
@@ -719,26 +815,41 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
     }
 
     await cargarDatos(esFullAccess)
+    try { window.localStorage.removeItem(claveBorrador) } catch { /* ignorar */ }
     setShowCheckout(false); setModoConsulta(false); setProductosVenta([''])
-    setFormClinico(FORM_CLINICO_VACIO); setPlicometriaValores({}); setRealizarPlicometria('No')
+    setFormClinico(FORM_CLINICO_VACIO); setPlicometriaValores({}); setRealizarPlicometria('No'); setUltimoAutoguardado(null)
     mostrarToast('¡Listo! El paciente fue enviado a recepción para el cobro.', 'exito')
   }
 
-  if (loading || !sesion) return <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center"><p className="animate-pulse font-bold text-slate-400">Cargando expediente...</p></div>
-  if (!paciente) return <div className="min-h-screen bg-[#F5F5F7] flex items-center justify-center"><Link href="/" className="text-teal-600 font-bold hover:underline">Volver</Link></div>
+  if (loading || !sesion) return <div className="min-h-screen bg-[#F5F5F7] dark:bg-slate-950 flex items-center justify-center"><p className="animate-pulse font-bold text-slate-400 dark:text-slate-500">Cargando expediente...</p></div>
+  if (!paciente) return <div className="min-h-screen bg-[#F5F5F7] dark:bg-slate-950 flex items-center justify-center"><Link href="/" className="text-teal-600 font-bold hover:underline">Volver</Link></div>
 
   // ==============================================================================
   // VISTA 1: WIZARD CLÍNICO (SOLO ACCESO TOTAL)
   // ==============================================================================
   if (modoConsulta && esFullAccess) {
     return (
-      <main className="min-h-screen bg-[#F5F5F7] flex flex-col lg:flex-row">
+      <main className="min-h-screen bg-[#F5F5F7] dark:bg-slate-950 flex flex-col lg:flex-row">
         <div className="w-full lg:w-72 bg-slate-900 text-slate-300 flex flex-col sticky top-0 lg:h-screen z-20">
           <div className="p-5 bg-slate-950 border-b border-slate-800">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-marla-firma-blanco.png" alt="Marla Polo" className="h-6 w-auto mb-3" />
+            <button
+              onClick={() => { if (window.confirm('¿Salir de la consulta? Tu progreso se guardó automáticamente y podrás retomarlo desde el perfil del paciente.')) setModoConsulta(false) }}
+              className="mb-3 flex items-center gap-1.5 text-[11px] font-bold text-slate-400 dark:text-slate-500 hover:text-white transition-colors"
+            >
+              <span className="text-sm">&larr;</span> Salir sin terminar
+            </button>
             <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-black uppercase mb-1.5 ${esPrimeraVez ? 'bg-amber-500 text-amber-950' : 'bg-teal-500 text-teal-950'}`}>
               {esPrimeraVez ? 'Estudio de Primera Vez' : 'Control de Seguimiento'}
             </span>
             <h2 className="text-white font-black text-md truncate">{paciente.nombre_completo}</h2>
+            {ultimoAutoguardado && (
+              <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold mt-1.5 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                Guardado {ultimoAutoguardado.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
+              </p>
+            )}
           </div>
           <div className="flex lg:flex-col overflow-x-auto lg:overflow-y-auto p-3 gap-1 flex-1">
             {esPrimeraVez ? (
@@ -756,10 +867,11 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
             ) : (
               [
                 { id: 'seguimiento_notas', label: '1. Notas de Evolución', icon: '🗣️' },
-                { id: 'mediciones', label: '2. Control Corporal', icon: '⚖️' },
-                { id: 'enfoque', label: '3. Ajuste de Plan', icon: '🔄' },
-                { id: 'antecedentes', label: '4. Actualizar Antecedentes', icon: '📝' },
-                { id: 'estilo', label: '5. Actualizar Estilo de Vida', icon: '🥗' },
+                { id: 'mediciones', label: '2. Control Corporal', icon: '📏' },
+                { id: 'peso', label: '3. Peso e InBody', icon: '⚖️' },
+                { id: 'enfoque', label: '4. Ajuste de Plan', icon: '🔄' },
+                { id: 'antecedentes', label: '5. Actualizar Antecedentes', icon: '📝' },
+                { id: 'estilo', label: '6. Actualizar Estilo de Vida', icon: '🥗' },
               ].map(tab => (
                 <button key={tab.id} onClick={() => setSeccionActiva(tab.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold text-left whitespace-nowrap transition-all ${seccionActiva === tab.id ? 'bg-teal-600 text-white shadow-md' : 'hover:bg-slate-800'}`}>
                   <span>{tab.icon}</span> {tab.label}
@@ -775,77 +887,77 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
         </div>
 
         <div className="flex-1 p-4 md:p-8 overflow-y-auto">
-          <div className="max-w-4xl mx-auto bg-white rounded-3xl border border-slate-200 shadow-sm p-6 sm:p-10">
+          <div className="max-w-4xl mx-auto bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 sm:p-10">
 
             {seccionActiva === 'antecedentes' && (
               <div className="space-y-6 animate-in fade-in">
-                <h3 className="text-2xl font-black text-slate-800 border-b border-slate-100 pb-3">1. Historial de Antecedentes</h3>
+                <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3">1. Historial de Antecedentes</h3>
                 {!esPrimeraVez && (
-                  <div className="bg-sky-50 border border-sky-100 rounded-2xl p-4 text-xs text-sky-900 font-medium">
+                  <div className="bg-sky-50 dark:bg-sky-950/40 border border-sky-100 dark:border-sky-800/60 rounded-2xl p-4 text-xs text-sky-900 dark:text-sky-300 font-medium">
                     Se precargó lo último registrado. Solo actualiza lo que haya cambiado (nuevo medicamento, alergia, cirugía, etc.).
                   </div>
                 )}
                 <div className="space-y-5">
 
-                  <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
-                    <p className="font-bold text-sm text-slate-700">Antecedentes Heredo Familiares</p>
+                  <div className="bg-slate-50 dark:bg-slate-800/60 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+                    <p className="font-bold text-sm text-slate-700 dark:text-slate-200">Antecedentes Heredo Familiares</p>
                     <GrupoSiNo items={HEREDO_ITEMS} valores={formClinico} onToggle={alternarSiNo} />
-                    <textarea name="heredo_familiares" value={formClinico.heredo_familiares} onChange={handleFormChange} placeholder="Otro / cómo está..." className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500 transition-all" rows={2} />
+                    <textarea name="heredo_familiares" value={formClinico.heredo_familiares} onChange={handleFormChange} placeholder="Otro / cómo está..." className="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500 transition-all" rows={2} />
                   </div>
 
-                  <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
-                    <p className="font-bold text-sm text-slate-700">Antecedentes Personales Patológicos (APP)</p>
+                  <div className="bg-slate-50 dark:bg-slate-800/60 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+                    <p className="font-bold text-sm text-slate-700 dark:text-slate-200">Antecedentes Personales Patológicos (APP)</p>
                     <GrupoSiNo items={APP_ITEMS} valores={formClinico} onToggle={alternarSiNo} />
-                    <textarea name="patologicos" value={formClinico.patologicos} onChange={handleFormChange} placeholder="Otro..." className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500 transition-all" rows={2} />
+                    <textarea name="patologicos" value={formClinico.patologicos} onChange={handleFormChange} placeholder="Otro..." className="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500 transition-all" rows={2} />
                   </div>
 
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Cirugías</label><textarea name="cirugias" value={formClinico.cirugias} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500 transition-all" rows={2} /></div>
+                  <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Cirugías</label><textarea name="cirugias" value={formClinico.cirugias} onChange={handleFormChange} className="w-full p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500 transition-all" rows={2} /></div>
 
-                  <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
-                    <p className="font-bold text-sm text-slate-700">Antecedentes Personales No Patológicos (APNP)</p>
+                  <div className="bg-slate-50 dark:bg-slate-800/60 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+                    <p className="font-bold text-sm text-slate-700 dark:text-slate-200">Antecedentes Personales No Patológicos (APNP)</p>
                     <GrupoSiNo items={APNP_ITEMS} valores={formClinico} onToggle={alternarSiNo} />
-                    <textarea name="no_patologicos" value={formClinico.no_patologicos} onChange={handleFormChange} placeholder="Más campo libre..." className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500 transition-all" rows={2} />
+                    <textarea name="no_patologicos" value={formClinico.no_patologicos} onChange={handleFormChange} placeholder="Más campo libre..." className="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500 transition-all" rows={2} />
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Resultados de Laboratorios</label>
-                      <input type="text" name="laboratorios" value={formClinico.laboratorios} onChange={handleFormChange} placeholder="Notas rápidas — el PDF se sube en Documentos ↓" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all" />
+                      <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Resultados de Laboratorios</label>
+                      <input type="text" name="laboratorios" value={formClinico.laboratorios} onChange={handleFormChange} placeholder="Notas rápidas — el PDF se sube en Documentos ↓" className="w-full p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all" />
                     </div>
-                    <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Medicamentos</label><input type="text" name="medicamentos" value={formClinico.medicamentos} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all" /></div>
+                    <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Medicamentos</label><input type="text" name="medicamentos" value={formClinico.medicamentos} onChange={handleFormChange} className="w-full p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all" /></div>
                   </div>
 
-                  <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
-                    <p className="font-bold text-sm text-slate-700">Suplementos que toma actualmente</p>
+                  <div className="bg-slate-50 dark:bg-slate-800/60 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+                    <p className="font-bold text-sm text-slate-700 dark:text-slate-200">Suplementos que toma actualmente</p>
                     <GrupoSiNo items={SUPLEMENTOS_SI_NO_ITEMS} valores={formClinico} onToggle={alternarSiNo} />
                     <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Magnesio</p>
-                      <Segmentado opciones={[{ v: '', l: 'No toma' }, { v: 'TL', l: 'TL' }, { v: 'CT', l: 'CT' }, { v: 'Otro', l: 'Otro' }]} valor={formClinico.sup_magnesio} onSeleccionar={(v) => setCampoClinico('sup_magnesio', v)} />
+                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 ml-1">Magnesio</p>
+                      <Segmentado opciones={[{ v: '', l: 'No toma' }, { v: 'GL', l: 'GL' }, { v: 'CT', l: 'CT' }, { v: 'Otro', l: 'Otro' }]} valor={formClinico.sup_magnesio} onSeleccionar={(v) => setCampoClinico('sup_magnesio', v)} />
                     </div>
-                    <input type="text" name="suplementos_actuales" value={formClinico.suplementos_actuales} onChange={handleFormChange} placeholder="Otro / detalle..." className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500" />
+                    <input type="text" name="suplementos_actuales" value={formClinico.suplementos_actuales} onChange={handleFormChange} placeholder="Otro / detalle..." className="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500" />
                   </div>
 
-                  <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-                    <p className="font-bold text-sm text-slate-700">Patrón de Sueño</p>
+                  <div className="bg-slate-50 dark:bg-slate-800/60 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
+                    <p className="font-bold text-sm text-slate-700 dark:text-slate-200">Patrón de Sueño</p>
                     <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Horas</p>
+                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 ml-1">Horas</p>
                       <Segmentado opciones={[{ v: '6_o_menos', l: '6 o menos' }, { v: '7_a_8', l: '7 - 8' }, { v: '8_o_mas', l: '8 o más' }]} valor={formClinico.sueno_horas} onSeleccionar={(v) => setCampoClinico('sueno_horas', v)} />
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Interrumpido</p>
+                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 ml-1">Interrumpido</p>
                       <GrupoSiNo items={[{ k: 'sueno_interrumpido', l: 'Sueño interrumpido' }]} valores={formClinico} onToggle={alternarSiNo} />
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Al despertar</p>
+                      <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 ml-1">Al despertar</p>
                       <Segmentado opciones={[{ v: 'Con energia', l: 'Con energía' }, { v: 'Cansado', l: 'Cansado' }]} valor={formClinico.sueno_despertar} onSeleccionar={(v) => setCampoClinico('sueno_despertar', v)} />
                     </div>
-                    <input type="text" name="sueno" value={formClinico.sueno} onChange={handleFormChange} placeholder="Detalle adicional..." className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500" />
+                    <input type="text" name="sueno" value={formClinico.sueno} onChange={handleFormChange} placeholder="Detalle adicional..." className="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500" />
                   </div>
 
-                  <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 shadow-sm space-y-3">
-                    <p className="font-bold text-sm text-slate-700">Objetivos Clínicos / Estéticos</p>
+                  <div className="bg-slate-50 dark:bg-slate-800/60 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-3">
+                    <p className="font-bold text-sm text-slate-700 dark:text-slate-200">Objetivos Clínicos / Estéticos</p>
                     <GrupoSiNo items={[{ k: 'objetivo_masa_muscular', l: 'Aumento Masa Muscular' }, { k: 'objetivo_bajar_grasa', l: 'Bajar Grasa' }]} valores={formClinico} onToggle={alternarSiNo} />
-                    <input type="text" name="objetivos" value={formClinico.objetivos} onChange={handleFormChange} placeholder="Personalizar / otro objetivo..." className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500" />
+                    <input type="text" name="objetivos" value={formClinico.objetivos} onChange={handleFormChange} placeholder="Personalizar / otro objetivo..." className="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500" />
                   </div>
 
                 </div>
@@ -854,38 +966,38 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
 
             {seccionActiva === 'seguimiento_notas' && !esPrimeraVez && (
               <div className="space-y-6 animate-in fade-in">
-                <h3 className="text-2xl font-black text-slate-800 border-b border-slate-100 pb-3">1. Seguimiento Clínico</h3>
-                <div className="bg-sky-50 border border-sky-100 rounded-2xl p-5 text-sm text-sky-900 font-medium shadow-sm">
+                <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3">1. Seguimiento Clínico</h3>
+                <div className="bg-sky-50 dark:bg-sky-950/40 border border-sky-100 dark:border-sky-800/60 rounded-2xl p-5 text-sm text-sky-900 dark:text-sky-300 font-medium shadow-sm">
                   <span className="font-bold block mb-1">Evolución previa:</span> {ultimaConsulta?.notas_evolucion || 'Sin anotaciones previas.'}
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Notas de evolución actuales (apego, síntomas, cambios)</label>
-                  <textarea name="notas_seguimiento_general" value={formClinico.notas_seguimiento_general} onChange={handleFormChange} className="w-full p-5 bg-slate-50 border border-slate-200 rounded-3xl text-sm outline-none focus:ring-2 focus:ring-teal-500 transition-all min-h-[160px] shadow-sm" placeholder="Escribe aquí los comentarios de la sesión..." />
+                  <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Notas de evolución actuales (apego, síntomas, cambios)</label>
+                  <textarea name="notas_seguimiento_general" value={formClinico.notas_seguimiento_general} onChange={handleFormChange} className="w-full p-5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-3xl text-sm outline-none focus:ring-2 focus:ring-teal-500 transition-all min-h-[160px] shadow-sm" placeholder="Escribe aquí los comentarios de la sesión..." />
                 </div>
               </div>
             )}
 
             {seccionActiva === 'mediciones' && (
               <div className="space-y-6 animate-in fade-in">
-                <h3 className="text-2xl font-black text-slate-800 border-b border-slate-100 pb-3">2. Antropometría y Mediciones</h3>
+                <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3">2. Antropometría y Mediciones</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Circ. Abdominal (cm)</label><input type="number" name="circ_abdominal" value={formClinico.circ_abdominal} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500 transition-all" /></div>
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Circ. Umbilical (cm)</label><input type="number" name="circ_umbilical" value={formClinico.circ_umbilical} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500 transition-all" /></div>
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Pecho (cm)</label><input type="number" name="pecho" value={formClinico.pecho} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500 transition-all" /></div>
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Glúteo (cm)</label><input type="number" name="gluteo" value={formClinico.gluteo} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500 transition-all" /></div>
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Muslo (cm)</label><input type="number" name="muslo" value={formClinico.muslo} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500 transition-all" /></div>
+                  <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Circ. Abdominal (cm)</label><input type="number" name="circ_abdominal" value={formClinico.circ_abdominal} onChange={handleFormChange} className="w-full p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500 transition-all" /></div>
+                  <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Circ. Umbilical (cm)</label><input type="number" name="circ_umbilical" value={formClinico.circ_umbilical} onChange={handleFormChange} className="w-full p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500 transition-all" /></div>
+                  <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Pecho (cm)</label><input type="number" name="pecho" value={formClinico.pecho} onChange={handleFormChange} className="w-full p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500 transition-all" /></div>
+                  <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Glúteo (cm)</label><input type="number" name="gluteo" value={formClinico.gluteo} onChange={handleFormChange} className="w-full p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500 transition-all" /></div>
+                  <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Muslo (cm)</label><input type="number" name="muslo" value={formClinico.muslo} onChange={handleFormChange} className="w-full p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500 transition-all" /></div>
 
-                  <div><label className="block text-[11px] font-bold text-slate-500 mb-1.5 ml-1">Bicep Izq (Reposo/Flex)</label><input type="text" name="bicep_izq_reposo" value={formClinico.bicep_izq_reposo} onChange={handleFormChange} placeholder="Ej. 32 / 35" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500 transition-all" /></div>
-                  <div><label className="block text-[11px] font-bold text-slate-500 mb-1.5 ml-1">Bicep Der (Reposo/Flex)</label><input type="text" name="bicep_der_reposo" value={formClinico.bicep_der_reposo} onChange={handleFormChange} placeholder="Ej. 32.5 / 35.2" className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500 transition-all" /></div>
+                  <div><label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Bicep Izq (Reposo/Flex)</label><input type="text" name="bicep_izq_reposo" value={formClinico.bicep_izq_reposo} onChange={handleFormChange} placeholder="Ej. 32 / 35" className="w-full p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500 transition-all" /></div>
+                  <div><label className="block text-[11px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Bicep Der (Reposo/Flex)</label><input type="text" name="bicep_der_reposo" value={formClinico.bicep_der_reposo} onChange={handleFormChange} placeholder="Ej. 32.5 / 35.2" className="w-full p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500 transition-all" /></div>
                 </div>
 
-                <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 mt-6 shadow-sm">
-                  <div className="flex flex-wrap justify-between items-center gap-3"><label className="text-sm font-bold text-slate-700">¿Realizar Plicometría de Pliegues?</label><Segmentado opciones={[{ v: 'No', l: 'No' }, { v: 'Si', l: 'Sí' }]} valor={realizarPlicometria} onSeleccionar={(v) => setRealizarPlicometria(v as 'Si' | 'No')} /></div>
+                <div className="bg-slate-50 dark:bg-slate-800/60 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 mt-6 shadow-sm">
+                  <div className="flex flex-wrap justify-between items-center gap-3"><label className="text-sm font-bold text-slate-700 dark:text-slate-200">¿Realizar Plicometría de Pliegues?</label><Segmentado opciones={[{ v: 'No', l: 'No' }, { v: 'Si', l: 'Sí' }]} valor={realizarPlicometria} onSeleccionar={(v) => setRealizarPlicometria(v as 'Si' | 'No')} /></div>
 
                   {realizarPlicometria === 'Si' && (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-5 pt-5 border-t border-slate-200">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-5 pt-5 border-t border-slate-200 dark:border-slate-700">
                       {['Abdominal', 'Triceps', 'Biceps', 'Subescapular', 'Suprailiaco', 'Muslo', 'Pantorrilla', 'Pectoral', 'Medio_Axilar'].map(p => (
-                        <div key={p}><label className="block text-[11px] font-medium text-slate-500 mb-1.5 ml-1">Pliegue {p.replace('_', ' ')} (mm)</label><input type="number" value={plicometriaValores[p] || ''} onChange={(e) => handlePlicometriaChange(p, e.target.value)} className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
+                        <div key={p}><label className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Pliegue {p.replace('_', ' ')} (mm)</label><input type="number" value={plicometriaValores[p] || ''} onChange={(e) => handlePlicometriaChange(p, e.target.value)} className="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
                       ))}
                     </div>
                   )}
@@ -895,69 +1007,101 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
 
             {seccionActiva === 'peso' && (
               <div className="space-y-6 animate-in fade-in">
-                <h3 className="text-2xl font-black text-slate-800 border-b border-slate-100 pb-3">3. Composición Corporal (InBody)</h3>
+                <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3">3. Composición Corporal (InBody)</h3>
+
+                {ultimaConsultaConInbody && (
+                  <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl p-4">
+                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">vs. consulta del {formatearFechaDisplay(ultimaConsultaConInbody.fecha)}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {[
+                        { key: 'peso_kg', label: 'Peso', unidad: 'kg' },
+                        { key: 'grasa_pct', label: '% Grasa', unidad: '%' },
+                        { key: 'musculo_esqu_kg', label: 'Músculo', unidad: 'kg' },
+                      ].map(({ key, label, unidad }) => {
+                        const anterior = parseFloat((ultimaConsultaConInbody.inbody as any)?.[key] || '')
+                        const actual = parseFloat((formClinico as any)[key])
+                        const delta = !isNaN(anterior) && !isNaN(actual) ? actual - anterior : null
+                        return (
+                          <div key={key}>
+                            <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">{label}</p>
+                            <p className="text-sm font-bold text-slate-700 dark:text-slate-200">
+                              {!isNaN(anterior) ? `${anterior}${unidad}` : '—'} <span className="text-slate-300">&rarr;</span> {!isNaN(actual) ? `${actual}${unidad}` : '—'}
+                              {delta !== null && (
+                                <span className={`ml-1.5 font-black ${delta === 0 ? 'text-slate-400 dark:text-slate-500' : delta > 0 ? 'text-sky-600' : 'text-emerald-600'}`}>
+                                  ({delta > 0 ? '+' : ''}{delta.toFixed(1)})
+                                </span>
+                              )}
+                            </p>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
-                  <div><label className="block text-xs font-bold text-slate-600 mb-1.5 ml-1">Peso Total Actual (kg)</label><input type="number" step="0.1" name="peso_kg" value={formClinico.peso_kg} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-teal-500" /></div>
-                  <div><label className="block text-xs font-bold text-slate-600 mb-1.5 ml-1">Masa Muscular Esquelética (kg)</label><input type="number" step="0.1" name="musculo_esqu_kg" value={formClinico.musculo_esqu_kg} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-teal-500" /></div>
-                  <div><label className="block text-xs font-bold text-slate-600 mb-1.5 ml-1">Masa Grasa Corporal (kg)</label><input type="number" step="0.1" name="masa_grasa_kg" value={formClinico.masa_grasa_kg} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
-                  <div><label className="block text-xs font-bold text-slate-600 mb-1.5 ml-1">Porcentaje de Grasa (%)</label><input type="number" step="0.1" name="grasa_pct" value={formClinico.grasa_pct} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-red-500 outline-none focus:ring-2 focus:ring-teal-500" /></div>
-                  <div><label className="block text-xs font-bold text-slate-600 mb-1.5 ml-1">Grasa Visceral (Nivel)</label><input type="number" name="grasa_visceral" value={formClinico.grasa_visceral} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
-                  <div><label className="block text-xs font-bold text-slate-600 mb-1.5 ml-1">TMB (kcal)</label><input type="number" name="tmb_kcal" value={formClinico.tmb_kcal} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
-                  <div><label className="block text-xs font-bold text-slate-600 mb-1.5 ml-1">Agua Corporal Total (Lts)</label><input type="number" step="0.1" name="agua_total_lt" value={formClinico.agua_total_lt} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
-                  <div><label className="block text-xs font-bold text-slate-600 mb-1.5 ml-1">Peso Ideal Configurado (kg)</label><input type="number" step="0.1" name="peso_ideal_kg" value={formClinico.peso_ideal_kg} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
-                  <div><label className="block text-xs font-bold text-red-600 mb-1.5 ml-1">Grasa a bajar (kg)</label><input type="number" step="0.1" name="grasa_bajar_kg" value={formClinico.grasa_bajar_kg} onChange={handleFormChange} className="w-full p-4 bg-red-50 border border-red-200 text-red-700 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-red-500" /></div>
-                  <div><label className="block text-xs font-bold text-teal-600 mb-1.5 ml-1">Músculo a subir (kg)</label><input type="number" step="0.1" name="musculo_subir_kg" value={formClinico.musculo_subir_kg} onChange={handleFormChange} className="w-full p-4 bg-teal-50 border border-teal-200 text-teal-700 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-teal-500" /></div>
+                  <div><label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5 ml-1">Peso Total Actual (kg)</label><input type="number" step="0.1" name="peso_kg" value={formClinico.peso_kg} onChange={handleFormChange} className="w-full p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-teal-500" /></div>
+                  <div><label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5 ml-1">Masa Muscular Esquelética (kg)</label><input type="number" step="0.1" name="musculo_esqu_kg" value={formClinico.musculo_esqu_kg} onChange={handleFormChange} className="w-full p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-teal-500" /></div>
+                  <div><label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5 ml-1">Masa Grasa Corporal (kg)</label><input type="number" step="0.1" name="masa_grasa_kg" value={formClinico.masa_grasa_kg} onChange={handleFormChange} className="w-full p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
+                  <div><label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5 ml-1">Porcentaje de Grasa (%)</label><input type="number" step="0.1" name="grasa_pct" value={formClinico.grasa_pct} onChange={handleFormChange} className={`w-full p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-teal-500 ${colorGrasaPct(formClinico.grasa_pct)}`} /></div>
+                  <div><label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5 ml-1">Grasa Visceral (Nivel)</label><input type="number" name="grasa_visceral" value={formClinico.grasa_visceral} onChange={handleFormChange} className="w-full p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
+                  <div><label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5 ml-1">TMB (kcal)</label><input type="number" name="tmb_kcal" value={formClinico.tmb_kcal} onChange={handleFormChange} className="w-full p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
+                  <div><label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5 ml-1">Agua Corporal Total (Lts)</label><input type="number" step="0.1" name="agua_total_lt" value={formClinico.agua_total_lt} onChange={handleFormChange} className="w-full p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
+                  <div><label className="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5 ml-1">Peso Ideal Configurado (kg)</label><input type="number" step="0.1" name="peso_ideal_kg" value={formClinico.peso_ideal_kg} onChange={handleFormChange} className="w-full p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
+                  <div><label className="block text-xs font-bold text-red-600 mb-1.5 ml-1">Grasa a bajar (kg)</label><input type="number" step="0.1" name="grasa_bajar_kg" value={formClinico.grasa_bajar_kg} onChange={handleFormChange} className="w-full p-4 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-red-500" /></div>
+                  <div><label className="block text-xs font-bold text-sky-600 mb-1.5 ml-1">Grasa a subir (kg)</label><input type="number" step="0.1" name="grasa_subir_kg" value={formClinico.grasa_subir_kg} onChange={handleFormChange} className="w-full p-4 bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800 text-sky-700 dark:text-sky-300 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-sky-500" /></div>
+                  <div><label className="block text-xs font-bold text-teal-600 mb-1.5 ml-1">Músculo a subir (kg)</label><input type="number" step="0.1" name="musculo_subir_kg" value={formClinico.musculo_subir_kg} onChange={handleFormChange} className="w-full p-4 bg-teal-50 dark:bg-teal-950/40 border border-teal-200 dark:border-teal-800 text-teal-700 dark:text-teal-300 rounded-2xl text-sm font-bold outline-none focus:ring-2 focus:ring-teal-500" /></div>
                 </div>
               </div>
             )}
 
             {seccionActiva === 'estilo' && (
               <div className="space-y-6 animate-in fade-in">
-                <h3 className="text-2xl font-black text-slate-800 border-b border-slate-100 pb-3">4. Alimentación y Estilo de Vida</h3>
+                <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3">4. Alimentación y Estilo de Vida</h3>
                 {!esPrimeraVez && (
-                  <div className="bg-sky-50 border border-sky-100 rounded-2xl p-4 text-xs text-sky-900 font-medium">
+                  <div className="bg-sky-50 dark:bg-sky-950/40 border border-sky-100 dark:border-sky-800/60 rounded-2xl p-4 text-xs text-sky-900 dark:text-sky-300 font-medium">
                     Se precargó lo último registrado. Solo actualiza lo que haya cambiado.
                   </div>
                 )}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Alergias o Intolerancias</label><input type="text" name="alergias_intolerancias" value={formClinico.alergias_intolerancias} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Consumo de Agua Diario</label><input type="text" name="agua_diaria" value={formClinico.agua_diaria} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
-                  <div className="col-span-full"><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Ansiedad / Estrés</label><Segmentado opciones={[{ v: 'No', l: 'No presenta' }, { v: 'Leve', l: 'Leve' }, { v: 'Moderada', l: 'Moderada' }, { v: 'Alta', l: 'Alta' }]} valor={formClinico.ansiedad} onSeleccionar={(v) => setCampoClinico('ansiedad', v)} /></div>
-                  <div className="col-span-full"><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Restricciones Alimentarias</label><input type="text" name="restricciones_alimentarias" value={formClinico.restricciones_alimentarias} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
+                  <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Alergias o Intolerancias</label><input type="text" name="alergias_intolerancias" value={formClinico.alergias_intolerancias} onChange={handleFormChange} className="w-full p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
+                  <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Consumo de Agua Diario</label><input type="text" name="agua_diaria" value={formClinico.agua_diaria} onChange={handleFormChange} className="w-full p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
+                  <div className="col-span-full"><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Ansiedad / Estrés</label><Segmentado opciones={[{ v: 'No', l: 'No presenta' }, { v: 'Leve', l: 'Leve' }, { v: 'Moderada', l: 'Moderada' }, { v: 'Alta', l: 'Alta' }]} valor={formClinico.ansiedad} onSeleccionar={(v) => setCampoClinico('ansiedad', v)} /></div>
+                  <div className="col-span-full"><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Restricciones Alimentarias</label><input type="text" name="restricciones_alimentarias" value={formClinico.restricciones_alimentarias} onChange={handleFormChange} className="w-full p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
 
-                  <div className="flex flex-col gap-3 bg-slate-50 border border-slate-200 p-4 rounded-3xl col-span-full shadow-sm">
+                  <div className="flex flex-col gap-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 p-4 rounded-3xl col-span-full shadow-sm">
                     {[{ k: 'alcohol', l: 'Alcohol' }, { k: 'cigarro', l: 'Cigarro' }, { k: 'vape', l: 'Vape' }, { k: 'drogas', l: 'Drogas' }].map(h => (
                       <div key={h.k} className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="text-xs font-bold text-slate-600">{h.l}</span>
+                        <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{h.l}</span>
                         <Segmentado opciones={[{ v: 'No', l: 'No' }, { v: 'Social', l: 'Social' }, { v: 'Frecuente', l: 'Frecuente' }]} valor={(formClinico as any)[h.k]} onSeleccionar={(v) => setCampoClinico(h.k, v)} />
                       </div>
                     ))}
                   </div>
 
-                  <div className="col-span-full"><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Recordatorio de 24 Horas (Alimentación diaria normal)</label><textarea name="recordatorio_24h" value={formClinico.recordatorio_24h} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" rows={3} /></div>
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Alimentos más consumidos</label><input type="text" name="alimentos_mas_consumidos" value={formClinico.alimentos_mas_consumidos} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
-                  <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Alimentos menos consumidos</label><input type="text" name="alimentos_menos_consumidos" value={formClinico.alimentos_menos_consumidos} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
+                  <div className="col-span-full"><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Recordatorio de 24 Horas (Alimentación diaria normal)</label><textarea name="recordatorio_24h" value={formClinico.recordatorio_24h} onChange={handleFormChange} className="w-full p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" rows={3} /></div>
+                  <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Alimentos más consumidos</label><input type="text" name="alimentos_mas_consumidos" value={formClinico.alimentos_mas_consumidos} onChange={handleFormChange} className="w-full p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
+                  <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Alimentos menos consumidos</label><input type="text" name="alimentos_menos_consumidos" value={formClinico.alimentos_menos_consumidos} onChange={handleFormChange} className="w-full p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" /></div>
 
-                  <div className="col-span-full bg-slate-50 p-5 rounded-3xl border border-slate-200 space-y-4 shadow-sm">
-                    <p className="font-bold text-sm text-slate-700">Actividad Física</p>
+                  <div className="col-span-full bg-slate-50 dark:bg-slate-800/60 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 space-y-4 shadow-sm">
+                    <p className="font-bold text-sm text-slate-700 dark:text-slate-200">Actividad Física</p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div><label className="block text-[10px] font-bold text-slate-500 mb-1.5 ml-1">Frecuencia Semanal</label><input type="text" name="actividad_fisica_freq" value={formClinico.actividad_fisica_freq} onChange={handleFormChange} placeholder="Ej. 4 días" className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500" /></div>
-                      <div><label className="block text-[10px] font-bold text-slate-500 mb-1.5 ml-1">Duración Sesión</label><input type="text" name="actividad_fisica_duracion" value={formClinico.actividad_fisica_duracion} onChange={handleFormChange} placeholder="Ej. 1 hora" className="w-full p-3 bg-white border border-slate-200 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500" /></div>
+                      <div><label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Frecuencia Semanal</label><input type="text" name="actividad_fisica_freq" value={formClinico.actividad_fisica_freq} onChange={handleFormChange} placeholder="Ej. 4 días" className="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500" /></div>
+                      <div><label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Duración Sesión</label><input type="text" name="actividad_fisica_duracion" value={formClinico.actividad_fisica_duracion} onChange={handleFormChange} placeholder="Ej. 1 hora" className="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-500" /></div>
                     </div>
                     <div>
-                      <p className="text-[10px] font-bold text-slate-500 mb-1.5 ml-1">Intensidad</p>
+                      <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Intensidad</p>
                       <Segmentado opciones={[{ v: 'Ligera', l: 'Ligera' }, { v: 'Moderada', l: 'Moderada' }, { v: 'Vigorosa', l: 'Vigorosa' }]} valor={formClinico.actividad_fisica_intensidad} onSeleccionar={(v) => setCampoClinico('actividad_fisica_intensidad', v)} />
                     </div>
                     <div>
-                      <p className="text-[11px] font-bold text-slate-600 mb-1.5 ml-1">Disciplina / Deporte</p>
-                      <Segmentado
+                      <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1.5 ml-1">Disciplina / Deporte</p>
+                      <SegmentadoMulti
                         opciones={[
                           { v: 'Gimnasio', l: 'Gimnasio' }, { v: 'Funcional', l: 'Funcional' }, { v: 'Calistenia', l: 'Calistenia' }, { v: 'Barre', l: 'Barré' }, { v: 'Pilates', l: 'Pilates' },
                           { v: 'Natacion', l: 'Natación' }, { v: 'Bicicleta', l: 'Bicicleta' }, { v: 'Indoor Cycling', l: 'Indoor Cycling' }, { v: 'Crossfit', l: 'Crossfit' }, { v: 'Box', l: 'Box' }, { v: 'MMA', l: 'MMA' }, { v: 'Cardio', l: 'Cardio' },
                           { v: 'Carrera_5k', l: 'Carrera 5 km' }, { v: 'Carrera_8k', l: 'Carrera 8 km' }, { v: 'Carrera_10k', l: 'Carrera 10 km' }, { v: 'Carrera_12k', l: 'Carrera 12 km' }, { v: 'Carrera_15k', l: 'Carrera 15 km' }, { v: 'Carrera_20k', l: 'Carrera 20 km' }, { v: 'Carrera_21k', l: 'Medio Maratón (21k+)' },
                         ]}
                         valor={formClinico.deporte_disciplina}
-                        onSeleccionar={(v) => setCampoClinico('deporte_disciplina', v)}
+                        onCambiar={(v) => setCampoClinico('deporte_disciplina', v)}
                       />
                     </div>
                   </div>
@@ -967,45 +1111,45 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
 
             {seccionActiva === 'enfoque' && (
               <div className="space-y-6 animate-in fade-in">
-                <h3 className="text-2xl font-black text-slate-800 border-b border-slate-100 pb-3">Enfoque Nutricional</h3>
+                <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3">Enfoque Nutricional</h3>
                 <div className="space-y-5">
                   <div>
-                    <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Enfoque Nutricional</label>
+                    <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Enfoque Nutricional</label>
                     <Segmentado opciones={[{ v: 'Deficit Calorico Ligero', l: 'Déficit Ligero' }, { v: 'Deficit Calorico Moderado', l: 'Déficit Moderado' }, { v: 'Deficit Calorico Estricto', l: 'Déficit Estricto' }, { v: 'Mantenimiento', l: 'Mantenimiento' }, { v: 'Superavit', l: 'Superávit' }]} valor={formClinico.enfoque} onSeleccionar={(v) => setCampoClinico('enfoque', v)} />
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                    <div><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Aporte Calórico Sugerido (kcal)</label><input type="number" name="aporte_calorico" value={formClinico.aporte_calorico} onChange={handleFormChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-black text-teal-700 outline-none focus:ring-2 focus:ring-teal-500" /></div>
+                    <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Aporte Calórico Sugerido (kcal)</label><input type="number" name="aporte_calorico" value={formClinico.aporte_calorico} onChange={handleFormChange} className="w-full p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-black text-teal-700 dark:text-teal-300 outline-none focus:ring-2 focus:ring-teal-500" /></div>
                     <div>
-                      <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Tiempos de comida al día</label>
+                      <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Tiempos de comida al día</label>
                       <Segmentado opciones={['1', '2', '3', '4', '5', '6', '7'].map(n => ({ v: n, l: n === '7' ? '7 o más' : n }))} valor={formClinico.tiempos_comida} onSeleccionar={(v) => setCampoClinico('tiempos_comida', v)} />
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 grid grid-cols-3 gap-4 shadow-sm">
+                <div className="bg-slate-50 dark:bg-slate-800/60 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 grid grid-cols-3 gap-4 shadow-sm">
                   <div className="col-span-full flex items-center justify-between">
-                    <p className="font-bold text-sm text-slate-700">Distribución de Macronutrientes (%)</p>
+                    <p className="font-bold text-sm text-slate-700 dark:text-slate-200">Distribución de Macronutrientes (%)</p>
                     {(() => {
                       const suma = (Number(formClinico.pct_carbohidratos) || 0) + (Number(formClinico.pct_proteinas) || 0) + (Number(formClinico.pct_grasas) || 0)
                       if (suma === 0) return null
-                      return <span className={`text-xs font-black px-2.5 py-1 rounded-full ${suma === 100 ? 'bg-teal-100 text-teal-700' : 'bg-red-100 text-red-600'}`}>Total: {suma}% {suma === 100 ? '✓' : '⚠️ debe sumar 100%'}</span>
+                      return <span className={`text-xs font-black px-2.5 py-1 rounded-full ${suma === 100 ? 'bg-teal-100 dark:bg-teal-950/50 text-teal-700 dark:text-teal-300' : 'bg-red-100 dark:bg-red-950/50 text-red-600'}`}>Total: {suma}% {suma === 100 ? '✓' : '⚠️ debe sumar 100%'}</span>
                     })()}
                   </div>
-                  <div><label className="block text-[10px] font-bold text-slate-500 mb-1.5 ml-1">Carbohidratos</label><input type="number" name="pct_carbohidratos" value={formClinico.pct_carbohidratos} onChange={handleFormChange} placeholder="%" className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-teal-500 text-center" /></div>
-                  <div><label className="block text-[10px] font-bold text-slate-500 mb-1.5 ml-1">Proteínas</label><input type="number" name="pct_proteinas" value={formClinico.pct_proteinas} onChange={handleFormChange} placeholder="%" className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-teal-500 text-center" /></div>
-                  <div><label className="block text-[10px] font-bold text-slate-500 mb-1.5 ml-1">Grasas</label><input type="number" name="pct_grasas" value={formClinico.pct_grasas} onChange={handleFormChange} placeholder="%" className="w-full p-3 bg-white border border-slate-200 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-teal-500 text-center" /></div>
+                  <div><label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Carbohidratos</label><input type="number" name="pct_carbohidratos" value={formClinico.pct_carbohidratos} onChange={handleFormChange} placeholder="%" className="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-teal-500 text-center" /></div>
+                  <div><label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Proteínas</label><input type="number" name="pct_proteinas" value={formClinico.pct_proteinas} onChange={handleFormChange} placeholder="%" className="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-teal-500 text-center" /></div>
+                  <div><label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Grasas</label><input type="number" name="pct_grasas" value={formClinico.pct_grasas} onChange={handleFormChange} placeholder="%" className="w-full p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-teal-500 text-center" /></div>
                 </div>
 
-                <div className="col-span-full"><label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Prescripción de Suplementación Específica</label><textarea name="notas_suplementos_recetados" value={formClinico.notas_suplementos_recetados} onChange={handleFormChange} placeholder="Dosis y marcas de suplementos indicados..." className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" rows={3} /></div>
+                <div className="col-span-full"><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Prescripción de Suplementación Específica</label><textarea name="notas_suplementos_recetados" value={formClinico.notas_suplementos_recetados} onChange={handleFormChange} placeholder="Dosis y marcas de suplementos indicados..." className="w-full p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500" rows={3} /></div>
 
-                <div className="bg-slate-50 p-5 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-                  <p className="font-bold text-sm text-slate-700">Prescripción de Péptidos</p>
+                <div className="bg-slate-50 dark:bg-slate-800/60 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
+                  <p className="font-bold text-sm text-slate-700 dark:text-slate-200">Prescripción de Péptidos</p>
                   <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Semaglutida</p>
+                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 ml-1">Semaglutida</p>
                     <Segmentado opciones={OPCIONES_SEMAGLUTIDA.map(d => ({ v: d, l: d === '' ? 'No aplica' : d }))} valor={formClinico.pep_semaglutida} onSeleccionar={(v) => setCampoClinico('pep_semaglutida', v)} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2 ml-1">Tirzepatida</p>
+                    <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2 ml-1">Tirzepatida</p>
                     <Segmentado opciones={OPCIONES_TIRZEPATIDA.map(d => ({ v: d, l: d === '' ? 'No aplica' : d }))} valor={formClinico.pep_tirzepatida} onSeleccionar={(v) => setCampoClinico('pep_tirzepatida', v)} />
                   </div>
                   <GrupoSiNo items={PEPTIDOS_SI_NO} valores={formClinico} onToggle={alternarSiNo} />
@@ -1025,12 +1169,12 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
   if (showCheckout && esFullAccess) {
     return (
       <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4 sm:p-8">
-        <div className="bg-white rounded-[2rem] shadow-2xl max-w-4xl w-full flex flex-col md:flex-row overflow-hidden border border-slate-200/50 animate-in zoom-in-95 duration-200 max-h-[90vh]">
+        <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl max-w-4xl w-full flex flex-col md:flex-row overflow-hidden border border-slate-200/50 animate-in zoom-in-95 duration-200 max-h-[90vh]">
 
-          <div className="w-full md:w-2/3 bg-white p-6 md:p-10 overflow-y-auto border-r border-slate-100 flex flex-col gap-8">
+          <div className="w-full md:w-2/3 bg-white dark:bg-slate-900 p-6 md:p-10 overflow-y-auto border-r border-slate-100 dark:border-slate-800 flex flex-col gap-8">
             <div>
-              <h2 className="text-2xl font-black text-slate-800 tracking-tight mb-1">Cierre Médico</h2>
-              <p className="text-sm text-slate-500 mb-6">Selecciona el tipo de servicio que realizaste hoy.</p>
+              <h2 className="text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tight mb-1">Cierre Médico</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Selecciona el tipo de servicio que realizaste hoy.</p>
 
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {servicios.map(srv => (
@@ -1038,32 +1182,32 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
                     key={srv.id}
                     type="button"
                     onClick={() => handleServiceSelect(srv.nombre, String(srv.precio))}
-                    className={`p-4 rounded-2xl border text-left transition-all flex flex-col gap-2 ${checkout.concepto === srv.nombre ? 'bg-teal-50 border-teal-400 ring-1 ring-teal-400 shadow-sm' : 'bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50 shadow-sm'}`}
+                    className={`p-4 rounded-2xl border text-left transition-all flex flex-col gap-2 ${checkout.concepto === srv.nombre ? 'bg-teal-50 dark:bg-teal-950/40 border-teal-400 ring-1 ring-teal-400 shadow-sm' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 shadow-sm'}`}
                   >
                     <span className="text-2xl">{srv.icono}</span>
                     <div className="mt-1">
-                      <p className={`text-xs font-bold leading-tight ${checkout.concepto === srv.nombre ? 'text-teal-900' : 'text-slate-700'}`}>{srv.nombre}</p>
-                      <p className={`text-[11px] font-black mt-1 ${checkout.concepto === srv.nombre ? 'text-teal-700' : 'text-slate-400'}`}>${srv.precio}</p>
+                      <p className={`text-xs font-bold leading-tight ${checkout.concepto === srv.nombre ? 'text-teal-900 dark:text-teal-300' : 'text-slate-700 dark:text-slate-200'}`}>{srv.nombre}</p>
+                      <p className={`text-[11px] font-black mt-1 ${checkout.concepto === srv.nombre ? 'text-teal-700 dark:text-teal-300' : 'text-slate-400 dark:text-slate-500'}`}>${srv.precio}</p>
                     </div>
                   </button>
                 ))}
-                {servicios.length === 0 && <p className="col-span-full text-xs text-slate-400 text-center py-4">Sin servicios configurados — agrégalos en Ajustes → Servicios.</p>}
+                {servicios.length === 0 && <p className="col-span-full text-xs text-slate-400 dark:text-slate-500 text-center py-4">Sin servicios configurados — agrégalos en Ajustes → Servicios.</p>}
               </div>
             </div>
 
-            <div className="bg-[#F5F5F7] p-6 rounded-3xl border border-slate-200 shadow-sm">
+            <div className="bg-[#F5F5F7] dark:bg-slate-950 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm">
               <div className="flex justify-between items-center mb-5">
                 <div>
-                  <p className="text-base font-black text-slate-800">Recetar Suplementos</p>
-                  <p className="text-xs text-slate-500 mt-0.5">Se sumarán a su cuenta en recepción.</p>
+                  <p className="text-base font-black text-slate-800 dark:text-slate-100">Recetar Suplementos</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Se sumarán a su cuenta en recepción.</p>
                 </div>
-                <button onClick={agregarRenglonProducto} type="button" className="text-xs bg-white text-slate-700 font-bold px-4 py-2 rounded-xl shadow-sm hover:shadow border border-slate-200">+ Agregar</button>
+                <button onClick={agregarRenglonProducto} type="button" className="text-xs bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 font-bold px-4 py-2 rounded-xl shadow-sm hover:shadow border border-slate-200 dark:border-slate-700">+ Agregar</button>
               </div>
 
               <div className="space-y-3">
                 {productosVenta.map((prodId, idx) => (
                   <div key={idx} className="relative">
-                    <select value={prodId} onChange={(e) => handleProductSelectChange(idx, e.target.value)} className="w-full p-3.5 bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-teal-500 appearance-none">
+                    <select value={prodId} onChange={(e) => handleProductSelectChange(idx, e.target.value)} className="w-full p-3.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-teal-500 appearance-none">
                       <option value="">-- Selecciona producto para recetar --</option>
                       {catalogo.map(p => (
                         <option key={p.id} value={p.id} disabled={p.stock <= 0}>
@@ -1076,43 +1220,43 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
               </div>
             </div>
 
-            <div className="border-t border-slate-100 pt-6">
-              <p className="text-xs font-black text-slate-800 uppercase tracking-widest mb-4 flex items-center gap-2">📅 Agendar Próxima Cita</p>
+            <div className="border-t border-slate-100 dark:border-slate-800 pt-6">
+              <p className="text-xs font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest mb-4 flex items-center gap-2">📅 Agendar Próxima Cita</p>
               <div className="grid grid-cols-2 gap-4">
-                <input type="date" name="proxima_fecha" value={checkout.proxima_fecha} onChange={handleCheckoutChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700 outline-none" />
-                <input type="time" name="proxima_hora" value={checkout.proxima_hora} onChange={handleCheckoutChange} className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold text-slate-700 outline-none" />
+                <input type="date" name="proxima_fecha" value={checkout.proxima_fecha} onChange={handleCheckoutChange} className="w-full p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold text-slate-700 dark:text-slate-200 outline-none" />
+                <input type="time" name="proxima_hora" value={checkout.proxima_hora} onChange={handleCheckoutChange} className="w-full p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold text-slate-700 dark:text-slate-200 outline-none" />
               </div>
             </div>
           </div>
 
-          <div className="w-full md:w-1/3 bg-[#F5F5F7] flex flex-col justify-between p-6 md:p-10">
+          <div className="w-full md:w-1/3 bg-[#F5F5F7] dark:bg-slate-950 flex flex-col justify-between p-6 md:p-10">
             <div>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-5">Resumen de Cuenta</p>
+              <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-5">Resumen de Cuenta</p>
               <div className="flex justify-between items-center text-sm mb-3">
-                <span className="text-slate-500 font-medium">Servicios</span><span className="font-bold">${subtotalConsulta.toFixed(2)}</span>
+                <span className="text-slate-500 dark:text-slate-400 font-medium">Servicios</span><span className="font-bold">${subtotalConsulta.toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-center text-sm mb-4">
-                <span className="text-slate-500 font-medium">Suplementos</span><span className="font-bold">${subtotalProductos.toFixed(2)}</span>
+                <span className="text-slate-500 dark:text-slate-400 font-medium">Suplementos</span><span className="font-bold">${subtotalProductos.toFixed(2)}</span>
               </div>
               <div className="flex gap-2 mb-4">
-                <select name="tipo_descuento" value={checkout.tipo_descuento} onChange={handleCheckoutChange} className="bg-white border border-slate-200 rounded-xl text-xs p-2.5 font-bold">
+                <select name="tipo_descuento" value={checkout.tipo_descuento} onChange={handleCheckoutChange} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs p-2.5 font-bold">
                   <option value="Ninguno">Sin Descuento</option><option value="Porcentaje">Desc. (%)</option><option value="Fijo">Desc. ($)</option>
                 </select>
                 {checkout.tipo_descuento !== 'Ninguno' && (
-                  <input type="number" name="valor_descuento" value={checkout.valor_descuento} onChange={handleCheckoutChange} className="w-full bg-white border border-slate-200 rounded-xl text-xs p-2.5 text-right font-black" />
+                  <input type="number" name="valor_descuento" value={checkout.valor_descuento} onChange={handleCheckoutChange} className="w-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-xs p-2.5 text-right font-black" />
                 )}
               </div>
-              <div className="flex justify-between items-end border-t border-slate-200 pt-5 mt-5">
-                <span className="text-sm font-black text-slate-800">TOTAL</span>
-                <span className="text-3xl font-black text-slate-900">${totalAPagar.toFixed(2)}</span>
+              <div className="flex justify-between items-end border-t border-slate-200 dark:border-slate-700 pt-5 mt-5">
+                <span className="text-sm font-black text-slate-800 dark:text-slate-100">TOTAL</span>
+                <span className="text-3xl font-black text-slate-900 dark:text-white">${totalAPagar.toFixed(2)}</span>
               </div>
             </div>
 
             <div className="mt-8 flex flex-col gap-3">
-              <button onClick={mandarARecepcion} className="w-full py-4 rounded-2xl text-sm font-black bg-slate-900 text-white hover:bg-teal-600 transition-all shadow-md text-center">
+              <button onClick={mandarARecepcion} className="w-full py-4 rounded-2xl text-sm font-black bg-slate-900 dark:bg-slate-600 text-white hover:bg-teal-600 transition-all shadow-md text-center">
                 Mandar a Recepción (Caja) 📤
               </button>
-              <button onClick={() => { setShowCheckout(false); setModoConsulta(true) }} className="w-full py-4 bg-slate-200 text-slate-600 rounded-2xl text-sm font-bold hover:bg-slate-300 transition-colors">Cancelar</button>
+              <button onClick={() => { setShowCheckout(false); setModoConsulta(true) }} className="w-full py-4 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl text-sm font-bold hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">Cancelar</button>
             </div>
           </div>
         </div>
@@ -1124,10 +1268,10 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
   // VISTA 3: PANTALLA PRINCIPAL DEL PACIENTE (HISTORIAL)
   // ==============================================================================
   return (
-    <main className="min-h-screen bg-[#F5F5F7] p-4 sm:p-6 md:p-10">
+    <main className="min-h-screen bg-[#F5F5F7] dark:bg-slate-950 p-4 sm:p-6 md:p-10">
       {toast && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 pointer-events-none">
-          <div className={`px-6 py-3.5 rounded-full shadow-xl font-bold text-sm text-white flex items-center gap-2 ${toast.tipo === 'exito' ? 'bg-[#00D084]' : toast.tipo === 'error' ? 'bg-rose-500' : 'bg-amber-500 text-slate-900'}`}>
+          <div className={`px-6 py-3.5 rounded-full shadow-xl font-bold text-sm text-white flex items-center gap-2 ${toast.tipo === 'exito' ? 'bg-[#00D084]' : toast.tipo === 'error' ? 'bg-rose-500' : 'bg-amber-500 text-slate-900 dark:text-white'}`}>
             {toast.mensaje}
           </div>
         </div>
@@ -1135,61 +1279,87 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
 
       {showEditPaciente && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-[2rem] shadow-2xl max-w-md w-full p-8">
-            <h3 className="text-xl font-black text-slate-800 mb-2">Editar Perfil</h3>
+          <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl max-w-md w-full p-8">
+            <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-2">Editar Perfil</h3>
             <div className="space-y-4 mb-8">
-              <input type="text" name="nombre_completo" value={editForm.nombre_completo} onChange={handleEditFormChange} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm" placeholder="Nombre completo" />
+              <input type="text" name="nombre_completo" value={editForm.nombre_completo} onChange={handleEditFormChange} className="w-full p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm" placeholder="Nombre completo" />
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1 ml-1">Fecha de Nacimiento</label>
-                <input type="date" name="fecha_nacimiento" value={editForm.fecha_nacimiento} onChange={handleEditFormChange} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm" />
+                <label className="block text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1 ml-1">Fecha de Nacimiento</label>
+                <input type="date" name="fecha_nacimiento" value={editForm.fecha_nacimiento} onChange={handleEditFormChange} className="w-full p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm" />
               </div>
-              <input type="text" name="telefono" value={editForm.telefono} onChange={handleEditFormChange} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm" placeholder="Teléfono" />
-              <input type="email" name="correo" value={editForm.correo} onChange={handleEditFormChange} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm" placeholder="Correo" />
+              <input type="text" name="telefono" value={editForm.telefono} onChange={handleEditFormChange} className="w-full p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm" placeholder="Teléfono" />
+              <input type="email" name="correo" value={editForm.correo} onChange={handleEditFormChange} className="w-full p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm" placeholder="Correo" />
             </div>
             <div className="flex gap-3">
-              <button onClick={() => setShowEditPaciente(false)} className="px-5 py-3.5 bg-slate-100 rounded-xl text-xs font-bold">Cancelar</button>
-              <button onClick={guardarEdicionPaciente} className="flex-1 bg-slate-900 text-white rounded-xl text-xs font-black">Guardar</button>
+              <button onClick={() => setShowEditPaciente(false)} className="px-5 py-3.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-bold">Cancelar</button>
+              <button onClick={guardarEdicionPaciente} className="flex-1 bg-slate-900 dark:bg-slate-600 text-white rounded-xl text-xs font-black">Guardar</button>
             </div>
           </div>
         </div>
       )}
 
       <div className="max-w-5xl mx-auto space-y-6">
-        <div className="flex justify-between items-center bg-white p-5 rounded-3xl shadow-sm border border-slate-200">
-          <Link href="/" className="text-sm font-bold text-slate-500 hover:text-slate-800 flex items-center gap-2"><span className="text-lg">&larr;</span> Directorio</Link>
+        {faltaInbody && esFullAccess && paciente.activo && (
+          <div className="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-3xl p-5 flex items-start gap-3 shadow-sm">
+            <span className="text-2xl">⚖️</span>
+            <div>
+              <p className="text-sm font-black text-rose-900 dark:text-rose-300">Lleva {consultasSinInbodySeguidas} consultas seguidas sin InBody registrado</p>
+              <p className="text-xs text-rose-700 dark:text-rose-300 font-medium mt-0.5">Es parte del estudio y debe checarse en cada consulta — no lo olvides en la próxima.</p>
+            </div>
+          </div>
+        )}
+
+        {borradorDisponible && esFullAccess && (
+          <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-3xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">📝</span>
+              <div>
+                <p className="text-sm font-black text-amber-900 dark:text-amber-300">Tienes un borrador de consulta sin guardar</p>
+                <p className="text-xs text-amber-700 dark:text-amber-300 font-medium mt-0.5">Se guardó automáticamente el {new Date(borradorDisponible.guardadoEn).toLocaleString('es-MX', { dateStyle: 'medium', timeStyle: 'short' })}. Puedes retomarlo donde lo dejaste.</p>
+              </div>
+            </div>
+            <div className="flex gap-2 shrink-0 w-full sm:w-auto">
+              <button onClick={descartarBorrador} className="flex-1 sm:flex-none px-4 py-2.5 bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-300 rounded-xl text-xs font-bold hover:bg-amber-100 transition-colors">Descartar</button>
+              <button onClick={retomarBorrador} className="flex-1 sm:flex-none px-4 py-2.5 bg-amber-500 text-white rounded-xl text-xs font-black hover:bg-amber-600 transition-colors">Retomar borrador</button>
+            </div>
+          </div>
+        )}
+
+        <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700">
+          <Link href="/" className="text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white flex items-center gap-2"><span className="text-lg">&larr;</span> Directorio</Link>
 
           <div className="flex gap-2">
             {!citaHoyEnEspera && !yaAtendidoHoy && citaHoyProgramada && (
-              <button onClick={hacerCheckIn} className="px-5 py-3 rounded-2xl text-sm font-black transition-all flex items-center gap-2 bg-teal-50 text-teal-700 border border-teal-200 hover:bg-teal-100">
+              <button onClick={hacerCheckIn} className="px-5 py-3 rounded-2xl text-sm font-black transition-all flex items-center gap-2 bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 hover:bg-teal-100">
                 <span>🛋️</span> <span className="hidden sm:inline">Anunciar Llegada</span> Check-In
               </button>
             )}
             {!citaHoyEnEspera && !yaAtendidoHoy && !citaHoyProgramada && (
-              <button onClick={() => { if (window.confirm(`${paciente.nombre_completo} no tiene cita programada para hoy. ¿Registrarlo de todas formas como visita sin cita?`)) hacerCheckIn() }} className="px-5 py-3 rounded-2xl text-sm font-black transition-all flex items-center gap-2 bg-slate-50 text-slate-500 border border-slate-200 hover:bg-slate-100">
+              <button onClick={() => { if (window.confirm(`${paciente.nombre_completo} no tiene cita programada para hoy. ¿Registrarlo de todas formas como visita sin cita?`)) hacerCheckIn() }} className="px-5 py-3 rounded-2xl text-sm font-black transition-all flex items-center gap-2 bg-slate-50 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700">
                 <span>➕</span> <span className="hidden sm:inline">Registrar</span> Visita Sin Cita
               </button>
             )}
             {esFullAccess && (
-              <button onClick={iniciarConsulta} className="bg-slate-900 text-white px-6 py-3 rounded-2xl text-sm font-black hover:bg-teal-600 transition-all flex items-center gap-2">
+              <button onClick={iniciarConsulta} className="bg-slate-900 dark:bg-slate-600 text-white px-6 py-3 rounded-2xl text-sm font-black hover:bg-teal-600 transition-all flex items-center gap-2">
                 <span>🩺</span> {citaHoyEnEspera ? 'Paciente Esperando - Iniciar Consulta' : 'Nueva Consulta Directa'}
               </button>
             )}
           </div>
         </div>
 
-        <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8">
+        <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-sm border border-slate-200 dark:border-slate-700 p-8">
           <div className="flex justify-between items-start mb-5 gap-4">
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-3xl font-black text-slate-800 tracking-tight">{paciente.nombre_completo}</h2>
-                {!paciente.activo && <span className="text-[10px] font-black uppercase tracking-widest bg-slate-200 text-slate-500 px-2 py-1 rounded-md">Archivado</span>}
+                <h2 className="text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tight">{paciente.nombre_completo}</h2>
+                {!paciente.activo && <span className="text-[10px] font-black uppercase tracking-widest bg-slate-200 dark:bg-slate-700 text-slate-500 dark:text-slate-400 px-2 py-1 rounded-md">Archivado</span>}
               </div>
               <div className="flex gap-2 mt-2 flex-wrap">
-                <button onClick={abrirEdicionPaciente} className="text-xs text-slate-400 hover:text-teal-600 flex items-center gap-1 font-bold bg-slate-50 px-3 py-1 rounded-lg border border-slate-200">✏️ Editar Perfil</button>
-                <button onClick={alternarArchivado} className={`text-xs flex items-center gap-1 font-bold px-3 py-1 rounded-lg border ${paciente.activo ? 'text-rose-500 hover:text-rose-600 bg-rose-50 border-rose-100' : 'text-emerald-600 hover:text-emerald-700 bg-emerald-50 border-emerald-100'}`}>
+                <button onClick={abrirEdicionPaciente} className="text-xs text-slate-400 dark:text-slate-500 hover:text-teal-600 flex items-center gap-1 font-bold bg-slate-50 dark:bg-slate-800/60 px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700">✏️ Editar Perfil</button>
+                <button onClick={alternarArchivado} className={`text-xs flex items-center gap-1 font-bold px-3 py-1 rounded-lg border ${paciente.activo ? 'text-rose-500 hover:text-rose-600 bg-rose-50 dark:bg-rose-950/40 border-rose-100 dark:border-rose-800/60' : 'text-emerald-600 hover:text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-100 dark:border-emerald-800/60'}`}>
                   {paciente.activo ? '🗄️ Archivar' : '♻️ Reactivar'}
                 </button>
-                <button onClick={copiarLinkPortal} className="text-xs text-slate-400 hover:text-[#0066FF] flex items-center gap-1 font-bold bg-slate-50 px-3 py-1 rounded-lg border border-slate-200">🔗 Copiar Link Portal</button>
+                <button onClick={copiarLinkPortal} className="text-xs text-slate-400 dark:text-slate-500 hover:text-[#28363E] dark:hover:text-slate-200 flex items-center gap-1 font-bold bg-slate-50 dark:bg-slate-800/60 px-3 py-1 rounded-lg border border-slate-200 dark:border-slate-700">🔗 Copiar Link Portal</button>
                 {paciente.telefono && (
                   <button onClick={enviarLinkPortalWhatsApp} className="text-xs text-[#128C7E] hover:text-white hover:bg-[#25D366] flex items-center gap-1 font-bold bg-[#25D366]/10 px-3 py-1 rounded-lg border border-[#25D366]/20 transition-colors">📱 Enviar Portal</button>
                 )}
@@ -1197,27 +1367,27 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
             </div>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-6 text-sm">
-            <div><p className="text-slate-400 font-bold uppercase text-[10px] mb-1">Teléfono</p><p className="font-bold text-slate-800">{paciente.telefono || 'N/A'}</p></div>
+            <div><p className="text-slate-400 dark:text-slate-500 font-bold uppercase text-[10px] mb-1">Teléfono</p><p className="font-bold text-slate-800 dark:text-slate-100">{paciente.telefono || 'N/A'}</p></div>
             {referidoPorNombre && (
-              <div><p className="text-slate-400 font-bold uppercase text-[10px] mb-1">Referido por</p><p className="font-bold text-slate-800">{referidoPorNombre}</p></div>
+              <div><p className="text-slate-400 dark:text-slate-500 font-bold uppercase text-[10px] mb-1">Referido por</p><p className="font-bold text-slate-800 dark:text-slate-100">{referidoPorNombre}</p></div>
             )}
             {referidosCount > 0 && (
-              <div><p className="text-slate-400 font-bold uppercase text-[10px] mb-1">Pacientes referidos</p><p className="font-bold text-teal-600">🎁 {referidosCount}</p></div>
+              <div><p className="text-slate-400 dark:text-slate-500 font-bold uppercase text-[10px] mb-1">Pacientes referidos</p><p className="font-bold text-teal-600">🎁 {referidosCount}</p></div>
             )}
           </div>
         </div>
 
         {esFullAccess && (
-          <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8">
-            <h3 className="text-base font-black text-slate-800 mb-6 uppercase tracking-widest flex items-center gap-2"><span>📁</span> Documentos (InBody, Laboratorios...)</h3>
+          <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-sm border border-slate-200 dark:border-slate-700 p-8">
+            <h3 className="text-base font-black text-slate-800 dark:text-slate-100 mb-6 uppercase tracking-widest flex items-center gap-2"><span>📁</span> Documentos (InBody, Laboratorios...)</h3>
 
-            <div className="flex flex-col sm:flex-row gap-3 mb-6 bg-slate-50 border border-slate-200 rounded-2xl p-4">
-              <select value={categoriaNuevoDocumento} onChange={e => setCategoriaNuevoDocumento(e.target.value as CategoriaDocumento)} className="p-2.5 bg-white border border-slate-200 rounded-xl text-sm font-bold outline-none">
+            <div className="flex flex-col sm:flex-row gap-3 mb-6 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl p-4">
+              <select value={categoriaNuevoDocumento} onChange={e => setCategoriaNuevoDocumento(e.target.value as CategoriaDocumento)} className="p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold outline-none">
                 <option value="inbody">InBody</option>
                 <option value="laboratorio">Laboratorio</option>
                 <option value="otro">Otro</option>
               </select>
-              <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold cursor-pointer transition-colors ${subiendoDocumento ? 'bg-slate-200 text-slate-400' : 'bg-[#0066FF] text-white hover:bg-blue-700'}`}>
+              <label className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold cursor-pointer transition-colors ${subiendoDocumento ? 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500' : 'bg-[#28363E] dark:bg-[#3D5360] text-white hover:bg-[#1C262C] dark:hover:bg-[#4A6472]'}`}>
                 {subiendoDocumento ? 'Subiendo...' : '⬆️ Subir Archivo (PDF, JPG, PNG)'}
                 <input
                   type="file"
@@ -1230,16 +1400,16 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
             </div>
 
             {documentos.length === 0 ? (
-              <p className="text-sm text-slate-400 font-medium text-center py-4">Todavía no hay documentos subidos.</p>
+              <p className="text-sm text-slate-400 dark:text-slate-500 font-medium text-center py-4">Todavía no hay documentos subidos.</p>
             ) : (
               <div className="space-y-2">
                 {documentos.map(doc => (
-                  <div key={doc.id} className="flex items-center justify-between gap-3 bg-slate-50 border border-slate-200 rounded-xl p-3.5">
+                  <div key={doc.id} className="flex items-center justify-between gap-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl p-3.5">
                     <button onClick={() => verDocumento(doc)} className="flex items-center gap-3 min-w-0 text-left hover:opacity-70 transition-opacity">
                       <span className="text-2xl shrink-0">{doc.storage_path.endsWith('pdf') ? '📄' : '🖼️'}</span>
                       <div className="min-w-0">
-                        <p className="text-sm font-bold text-slate-800 truncate">{doc.nombre_original}</p>
-                        <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">{ETIQUETA_CATEGORIA_DOCUMENTO[doc.categoria]} · {new Date(doc.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
+                        <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">{doc.nombre_original}</p>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wide">{ETIQUETA_CATEGORIA_DOCUMENTO[doc.categoria]} · {new Date(doc.created_at).toLocaleDateString('es-MX', { day: 'numeric', month: 'short', year: 'numeric' })}</p>
                       </div>
                     </button>
                     <button onClick={() => eliminarDocumento(doc)} className="shrink-0 text-rose-400 hover:text-rose-600 text-xs font-bold px-2">🗑️</button>
@@ -1251,18 +1421,18 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
         )}
 
         {esFullAccess && !esPrimeraVez && (
-          <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8">
-            <h3 className="text-base font-black text-slate-800 mb-6 uppercase tracking-widest flex items-center gap-2"><span>📈</span> Progreso</h3>
+          <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-sm border border-slate-200 dark:border-slate-700 p-8">
+            <h3 className="text-base font-black text-slate-800 dark:text-slate-100 mb-6 uppercase tracking-widest flex items-center gap-2"><span>📈</span> Progreso</h3>
             <GraficaProgreso puntos={[...consultas].reverse().map(c => ({ fecha: c.fecha, peso: c.peso_actual, grasa: c.porcentaje_grasa }))} />
           </div>
         )}
 
         {esFullAccess && !esPrimeraVez && (
-          <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-8">
+          <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-sm border border-slate-200 dark:border-slate-700 p-8">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-              <h3 className="text-base font-black text-slate-800 uppercase tracking-widest flex items-center gap-2"><span>📋</span> Historial Clínico</h3>
+              <h3 className="text-base font-black text-slate-800 dark:text-slate-100 uppercase tracking-widest flex items-center gap-2"><span>📋</span> Historial Clínico</h3>
               {consultas.length > 0 && (
-                <button onClick={generarExpedienteCompletoPDF} className="flex items-center gap-1.5 bg-slate-100 text-slate-700 text-xs font-bold px-3 py-2 rounded-lg hover:bg-slate-800 hover:text-white transition-colors">
+                <button onClick={generarExpedienteCompletoPDF} className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 text-xs font-bold px-3 py-2 rounded-lg hover:bg-slate-800 hover:text-white transition-colors">
                   📄 Exportar Expediente Completo (PDF)
                 </button>
               )}
@@ -1273,55 +1443,61 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
                 const productosVendidos = pagoAsociado ? pagoProductosPaciente.filter(pp => pp.pago_id === pagoAsociado.id) : []
                 const expandida = consultaExpandida === c.id
                 return (
-                  <div key={c.id} className="border border-slate-200 rounded-3xl overflow-hidden bg-white shadow-sm">
-                    <button onClick={() => setConsultaExpandida(expandida ? null : c.id)} className="w-full text-left flex flex-col md:flex-row p-6 gap-4 hover:bg-slate-50/50 transition-colors">
+                  <div key={c.id} className="border border-slate-200 dark:border-slate-700 rounded-3xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
+                    <button onClick={() => setConsultaExpandida(expandida ? null : c.id)} className="w-full text-left flex flex-col md:flex-row p-6 gap-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
                       <div className="flex-1">
                         <p className="text-[11px] font-black text-teal-600 uppercase mb-1">{c.tipo === 'primera_vez' ? 'Consulta Inicial' : 'Consulta de Seguimiento'}</p>
-                        <p className="text-xl font-black text-slate-800">{formatearFechaDisplay(c.fecha)}</p>
-                        {c.notas_evolucion && <p className="text-sm text-slate-600 mt-3">{c.notas_evolucion}</p>}
+                        <p className="text-xl font-black text-slate-800 dark:text-slate-100">{formatearFechaDisplay(c.fecha)}</p>
+                        {c.notas_evolucion && <p className="text-sm text-slate-600 dark:text-slate-300 mt-3">{c.notas_evolucion}</p>}
                         {(c.peso_actual || c.porcentaje_grasa) && (
-                          <p className="text-xs font-bold text-slate-500 mt-3">⚖️ {c.peso_actual ? `${c.peso_actual} kg` : ''} {c.porcentaje_grasa ? `• ${c.porcentaje_grasa}% grasa` : ''}</p>
+                          <p className="text-xs font-bold text-slate-500 dark:text-slate-400 mt-3">⚖️ {c.peso_actual ? `${c.peso_actual} kg` : ''} {c.porcentaje_grasa ? `• ${c.porcentaje_grasa}% grasa` : ''}</p>
                         )}
                         <p className="text-xs font-bold text-teal-600 mt-3">{expandida ? '▾ Ocultar detalle' : '▸ Ver detalle completo'}</p>
                       </div>
                       {pagoAsociado && (
-                        <div className="md:w-48 md:border-l md:pl-4 border-slate-100 shrink-0">
-                          <p className="text-[10px] font-bold text-slate-400 uppercase mt-0 md:mt-4">Total de cuenta:</p>
-                          <p className="text-2xl font-black text-slate-900">${pagoAsociado.monto_esperado}</p>
-                          <p className="text-[10px] font-bold text-slate-500 mt-1 uppercase">{pagoAsociado.estado === 'pagado' ? 'Pagado' : 'Pendiente de pago'}</p>
+                        <div className="md:w-48 md:border-l md:pl-4 border-slate-100 dark:border-slate-800 shrink-0">
+                          <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase mt-0 md:mt-4">Total de cuenta:</p>
+                          <p className="text-2xl font-black text-slate-900 dark:text-white">${pagoAsociado.monto_esperado}</p>
+                          <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-1 uppercase">{pagoAsociado.estado === 'pagado' ? 'Pagado' : 'Pendiente de pago'}</p>
                         </div>
                       )}
                     </button>
 
                     {expandida && (
-                      <div className="border-t border-slate-100 bg-slate-50/50 p-6">
+                      <div className="border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50 p-6">
                         {pagoAsociado && (
                           <SeccionDetalle titulo="Cobro" icono="💳">
                             <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-3 mb-3">
-                              <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Concepto</p><p className="text-sm font-bold text-slate-700">{pagoAsociado.concepto || '—'}</p></div>
-                              <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Efectivo</p><p className="text-sm font-bold text-slate-700">${pagoAsociado.monto_efectivo}</p></div>
-                              <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tarjeta</p><p className="text-sm font-bold text-slate-700">${pagoAsociado.monto_tarjeta}</p></div>
-                              <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Transferencia</p><p className="text-sm font-bold text-slate-700">${pagoAsociado.monto_transferencia}</p></div>
+                              <div><p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Concepto</p><p className="text-sm font-bold text-slate-700 dark:text-slate-200">{pagoAsociado.concepto || '—'}</p></div>
+                              <div><p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Efectivo</p><p className="text-sm font-bold text-slate-700 dark:text-slate-200">${pagoAsociado.monto_efectivo}</p></div>
+                              <div><p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Tarjeta</p><p className="text-sm font-bold text-slate-700 dark:text-slate-200">${pagoAsociado.monto_tarjeta}</p></div>
+                              <div><p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Transferencia</p><p className="text-sm font-bold text-slate-700 dark:text-slate-200">${pagoAsociado.monto_transferencia}</p></div>
                               {pagoAsociado.descuento_tipo !== 'ninguno' && (
-                                <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Descuento</p><p className="text-sm font-bold text-rose-600">{pagoAsociado.descuento_tipo === 'porcentaje' ? `${pagoAsociado.descuento_valor}%` : `$${pagoAsociado.descuento_valor}`}</p></div>
+                                <div><p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Descuento</p><p className="text-sm font-bold text-rose-600">{pagoAsociado.descuento_tipo === 'porcentaje' ? `${pagoAsociado.descuento_valor}%` : `$${pagoAsociado.descuento_valor}`}</p></div>
                               )}
                               {pagoAsociado.requiere_factura && (
-                                <div><p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Factura</p><p className="text-sm font-bold text-slate-700">Sí, CFDI</p></div>
+                                <div><p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Factura</p><p className="text-sm font-bold text-slate-700 dark:text-slate-200">Sí, CFDI{pagoAsociado.factura_concepto ? ` — ${pagoAsociado.factura_concepto}` : ''}</p></div>
                               )}
                             </div>
+                            {pagoAsociado.requiere_factura && pagoAsociado.factura_notas && (
+                              <div className="mb-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl p-3">
+                                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Notas de Factura</p>
+                                <p className="text-xs font-medium text-[#1C262C] dark:text-slate-200">{pagoAsociado.factura_notas}</p>
+                              </div>
+                            )}
                             {productosVendidos.length > 0 && (
                               <div className="mb-4">
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1.5">Suplementos vendidos</p>
+                                <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1.5">Suplementos vendidos</p>
                                 <div className="space-y-1">
                                   {productosVendidos.map(pp => {
                                     const prod = catalogo.find(p => p.id === pp.producto_id)
-                                    return <p key={pp.id} className="text-sm font-bold text-slate-700">💊 {prod?.producto || 'Producto eliminado'} × {pp.cantidad} — ${(pp.precio_unit * pp.cantidad).toFixed(2)}</p>
+                                    return <p key={pp.id} className="text-sm font-bold text-slate-700 dark:text-slate-200">💊 {prod?.producto || 'Producto eliminado'} × {pp.cantidad} — ${(pp.precio_unit * pp.cantidad).toFixed(2)}</p>
                                   })}
                                 </div>
                               </div>
                             )}
                             {pagoAsociado.estado === 'pagado' && (
-                              <div className="flex gap-2 pt-3 border-t border-slate-200">
+                              <div className="flex gap-2 pt-3 border-t border-slate-200 dark:border-slate-700">
                                 <button
                                   onClick={() => reenviarTicketWhatsApp(pagoAsociado, productosVendidos.map(pp => ({ nombre: catalogo.find(p => p.id === pp.producto_id)?.producto || 'Producto' })))}
                                   className="flex items-center gap-1.5 bg-[#25D366]/10 text-[#128C7E] text-xs font-bold px-3 py-2 rounded-lg hover:bg-[#25D366] hover:text-white transition-colors"
@@ -1330,7 +1506,7 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
                                 </button>
                                 <button
                                   onClick={() => imprimirTicketPasado(pagoAsociado, productosVendidos.map(pp => ({ nombre: catalogo.find(p => p.id === pp.producto_id)?.producto || 'Producto' })))}
-                                  className="flex items-center gap-1.5 bg-slate-100 text-slate-600 text-xs font-bold px-3 py-2 rounded-lg hover:bg-slate-800 hover:text-white transition-colors"
+                                  className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 text-xs font-bold px-3 py-2 rounded-lg hover:bg-slate-800 hover:text-white transition-colors"
                                 >
                                   🖨️ Imprimir Ticket
                                 </button>
@@ -1342,11 +1518,11 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
                         <SeccionDetalle titulo="Mediciones" icono="📏">
                           <CamposDetalle datos={c.mediciones} etiquetas={ETIQUETAS_MEDICIONES} />
                           {c.mediciones?.realizar_plicometria === 'Si' && c.mediciones?.plicometria && Object.keys(c.mediciones.plicometria).length > 0 && (
-                            <div className="mt-3 pt-3 border-t border-slate-200">
-                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Plicometría (mm)</p>
+                            <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                              <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">Plicometría (mm)</p>
                               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                                 {Object.entries(c.mediciones.plicometria).map(([sitio, val]) => (
-                                  <p key={sitio} className="text-xs font-bold text-slate-700">{sitio.replace('_', ' ')}: {String(val)}</p>
+                                  <p key={sitio} className="text-xs font-bold text-slate-700 dark:text-slate-200">{sitio.replace('_', ' ')}: {String(val)}</p>
                                 ))}
                               </div>
                             </div>
@@ -1357,7 +1533,7 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
                         <SeccionDetalle titulo="Enfoque Nutricional" icono="🎯">
                           <CamposDetalle datos={c.enfoque_nutricional} etiquetas={ETIQUETAS_ENFOQUE} />
                           {c.enfoque_nutricional && Object.values(c.enfoque_nutricional).some(v => v !== undefined && v !== null && String(v).trim() !== '') && (
-                            <button onClick={() => generarPlanPDF(c)} className="mt-3 flex items-center gap-1.5 bg-[#0066FF]/10 text-[#0066FF] text-xs font-bold px-3 py-2 rounded-lg hover:bg-[#0066FF] hover:text-white transition-colors">
+                            <button onClick={() => generarPlanPDF(c)} className="mt-3 flex items-center gap-1.5 bg-[#28363E]/10 dark:bg-slate-700/60 text-[#28363E] dark:text-slate-300 text-xs font-bold px-3 py-2 rounded-lg hover:bg-[#28363E] dark:hover:bg-[#3D5360] hover:text-white transition-colors">
                               📄 Generar Plan Nutricional (PDF)
                             </button>
                           )}
@@ -1375,7 +1551,8 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
       {reciboParaImprimir && (
         <div className="ticket-imprimible hidden print:block p-8 text-black bg-white">
           <div className="max-w-sm mx-auto">
-            <h1 className="text-xl font-black text-center mb-1">Clínica Marla 🌿</h1>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-marla-completo.png" alt="Marla Polo" className="h-14 w-auto mx-auto mb-2" />
             <p className="text-xs text-center text-slate-600 mb-6">Ticket de Servicio</p>
             <div className="border-t border-b border-slate-300 py-3 mb-3 text-sm">
               <p><strong>Paciente:</strong> {reciboParaImprimir.paciente}</p>
@@ -1405,7 +1582,8 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
       {planParaImprimir && (
         <div className="ticket-imprimible hidden print:block p-10 text-black bg-white">
           <div className="max-w-md mx-auto">
-            <h1 className="text-2xl font-black text-center mb-1">Clínica Marla 🌿</h1>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-marla-completo.png" alt="Marla Polo" className="h-16 w-auto mx-auto mb-2" />
             <p className="text-sm text-center text-slate-600 mb-8">Plan Nutricional Personalizado</p>
             <div className="border-t border-b border-slate-300 py-3 mb-6 text-sm flex justify-between">
               <p><strong>Paciente:</strong> {planParaImprimir.paciente}</p>
@@ -1455,7 +1633,8 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
       {expedienteParaImprimir && paciente && (
         <div className="ticket-imprimible hidden print:block p-10 text-black bg-white">
           <div className="max-w-2xl mx-auto">
-            <h1 className="text-2xl font-black text-center mb-1">Clínica Marla 🌿</h1>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo-marla-completo.png" alt="Marla Polo" className="h-16 w-auto mx-auto mb-2" />
             <p className="text-sm text-center text-slate-600 mb-1">Expediente Clínico Completo</p>
             <p className="text-sm text-center font-bold mb-8">{paciente.nombre_completo}</p>
 

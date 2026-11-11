@@ -12,6 +12,10 @@ export type Usuario = {
   activo: boolean
   calendar_token: string
   created_at: string
+  avatar_url: string | null
+  telefono: string | null
+  puesto: string | null
+  auto_logout_minutos: number | null
 }
 
 export type CategoriaDocumento = 'inbody' | 'laboratorio' | 'otro'
@@ -169,6 +173,7 @@ export type InBody = {
   agua_total_lt?: string
   peso_ideal_kg?: string
   grasa_bajar_kg?: string
+  grasa_subir_kg?: string
   musculo_subir_kg?: string
 }
 
@@ -255,6 +260,8 @@ export type Pago = {
   monto_transferencia: number
   estado: EstadoPago
   requiere_factura: boolean
+  factura_concepto: string | null
+  factura_notas: string | null
   descuento_tipo: TipoDescuento
   descuento_valor: number
   created_by: string | null
