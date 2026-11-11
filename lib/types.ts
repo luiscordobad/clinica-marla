@@ -73,6 +73,7 @@ export type ConfiguracionClinica = {
   direccion: string | null
   telefono_contacto: string | null
   horario: string | null
+  horario_atencion: Record<string, { abre: string; cierra: string } | null> | null
   updated_at: string
 }
 
