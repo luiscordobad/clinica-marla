@@ -13,6 +13,8 @@ import {
 } from '../lib/types'
 import { fechaLocalISO } from '../lib/fecha'
 import Link from 'next/link'
+import { feriadoEn } from '../lib/feriados'
+import AvisosAgenda, { agruparBloqueos, textoRango } from '../components/AvisosAgenda'
 
 export default function Home() {
   const [pacientes, setPacientes] = useState<Paciente[]>([])
@@ -176,6 +178,7 @@ export default function Home() {
   }
 
   const getOriginalCitasCount = (dateStr: string) => citas.filter(c => c.fecha_cita === dateStr && c.estado !== 'cancelada' && c.estado !== 'ausente').length
+  const bloqueosProximos = useMemo(() => agruparBloqueos(citas, fechaLocalISO()), [citas])
   const esDiaBloqueado = (dateStr: string) => citas.some(c => c.fecha_cita === dateStr && c.tipo === 'bloqueo' && c.estado !== 'cancelada' && c.estado !== 'ausente')
 
   useEffect(() => {
@@ -317,6 +320,40 @@ export default function Home() {
     if (!error) { await cargarDatos(esFullAccess); setShowModalAgendar(false); setFormCita({ paciente_id: '', fecha: '', hora: '', tipo: 'seguimiento', repeticion: 1 }); mostrarToast(esBloqueo ? 'Agenda bloqueada' : 'Cita agendada', 'exito') } else mostrarToast('Error: ' + error.message, 'error')
   }
 
+  const insertarBloqueos = async (dias: string[], motivo: string) => {
+    if (dias.length === 0) return null
+    const { error } = await supabase.from('citas').insert(dias.map(fecha => ({
+      paciente_id: null,
+      nombre_paciente: motivo,
+      fecha_cita: fecha,
+      hora_cita: '00:00',
+      duracion_min: 1440,
+      tipo: 'bloqueo' as TipoCita,
+      estado: 'programada' as EstadoCita,
+      created_by: sesion?.usuario.id,
+    })))
+    return error
+  }
+
+  // Bloqueo de un solo día desde un recordatorio de feriado
+  const bloquearDia = async (fecha: string, motivo: string) => {
+    const afectadas = citas.filter(c => c.fecha_cita === fecha && c.estado !== 'cancelada' && c.estado !== 'ausente' && c.tipo !== 'bloqueo').length
+    const cuando = new Date(fecha + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' })
+    if (!window.confirm(afectadas > 0
+      ? `Ya hay ${afectadas} cita(s) el ${cuando}. ¿Bloquear el día de todas formas? (no se cancelan solas, tendrás que reagendarlas)`
+      : `¿Bloquear el ${cuando} por ${motivo}?`)) return
+    const error = await insertarBloqueos([fecha], motivo)
+    if (!error) { await cargarDatos(esFullAccess); mostrarToast('Día bloqueado', 'exito') }
+    else mostrarToast('Error: ' + error.message, 'error')
+  }
+
+  const quitarBloqueo = async (ids: string[], descripcion: string) => {
+    if (!window.confirm(`¿Quitar el bloqueo "${descripcion}"? Esos días volverán a estar disponibles para citas.`)) return
+    const { error } = await supabase.from('citas').update({ estado: 'cancelada' }).in('id', ids)
+    if (!error) { await cargarDatos(esFullAccess); mostrarToast('Bloqueo eliminado', 'exito') }
+    else mostrarToast('Error: ' + error.message, 'error')
+  }
+
   const bloquearRangoFechas = async () => {
     if (!formVacaciones.fecha_inicio || !formVacaciones.fecha_fin) return mostrarToast('Completa las dos fechas.', 'advertencia')
     const inicio = new Date(formVacaciones.fecha_inicio + 'T12:00:00')
@@ -333,16 +370,8 @@ export default function Home() {
     }
 
     setGuardandoVacaciones(true)
-    const { error } = await supabase.from('citas').insert(dias.map(fecha => ({
-      paciente_id: null,
-      nombre_paciente: formVacaciones.motivo || 'Bloqueo',
-      fecha_cita: fecha,
-      hora_cita: '00:00',
-      duracion_min: 1440,
-      tipo: 'bloqueo' as TipoCita,
-      estado: 'programada' as EstadoCita,
-      created_by: sesion?.usuario.id,
-    })))
+    // No duplica días que ya estaban bloqueados
+    const error = await insertarBloqueos(dias.filter(d => !esDiaBloqueado(d)), formVacaciones.motivo || 'Bloqueo')
     setGuardandoVacaciones(false)
     if (!error) {
       await cargarDatos(esFullAccess)
@@ -1117,6 +1146,7 @@ export default function Home() {
               )}
             </div>
 
+            {formCita.tipo !== 'bloqueo' && feriadoEn(formCita.fecha) && <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl p-3 text-xs font-bold text-amber-700 dark:text-amber-300 mb-4 flex gap-2"><span>🇲🇽</span> Ese día es {feriadoEn(formCita.fecha)!.nombre}{feriadoEn(formCita.fecha)!.oficial ? ' (feriado oficial)' : ''}. Confirma que sí habrá consulta.</div>}
             {hayColisionCita && <div className="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl p-3 text-xs font-bold text-rose-600 mb-4 animate-in fade-in flex gap-2"><span>⚠️</span> Horario ocupado por duración.</div>}
 
             <div className="flex gap-3">
@@ -1173,9 +1203,9 @@ export default function Home() {
 
       {showModalVacaciones && (
         <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4 hoja-movil" onClick={() => setShowModalVacaciones(false)}>
-          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-md w-full p-8 animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-md w-full p-8 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="w-14 h-14 bg-amber-100 dark:bg-amber-950/50 text-amber-600 rounded-2xl flex items-center justify-center text-2xl mb-4">🏖️</div>
-            <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-1">Bloquear Vacaciones o Días</h3>
+            <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-1">Vacaciones y Días Bloqueados</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Bloquea un rango de días de una sola vez (vacaciones, congreso, etc.) para que no se puedan agendar citas.</p>
 
             <div className="space-y-4 mb-6">
@@ -1201,6 +1231,23 @@ export default function Home() {
                 {guardandoVacaciones ? 'Bloqueando...' : 'Bloquear Días'}
               </button>
             </div>
+
+            {bloqueosProximos.length > 0 && (
+              <div className="mt-6 pt-5 border-t border-slate-100 dark:border-slate-800">
+                <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">Bloqueos programados</p>
+                <div className="space-y-2 max-h-52 overflow-y-auto">
+                  {bloqueosProximos.map(r => (
+                    <div key={r.ids[0]} className="flex items-center gap-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">{r.motivo}</p>
+                        <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400">{textoRango(r)}{r.ids.length > 1 ? ` · ${r.ids.length} días` : ''}</p>
+                      </div>
+                      <button onClick={() => quitarBloqueo(r.ids, `${r.motivo} (${textoRango(r)})`)} className="shrink-0 text-[11px] font-black text-rose-600 dark:text-rose-300 px-2.5 py-1.5 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40">Quitar</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1310,6 +1357,7 @@ export default function Home() {
                   </div>
                   <div className="flex items-center gap-3">
                     <button onClick={() => setFechaSeleccionada(hoyFechaFormat)} className="text-xs font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 bg-white dark:bg-slate-900">Hoy</button>
+                    <button onClick={() => setShowModalVacaciones(true)} title="Vacaciones y días bloqueados" className="text-xs font-bold text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 px-3 py-1.5 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 bg-white dark:bg-slate-900">🏖️ Bloquear días</button>
                     <div className="flex bg-slate-100/80 dark:bg-slate-800/80 p-1 rounded-lg border border-slate-200 dark:border-slate-700">
                       <button onClick={() => setVistaAgenda('Dia')} className={`px-4 py-1 text-xs font-bold rounded-md transition-all ${vistaAgenda === 'Dia' ? 'bg-white dark:bg-slate-900 shadow-sm text-[#28363E] dark:text-slate-300' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>Día</button>
                       <button onClick={() => setVistaAgenda('Semana')} className={`px-4 py-1 text-xs font-bold rounded-md transition-all ${vistaAgenda === 'Semana' ? 'bg-white dark:bg-slate-900 shadow-sm text-[#28363E] dark:text-slate-300' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}>Semana</button>
@@ -1327,6 +1375,7 @@ export default function Home() {
                         <div key={i} className={`py-3 text-center border-r border-slate-100 dark:border-slate-800 ${d.iso === hoyFechaFormat ? 'text-[#28363E] dark:text-slate-300 font-black bg-slate-50/30 dark:bg-slate-800/30 border-b-2 border-b-[#28363E] dark:border-b-[#28363E]' : 'text-slate-600 dark:text-slate-300 font-bold border-b-2 border-transparent'}`}>
                           <span className="text-[10px] uppercase block leading-none opacity-60 mb-0.5">{DIAS_NOMBRES[i]}</span>
                           <span className="text-base leading-none">{d.dateObj.getDate()}</span>
+                          {feriadoEn(d.iso) && <span title={feriadoEn(d.iso)!.nombre} className="block text-[9px] font-bold text-rose-500 dark:text-rose-400 truncate px-1 mt-1 leading-none">🇲🇽 {feriadoEn(d.iso)!.nombre}</span>}
                         </div>
                       )) : (
                         <div className="py-3 text-center text-[#28363E] dark:text-slate-300 font-black bg-slate-50/30 dark:bg-slate-800/30 border-r border-slate-100 dark:border-slate-800 flex flex-col justify-center border-b-2 border-b-[#28363E] dark:border-b-[#28363E]">
@@ -1448,7 +1497,7 @@ export default function Home() {
                           onClick={() => { setFechaSeleccionada(d.iso); setVistaAgenda('Dia') }}
                           className={`w-9 h-9 flex flex-col items-center justify-center rounded-full mx-auto cursor-pointer relative transition-colors ${d.iso === fechaSeleccionada ? 'bg-[#28363E] dark:bg-[#3D5360] text-white shadow-md' : bloqueado ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 line-through' : d.iso === hoyFechaFormat ? 'bg-slate-50 dark:bg-slate-800/60 text-[#28363E] dark:text-slate-300' : d.enMes ? 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700' : 'text-slate-300'}`}
                         >
-                          <span>{d.dateObj.getDate()}</span>
+                          <span className={feriadoEn(d.iso) && d.iso !== fechaSeleccionada ? 'text-rose-500 dark:text-rose-400' : ''} title={feriadoEn(d.iso)?.nombre}>{d.dateObj.getDate()}</span>
                           {hasCitas && d.iso !== fechaSeleccionada && <div className={`absolute bottom-1 w-1 h-1 rounded-full ${bloqueado ? 'bg-slate-400' : 'bg-amber-400'}`}></div>}
                         </div>
                       )
@@ -1457,6 +1506,8 @@ export default function Home() {
                 </div>
 
                 <hr className="border-slate-100 dark:border-slate-800" />
+
+                <AvisosAgenda citas={citas} hoy={hoyFechaFormat} onBloquear={bloquearDia} onIrAFecha={(f) => { setFechaSeleccionada(f); setVistaAgenda('Dia') }} onGestionar={() => setShowModalVacaciones(true)} />
 
                 <div>
                   <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3 flex items-center justify-between">
@@ -1531,6 +1582,7 @@ export default function Home() {
                   {fechaSeleccionada !== hoyFechaFormat && (
                     <button onClick={() => setFechaSeleccionada(hoyFechaFormat)} className="text-[10px] font-bold text-[#28363E] dark:text-slate-300 border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 px-2 py-1.5 rounded-lg">Hoy</button>
                   )}
+                  <button onClick={() => setShowModalVacaciones(true)} aria-label="Vacaciones y días bloqueados" className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 active:bg-slate-100">🏖️</button>
                   <label className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 font-bold active:bg-slate-100 relative cursor-pointer">
                     📅
                     <input type="date" value={fechaSeleccionada} onChange={(e) => e.target.value && setFechaSeleccionada(e.target.value)} className="absolute inset-0 opacity-0 cursor-pointer" />
@@ -1550,12 +1602,22 @@ export default function Home() {
                       className={`shrink-0 w-14 py-2.5 rounded-2xl flex flex-col items-center gap-0.5 border transition-colors ${seleccionado ? 'bg-[#28363E] dark:bg-[#3D5360] border-[#28363E] dark:border-[#5B7785] text-white shadow-md' : bloqueado ? 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500' : d.iso === hoyFechaFormat ? 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-[#28363E] dark:text-slate-300' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'}`}
                     >
                       <span className="text-[9px] font-black uppercase opacity-70">{DIAS_NOMBRES[i]}</span>
-                      <span className="text-base font-black leading-none">{d.dateObj.getDate()}</span>
+                      <span className={`text-base font-black leading-none ${feriadoEn(d.iso) && !seleccionado ? 'text-rose-500 dark:text-rose-400' : ''}`}>{d.dateObj.getDate()}</span>
                       <div className={`w-1 h-1 rounded-full mt-0.5 ${bloqueado ? (seleccionado ? 'bg-white dark:bg-slate-900' : 'bg-slate-400') : hasCitas ? (seleccionado ? 'bg-white dark:bg-slate-900' : 'bg-amber-400') : 'bg-transparent'}`}></div>
                     </button>
                   )
                 })}
               </div>
+
+              {feriadoEn(fechaSeleccionada) && (
+                <p className="mx-4 mt-1 mb-1 text-[11px] font-black text-rose-600 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 rounded-xl px-3 py-2">🇲🇽 {feriadoEn(fechaSeleccionada)!.nombre}{feriadoEn(fechaSeleccionada)!.oficial ? ' · feriado oficial' : ''}</p>
+              )}
+
+              {fechaSeleccionada === hoyFechaFormat && (
+                <div className="px-4 pt-2 pb-1">
+                  <AvisosAgenda citas={citas} hoy={hoyFechaFormat} onBloquear={bloquearDia} onIrAFecha={setFechaSeleccionada} onGestionar={() => setShowModalVacaciones(true)} />
+                </div>
+              )}
 
               {fechaSeleccionada === hoyFechaFormat && (pacientesEnEspera.length > 0 || pacientesEnCaja.length > 0) && (
                 <div className="px-4 pb-2 space-y-2.5">
