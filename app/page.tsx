@@ -860,7 +860,7 @@ export default function Home() {
               <p className="text-xs font-bold text-slate-800 dark:text-slate-100 mb-3 uppercase tracking-widest">Emisión de Comprobante</p>
               <div className="flex gap-2 mb-4">
                 <button className={`flex-1 p-2 rounded-lg text-[10px] font-bold border transition-colors ${formCobro.recibo === 'whatsapp' ? 'bg-[#25D366] text-white border-[#25D366] shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`} onClick={() => setFormCobro({ ...formCobro, recibo: 'whatsapp' })}>📱 WhatsApp</button>
-                <button className={`flex-1 p-2 rounded-lg text-[10px] font-bold border transition-colors ${formCobro.recibo === 'pdf' ? 'bg-slate-800 text-white border-slate-800 shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`} onClick={() => setFormCobro({ ...formCobro, recibo: 'pdf' })}>📄 Imprimir (PDF)</button>
+                <button className={`flex-1 p-2 rounded-lg text-[10px] font-bold border transition-colors ${formCobro.recibo === 'pdf' ? 'bg-slate-800 dark:bg-slate-600 text-white border-slate-800 shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`} onClick={() => setFormCobro({ ...formCobro, recibo: 'pdf' })}>📄 Imprimir (PDF)</button>
                 <button className={`flex-1 p-2 rounded-lg text-[10px] font-bold border transition-colors ${formCobro.recibo === 'ninguno' ? 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-600' : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`} onClick={() => setFormCobro({ ...formCobro, recibo: 'ninguno' })}>❌ Ninguno</button>
               </div>
               <div className="flex items-center justify-between p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:border-[#28363E] transition-colors" onClick={() => setFormCobro({ ...formCobro, requiereFactura: !formCobro.requiereFactura })}>
@@ -991,7 +991,7 @@ export default function Home() {
               <p className="text-xs font-bold text-slate-800 dark:text-slate-100 mb-3 uppercase tracking-widest">Emisión de Comprobante</p>
               <div className="flex gap-2 mb-4">
                 <button className={`flex-1 p-2 rounded-lg text-[10px] font-bold border transition-colors ${formVenta.recibo === 'whatsapp' ? 'bg-[#25D366] text-white border-[#25D366] shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`} onClick={() => setFormVenta({ ...formVenta, recibo: 'whatsapp' })}>📱 WhatsApp</button>
-                <button className={`flex-1 p-2 rounded-lg text-[10px] font-bold border transition-colors ${formVenta.recibo === 'pdf' ? 'bg-slate-800 text-white border-slate-800 shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`} onClick={() => setFormVenta({ ...formVenta, recibo: 'pdf' })}>📄 Imprimir (PDF)</button>
+                <button className={`flex-1 p-2 rounded-lg text-[10px] font-bold border transition-colors ${formVenta.recibo === 'pdf' ? 'bg-slate-800 dark:bg-slate-600 text-white border-slate-800 shadow-sm' : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`} onClick={() => setFormVenta({ ...formVenta, recibo: 'pdf' })}>📄 Imprimir (PDF)</button>
                 <button className={`flex-1 p-2 rounded-lg text-[10px] font-bold border transition-colors ${formVenta.recibo === 'ninguno' ? 'bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-600' : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'}`} onClick={() => setFormVenta({ ...formVenta, recibo: 'ninguno' })}>❌ Ninguno</button>
               </div>
               <div className="flex items-center justify-between p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg cursor-pointer hover:border-[#28363E] transition-colors" onClick={() => setFormVenta({ ...formVenta, requiereFactura: !formVenta.requiereFactura })}>
@@ -1134,7 +1134,7 @@ export default function Home() {
                 />
                 <button
                   onClick={() => { navigator.clipboard.writeText(`${window.location.origin}/api/calendario/${sesion.usuario.calendar_token}`); mostrarToast('Link copiado', 'exito') }}
-                  className="bg-slate-800 text-white text-xs font-bold px-3 rounded-lg hover:bg-slate-900 transition-colors shrink-0"
+                  className="bg-slate-800 dark:bg-slate-600 text-white text-xs font-bold px-3 rounded-lg hover:bg-slate-900 transition-colors shrink-0"
                 >
                   Copiar
                 </button>
@@ -1307,12 +1307,12 @@ export default function Home() {
                     <div className={`grid ${vistaAgenda === 'Semana' ? 'grid-cols-[80px_repeat(7,1fr)]' : 'grid-cols-[80px_1fr]'} border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 sticky top-0 z-10 shadow-sm`}>
                       <div className="py-3 text-center text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 border-r border-slate-100 dark:border-slate-800">Hora</div>
                       {vistaAgenda === 'Semana' ? diasSemanales.map((d, i) => (
-                        <div key={i} className={`py-3 text-center border-r border-slate-100 dark:border-slate-800 ${d.iso === hoyFechaFormat ? 'text-[#28363E] dark:text-slate-300 font-black bg-slate-50/30 dark:bg-slate-800/30 border-b-2 border-b-[#28363E]' : 'text-slate-600 dark:text-slate-300 font-bold border-b-2 border-transparent'}`}>
+                        <div key={i} className={`py-3 text-center border-r border-slate-100 dark:border-slate-800 ${d.iso === hoyFechaFormat ? 'text-[#28363E] dark:text-slate-300 font-black bg-slate-50/30 dark:bg-slate-800/30 border-b-2 border-b-[#28363E] dark:border-b-[#28363E]' : 'text-slate-600 dark:text-slate-300 font-bold border-b-2 border-transparent'}`}>
                           <span className="text-[10px] uppercase block leading-none opacity-60 mb-0.5">{DIAS_NOMBRES[i]}</span>
                           <span className="text-base leading-none">{d.dateObj.getDate()}</span>
                         </div>
                       )) : (
-                        <div className="py-3 text-center text-[#28363E] dark:text-slate-300 font-black bg-slate-50/30 dark:bg-slate-800/30 border-r border-slate-100 dark:border-slate-800 flex flex-col justify-center border-b-2 border-b-[#28363E]">
+                        <div className="py-3 text-center text-[#28363E] dark:text-slate-300 font-black bg-slate-50/30 dark:bg-slate-800/30 border-r border-slate-100 dark:border-slate-800 flex flex-col justify-center border-b-2 border-b-[#28363E] dark:border-b-[#28363E]">
                           <span className="text-[10px] uppercase opacity-60 mb-0.5">{new Date(fechaSeleccionada + 'T12:00:00').toLocaleDateString('es-MX', { weekday: 'long' })}</span>
                           <span className="text-base">{new Date(fechaSeleccionada + 'T12:00:00').getDate()} {getMesYAnioTexto(fechaSeleccionada)}</span>
                         </div>
@@ -1321,7 +1321,7 @@ export default function Home() {
 
                     <div className="flex-1 relative pb-10">
                       {HORAS_SMART.map((hora) => (
-                        <div key={hora} className={`grid ${vistaAgenda === 'Semana' ? 'grid-cols-[80px_repeat(7,1fr)]' : 'grid-cols-[80px_1fr]'} border-b border-slate-100 dark:border-slate-800 h-24 bg-white/50`}>
+                        <div key={hora} className={`grid ${vistaAgenda === 'Semana' ? 'grid-cols-[80px_repeat(7,1fr)]' : 'grid-cols-[80px_1fr]'} border-b border-slate-100 dark:border-slate-800 h-24 bg-white/50 dark:bg-slate-900/40`}>
                           <div className="text-[10px] text-slate-400 dark:text-slate-500 font-bold text-center py-2 border-r border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">{hora}</div>
 
                           {(vistaAgenda === 'Semana' ? diasSemanales.map(d => d.iso) : [fechaSeleccionada]).map((isoDate, colIdx) => {
@@ -1435,7 +1435,7 @@ export default function Home() {
                       </div>
                     )}
                     {pacientesEnEspera.map(c => (
-                      <div key={c.id} className="bg-white dark:bg-slate-900 p-3.5 rounded-xl shadow-sm border border-sky-200 dark:border-sky-800 border-l-4 border-l-sky-500 relative">
+                      <div key={c.id} className="bg-white dark:bg-slate-900 p-3.5 rounded-xl shadow-sm border border-sky-200 dark:border-sky-800 border-l-4 border-l-sky-500 dark:border-l-sky-500 relative">
                         <span className="absolute top-3 right-3 text-[9px] bg-sky-100 dark:bg-sky-950/50 text-sky-700 dark:text-sky-300 font-black px-1.5 py-0.5 rounded uppercase">En Sala</span>
                         <p className="text-xs font-black text-slate-800 dark:text-slate-100 pr-12 truncate">{c.nombre_paciente}</p>
                         <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 font-medium">{ETIQUETA_TIPO_CITA[c.tipo]}</p>
@@ -1443,7 +1443,7 @@ export default function Home() {
                       </div>
                     ))}
                     {pacientesEnCaja.map(pg => (
-                      <div key={pg.id} className="bg-white dark:bg-slate-900 p-3.5 rounded-xl shadow-sm border border-amber-200 dark:border-amber-800 border-l-4 border-l-amber-500 relative">
+                      <div key={pg.id} className="bg-white dark:bg-slate-900 p-3.5 rounded-xl shadow-sm border border-amber-200 dark:border-amber-800 border-l-4 border-l-amber-500 dark:border-l-amber-500 relative">
                         <span className="absolute top-3 right-3 text-[9px] bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300 font-black px-1.5 py-0.5 rounded uppercase animate-pulse">Por Cobrar</span>
                         <p className="text-xs font-black text-slate-800 dark:text-slate-100 pr-16 truncate">{pacientes.find(p => p.id === pg.paciente_id)?.nombre_completo || 'Paciente'}</p>
                         <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-1 font-bold">Total: ${pg.monto_esperado}</p>
@@ -1526,7 +1526,7 @@ export default function Home() {
                 <div className="px-4 pb-2 space-y-2.5">
                   <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest pt-2">Flujo de Hoy</h3>
                   {pacientesEnEspera.map(c => (
-                    <div key={c.id} className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl shadow-sm border border-sky-200 dark:border-sky-800 border-l-4 border-l-sky-500 flex items-center justify-between gap-3">
+                    <div key={c.id} className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl shadow-sm border border-sky-200 dark:border-sky-800 border-l-4 border-l-sky-500 dark:border-l-sky-500 flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <p className="text-xs font-black text-slate-800 dark:text-slate-100 truncate">{c.nombre_paciente}</p>
                         <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">🛋️ En Sala de Espera</p>
@@ -1535,7 +1535,7 @@ export default function Home() {
                     </div>
                   ))}
                   {pacientesEnCaja.map(pg => (
-                    <div key={pg.id} className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl shadow-sm border border-amber-200 dark:border-amber-800 border-l-4 border-l-amber-500 flex items-center justify-between gap-3">
+                    <div key={pg.id} className="bg-white dark:bg-slate-900 p-3.5 rounded-2xl shadow-sm border border-amber-200 dark:border-amber-800 border-l-4 border-l-amber-500 dark:border-l-amber-500 flex items-center justify-between gap-3">
                       <div className="min-w-0">
                         <p className="text-xs font-black text-slate-800 dark:text-slate-100 truncate">{pacientes.find(p => p.id === pg.paciente_id)?.nombre_completo || 'Paciente'}</p>
                         <p className="text-[10px] text-slate-500 dark:text-slate-400 font-bold">Por cobrar: ${pg.monto_esperado}</p>
@@ -1586,13 +1586,13 @@ export default function Home() {
                     const dCita = new Date(`${c.fecha_cita}T${c.hora_cita}`)
                     const isLate = dCita < horaActual && c.fecha_cita === hoyFechaFormat && !isCheckedIn && !isTerminado && !esBloqueo
 
-                    let borde = 'border-l-[#28363E]'
-                    if (c.tipo === 'seguimiento') borde = 'border-l-emerald-400'
-                    if (c.tipo === 'solo_inbody') borde = 'border-l-orange-400'
-                    if (c.tipo === 'enzimas') borde = 'border-l-purple-400'
-                    if (c.tipo === 'en_linea') borde = 'border-l-cyan-400'
-                    if (esBloqueo) borde = 'border-l-slate-300'
-                    if (isLate) borde = 'border-l-rose-500'
+                    let borde = 'border-l-[#28363E] dark:border-l-[#28363E]'
+                    if (c.tipo === 'seguimiento') borde = 'border-l-emerald-400 dark:border-l-emerald-400'
+                    if (c.tipo === 'solo_inbody') borde = 'border-l-orange-400 dark:border-l-orange-400'
+                    if (c.tipo === 'enzimas') borde = 'border-l-purple-400 dark:border-l-purple-400'
+                    if (c.tipo === 'en_linea') borde = 'border-l-cyan-400 dark:border-l-cyan-400'
+                    if (esBloqueo) borde = 'border-l-slate-300 dark:border-l-slate-300'
+                    if (isLate) borde = 'border-l-rose-500 dark:border-l-rose-500'
 
                     return (
                       <button
@@ -1637,7 +1637,7 @@ export default function Home() {
                       <span className="text-slate-400 dark:text-slate-500 text-xl">🔍</span>
                       <input type="text" placeholder="Buscar por nombre o teléfono..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full bg-transparent border-none text-lg font-black outline-none text-slate-800 dark:text-slate-100 placeholder:text-slate-300" />
                     </div>
-                    <button onClick={() => setMostrarArchivados(!mostrarArchivados)} className={`shrink-0 text-xs font-bold px-3 py-2 rounded-lg border transition-colors ${mostrarArchivados ? 'bg-slate-800 text-white border-slate-800' : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>
+                    <button onClick={() => setMostrarArchivados(!mostrarArchivados)} className={`shrink-0 text-xs font-bold px-3 py-2 rounded-lg border transition-colors ${mostrarArchivados ? 'bg-slate-800 dark:bg-slate-600 text-white border-slate-800' : 'bg-white dark:bg-slate-900 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-700'}`}>
                       {mostrarArchivados ? '🗄️ Viendo archivados' : '🗄️ Mostrar archivados'}
                     </button>
                   </div>
@@ -1828,7 +1828,7 @@ export default function Home() {
                       </select>
                       <input type="text" placeholder="Concepto (Ej. Pago de CFE)" value={formGasto.concepto} onChange={e => setFormGasto({ ...formGasto, concepto: e.target.value })} className="w-full p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-[#28363E]" />
                       <input type="number" placeholder="Monto ($)" value={formGasto.monto} onChange={e => setFormGasto({ ...formGasto, monto: e.target.value })} className="w-full p-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-[#28363E]" />
-                      <button onClick={registrarGasto} className="w-full bg-slate-900 text-white font-black py-3 rounded-xl hover:bg-[#28363E] dark:hover:bg-[#3D5360] transition-all shadow-md">Guardar Gasto</button>
+                      <button onClick={registrarGasto} className="w-full bg-slate-900 dark:bg-slate-600 text-white font-black py-3 rounded-xl hover:bg-[#28363E] dark:hover:bg-[#3D5360] transition-all shadow-md">Guardar Gasto</button>
                     </div>
                     <div className="lg:col-span-2 overflow-x-auto max-h-72 overflow-y-auto">
                       <table className="w-full text-left border-collapse">

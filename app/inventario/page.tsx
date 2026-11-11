@@ -145,7 +145,7 @@ export default function ModuloInventario() {
 
             <div className="flex gap-3">
               <button onClick={() => setShowModal(false)} className="px-5 py-3.5 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">Cancelar</button>
-              <button onClick={guardarActualizacionStock} className="flex-1 bg-slate-900 text-white rounded-xl text-sm font-black hover:bg-teal-600 transition-all shadow-md">Ingresar al Almacén</button>
+              <button onClick={guardarActualizacionStock} className="flex-1 bg-slate-900 dark:bg-slate-600 text-white rounded-xl text-sm font-black hover:bg-teal-600 transition-all shadow-md">Ingresar al Almacén</button>
             </div>
           </div>
         </div>
@@ -194,7 +194,7 @@ export default function ModuloInventario() {
           <Link href="/" className="text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors flex items-center gap-2">
             <span className="text-lg">&larr;</span> Volver al Dashboard
           </Link>
-          <button onClick={() => setShowNuevoProducto(true)} className="bg-slate-900 text-white px-6 py-3 rounded-2xl text-sm font-black hover:bg-teal-600 transition-all shadow-md flex items-center gap-2">
+          <button onClick={() => setShowNuevoProducto(true)} className="bg-slate-900 dark:bg-slate-600 text-white px-6 py-3 rounded-2xl text-sm font-black hover:bg-teal-600 transition-all shadow-md flex items-center gap-2">
             <span>📦</span> Alta de Producto
           </button>
         </div>

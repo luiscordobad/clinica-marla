@@ -1253,7 +1253,7 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
             </div>
 
             <div className="mt-8 flex flex-col gap-3">
-              <button onClick={mandarARecepcion} className="w-full py-4 rounded-2xl text-sm font-black bg-slate-900 text-white hover:bg-teal-600 transition-all shadow-md text-center">
+              <button onClick={mandarARecepcion} className="w-full py-4 rounded-2xl text-sm font-black bg-slate-900 dark:bg-slate-600 text-white hover:bg-teal-600 transition-all shadow-md text-center">
                 Mandar a Recepción (Caja) 📤
               </button>
               <button onClick={() => { setShowCheckout(false); setModoConsulta(true) }} className="w-full py-4 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl text-sm font-bold hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">Cancelar</button>
@@ -1292,7 +1292,7 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
             </div>
             <div className="flex gap-3">
               <button onClick={() => setShowEditPaciente(false)} className="px-5 py-3.5 bg-slate-100 dark:bg-slate-800 rounded-xl text-xs font-bold">Cancelar</button>
-              <button onClick={guardarEdicionPaciente} className="flex-1 bg-slate-900 text-white rounded-xl text-xs font-black">Guardar</button>
+              <button onClick={guardarEdicionPaciente} className="flex-1 bg-slate-900 dark:bg-slate-600 text-white rounded-xl text-xs font-black">Guardar</button>
             </div>
           </div>
         </div>
@@ -1340,7 +1340,7 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
               </button>
             )}
             {esFullAccess && (
-              <button onClick={iniciarConsulta} className="bg-slate-900 text-white px-6 py-3 rounded-2xl text-sm font-black hover:bg-teal-600 transition-all flex items-center gap-2">
+              <button onClick={iniciarConsulta} className="bg-slate-900 dark:bg-slate-600 text-white px-6 py-3 rounded-2xl text-sm font-black hover:bg-teal-600 transition-all flex items-center gap-2">
                 <span>🩺</span> {citaHoyEnEspera ? 'Paciente Esperando - Iniciar Consulta' : 'Nueva Consulta Directa'}
               </button>
             )}

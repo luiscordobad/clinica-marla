@@ -309,7 +309,7 @@ export default function Usuarios() {
                     {sesion.usuario.nombre.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
                   </div>
                 )}
-                {subiendoAvatar && <div className="absolute inset-0 bg-white/70 rounded-full flex items-center justify-center text-[10px] font-bold text-slate-500 dark:text-slate-400">...</div>}
+                {subiendoAvatar && <div className="absolute inset-0 bg-white/70 dark:bg-slate-900/70 rounded-full flex items-center justify-center text-[10px] font-bold text-slate-500 dark:text-slate-400">...</div>}
               </div>
               <div>
                 <label className="inline-block cursor-pointer bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs font-bold px-4 py-2.5 rounded-xl transition-colors">
@@ -382,7 +382,7 @@ export default function Usuarios() {
               {avisoCorreo && (
                 <div className="bg-slate-50 dark:bg-slate-800/60 text-[#28363E] dark:text-slate-300 p-3 rounded-xl text-xs text-center border border-slate-200 dark:border-slate-700 font-medium">{avisoCorreo}</div>
               )}
-              <button onClick={cambiarCorreo} disabled={cambiandoCorreo || !nuevoCorreo} className="w-full py-3 bg-slate-800 text-white rounded-xl text-sm font-black hover:bg-slate-900 transition-colors disabled:opacity-50">
+              <button onClick={cambiarCorreo} disabled={cambiandoCorreo || !nuevoCorreo} className="w-full py-3 bg-slate-800 dark:bg-slate-600 text-white rounded-xl text-sm font-black hover:bg-slate-900 transition-colors disabled:opacity-50">
                 {cambiandoCorreo ? 'Enviando...' : 'Cambiar Correo'}
               </button>
             </div>
@@ -400,7 +400,7 @@ export default function Usuarios() {
               {errorPassword && (
                 <div className="bg-rose-50 dark:bg-rose-950/40 text-rose-600 p-3 rounded-xl text-xs text-center border border-rose-200 dark:border-rose-800 font-bold">{errorPassword}</div>
               )}
-              <button onClick={cambiarPassword} disabled={cambiandoPassword || !formPassword.nueva} className="w-full py-3 bg-slate-800 text-white rounded-xl text-sm font-black hover:bg-slate-900 transition-colors disabled:opacity-50">
+              <button onClick={cambiarPassword} disabled={cambiandoPassword || !formPassword.nueva} className="w-full py-3 bg-slate-800 dark:bg-slate-600 text-white rounded-xl text-sm font-black hover:bg-slate-900 transition-colors disabled:opacity-50">
                 {cambiandoPassword ? 'Actualizando...' : 'Cambiar Contraseña'}
               </button>
             </div>

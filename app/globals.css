@@ -12,6 +12,13 @@ body {
   color-scheme: dark;
 }
 
+/* Campos sin fondo propio: que no tomen el gris por defecto del navegador */
+.dark input:not([class*="bg-"]),
+.dark select:not([class*="bg-"]),
+.dark textarea:not([class*="bg-"]) {
+  background-color: transparent;
+}
+
 @media print {
   body * {
     visibility: hidden;
