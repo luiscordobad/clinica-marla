@@ -2,13 +2,22 @@
   "name": "Clínica Marla",
   "short_name": "Cl. Marla",
   "description": "Sistema de administración clínica",
+  "id": "/",
+  "lang": "es-MX",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
+  "orientation": "any",
+  "categories": ["medical", "health", "business"],
   "background_color": "#F4F6F9",
   "theme_color": "#28363E",
   "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "Nuevo paciente", "short_name": "Nuevo paciente", "url": "/registro", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] },
+    { "name": "Ajustes", "short_name": "Ajustes", "url": "/usuarios", "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }] }
   ]
 }

@@ -2,8 +2,67 @@
 @tailwind components;
 @tailwind utilities;
 
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
 body {
   background-color: #f9fafb;
+  /* iPhone en horizontal: que el contenido no quede bajo el notch */
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  overscroll-behavior-y: none;
+}
+
+/* Sin el retraso de 300 ms ni zoom por doble toque en controles */
+button, a, input, select, textarea, label, summary {
+  touch-action: manipulation;
+}
+
+/* iOS hace zoom automático al enfocar campos con letra menor a 16px */
+@media (max-width: 767px) and (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Tiras horizontales deslizables sin barra visible */
+.sin-scrollbar {
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.sin-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Barras de scroll discretas en laptop */
+@media (pointer: fine) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+  }
+  .dark * {
+    scrollbar-color: #334155 transparent;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid #5B7785;
+  outline-offset: 2px;
+}
+input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 .dark body {
@@ -36,4 +95,25 @@ body {
     background: #fff !important;
     color: #000 !important;
   }
+}
+/* Celular: los diálogos suben desde abajo como hoja (más fácil de alcanzar con el pulgar) */
+@media (max-width: 639px) {
+  .hoja-movil {
+    align-items: flex-end;
+    padding: 0;
+  }
+  .hoja-movil > div {
+    width: 100%;
+    max-width: 100%;
+    max-height: 92dvh;
+    overflow-y: auto;
+    border-radius: 1.75rem 1.75rem 0 0;
+    padding-bottom: max(1.5rem, env(safe-area-inset-bottom));
+    animation: hoja-subir 0.22s ease-out;
+    overscroll-behavior: contain;
+  }
+}
+@keyframes hoja-subir {
+  from { transform: translateY(24px); opacity: 0.6; }
+  to { transform: translateY(0); opacity: 1; }
 }

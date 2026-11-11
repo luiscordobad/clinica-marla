@@ -1,5 +1,6 @@
 import './globals.css'
 import type { Metadata, Viewport } from 'next'
+import RegistroSW from '../components/RegistroSW'
 
 export const metadata: Metadata = {
   title: 'Clínica Marla',
@@ -23,6 +24,7 @@ export const viewport: Viewport = {
   themeColor: '#28363E',
   width: 'device-width',
   initialScale: 1,
+  viewportFit: 'cover',
 }
 
 export default function RootLayout({
@@ -39,7 +41,10 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <RegistroSW />
+      </body>
     </html>
   )
 }

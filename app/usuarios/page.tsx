@@ -4,6 +4,7 @@ export const dynamic = 'force-dynamic'
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import InstalarApp from '../../components/InstalarApp'
 import { supabase } from '../../lib/supabase'
 import { obtenerEstadoSesion, type SesionActual } from '../../lib/auth'
 import { useCierreAutomatico } from '../../lib/inactividad'
@@ -263,21 +264,21 @@ export default function Usuarios() {
   const activos = usuarios.filter(u => u.activo)
 
   return (
-    <div className="min-h-screen bg-[#F4F6F9] dark:bg-slate-950 p-6 md:p-10">
+    <div className="min-h-screen bg-[#F4F6F9] dark:bg-slate-950 p-4 pb-10 md:p-10">
       {toast && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-[#00D084] text-white px-6 py-3 rounded-full shadow-xl font-bold text-sm">{toast}</div>
       )}
 
       <div className="max-w-3xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <div>
+        <div className="flex items-start justify-between gap-4 mb-6">
+          <div className="min-w-0">
             <h1 className="text-2xl font-black text-slate-800 dark:text-slate-100">Ajustes</h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Tu perfil{sesion?.esFullAccess ? ', accesos, catálogo de servicios, perfil de la clínica y actividad reciente.' : '.'}</p>
           </div>
-          <Link href="/" className="text-sm font-bold text-[#28363E] dark:text-slate-300 hover:underline">← Regresar</Link>
+          <Link href="/" className="text-sm font-bold text-[#28363E] dark:text-slate-300 hover:underline whitespace-nowrap shrink-0 py-1.5">← Regresar</Link>
         </div>
 
-        <div className="flex gap-2 mb-8 overflow-x-auto pb-1">
+        <div className="flex gap-2 mb-6 sm:mb-8 overflow-x-auto pb-1 -mx-4 px-4 sm:mx-0 sm:px-0 sin-scrollbar">
           {[
             { id: 'perfil', l: '🙋 Mi Perfil' },
             ...(sesion?.esFullAccess ? [
@@ -404,6 +405,8 @@ export default function Usuarios() {
                 {cambiandoPassword ? 'Actualizando...' : 'Cambiar Contraseña'}
               </button>
             </div>
+
+            <InstalarApp />
 
             <div className="space-y-3 pt-6 border-t border-slate-100 dark:border-slate-800">
               <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Seguridad</p>

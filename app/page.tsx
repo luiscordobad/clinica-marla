@@ -215,6 +215,24 @@ export default function Home() {
     setLoading(false)
   }
 
+  // Laptop: Esc cierra el diálogo abierto.
+  useEffect(() => {
+    const alTeclear = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      setCitaSeleccionada(null); setCobroActivo(null); setShowModalAgendar(false)
+      setShowModalCalendario(false); setShowModalVacaciones(false); setShowMenuPerfil(false)
+    }
+    window.addEventListener('keydown', alTeclear)
+    return () => window.removeEventListener('keydown', alTeclear)
+  }, [])
+
+  // Al abrir la agenda en laptop, baja directo a la hora actual en vez de empezar en las 7 am.
+  useEffect(() => {
+    if (loading || activeTab !== 'Mi Consultorio' || window.innerWidth < 768) return
+    const hora = String(Math.min(21, Math.max(7, new Date().getHours()))).padStart(2, '0')
+    document.querySelector(`[data-hora="${hora}"]`)?.scrollIntoView({ block: 'center' })
+  }, [loading, activeTab])
+
   const cerrarSesion = async () => { await supabase.auth.signOut(); window.location.href = '/login' }
 
   const regenerarLinkCalendario = async () => {
@@ -684,7 +702,7 @@ export default function Home() {
 
       {/* MODAL: DETALLES DE CITA Y ACCIONES RÁPIDAS */}
       {citaSeleccionada && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setCitaSeleccionada(null)}>
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 hoja-movil" onClick={() => setCitaSeleccionada(null)}>
           <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden animate-in zoom-in-95 border border-slate-200 dark:border-slate-700" onClick={e => e.stopPropagation()}>
 
             <div className={`p-6 text-white ${citaSeleccionada.tipo === 'bloqueo' ? 'bg-slate-600' :
@@ -819,7 +837,7 @@ export default function Home() {
       )}
 
       {urlWhatsAppPendiente && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 p-4 hoja-movil">
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl p-8 max-w-sm text-center animate-in zoom-in-95">
             <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-2">¡Cobro Registrado!</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">¿Deseas enviar el Ticket Digital al paciente?</p>
@@ -830,7 +848,7 @@ export default function Home() {
       )}
 
       {cobroActivo && (
-        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4 hoja-movil">
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-md w-full p-8 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-black mb-1">Check-Out: {pacientes.find(p => p.id === cobroActivo.paciente_id)?.nombre_completo || 'Paciente'}</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">{cobroActivo.concepto}</p>
@@ -911,8 +929,8 @@ export default function Home() {
 
             <div className="flex gap-3">
               <button onClick={() => setCobroActivo(null)} className="px-5 py-3 bg-slate-100 dark:bg-slate-800 rounded-xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors">Cancelar</button>
-              <button onClick={finalizarCobroEnRecepcion} disabled={procesandoCobro || balanceModal < 0} className="flex-1 bg-[#28363E] dark:bg-[#3D5360] text-white rounded-xl font-bold hover:bg-[#1C262C] dark:hover:bg-[#4A6472] disabled:opacity-50 transition-colors">
-                {procesandoCobro ? 'Procesando...' : 'Completar y Emitir Ticket'}
+              <button onClick={finalizarCobroEnRecepcion} disabled={procesandoCobro || balanceModal < 0} className="flex-1 py-3 bg-[#28363E] dark:bg-[#3D5360] text-white rounded-xl font-bold hover:bg-[#1C262C] dark:hover:bg-[#4A6472] disabled:opacity-50 transition-colors">
+                {procesandoCobro ? 'Procesando...' : <><span className="sm:hidden">Cobrar y emitir</span><span className="hidden sm:inline">Completar y Emitir Ticket</span></>}
               </button>
             </div>
           </div>
@@ -920,7 +938,7 @@ export default function Home() {
       )}
 
       {showVentaSuplementos && (
-        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4 hoja-movil">
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-md w-full p-8 animate-in zoom-in-95 max-h-[90vh] overflow-y-auto">
             <h3 className="text-xl font-black mb-1">💊 Venta de Suplementos</h3>
             <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">Registra una venta sin necesidad de una consulta.</p>
@@ -1051,7 +1069,7 @@ export default function Home() {
       )}
 
       {showModalAgendar && (
-        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4 hoja-movil">
           <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-xl max-w-sm w-full p-8 animate-in zoom-in-95">
             <h3 className="text-xl font-black mb-6 text-slate-800 dark:text-slate-100">Agendar Cita</h3>
 
@@ -1110,7 +1128,7 @@ export default function Home() {
       )}
 
       {showModalCalendario && (
-        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4" onClick={() => setShowModalCalendario(false)}>
+        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4 hoja-movil" onClick={() => setShowModalCalendario(false)}>
           <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-md w-full p-8 animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
             <div className="w-14 h-14 bg-[#28363E]/10 dark:bg-slate-700/60 text-[#28363E] dark:text-slate-300 rounded-2xl flex items-center justify-center text-2xl mb-4">📆</div>
             <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-1">Sincronizar con tu iPhone</h3>
@@ -1154,7 +1172,7 @@ export default function Home() {
       )}
 
       {showModalVacaciones && (
-        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4" onClick={() => setShowModalVacaciones(false)}>
+        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4 hoja-movil" onClick={() => setShowModalVacaciones(false)}>
           <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-md w-full p-8 animate-in zoom-in-95" onClick={e => e.stopPropagation()}>
             <div className="w-14 h-14 bg-amber-100 dark:bg-amber-950/50 text-amber-600 rounded-2xl flex items-center justify-center text-2xl mb-4">🏖️</div>
             <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-1">Bloquear Vacaciones o Días</h3>
@@ -1215,19 +1233,18 @@ export default function Home() {
       {/* ÁREA PRINCIPAL */}
       <div className="flex-1 flex flex-col h-dvh md:h-screen overflow-hidden bg-slate-50/50 dark:bg-slate-800/50">
 
-        <header className="bg-white dark:bg-slate-900 h-16 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-6 shrink-0 z-10">
+        <header className="bg-white dark:bg-slate-900 h-14 sm:h-16 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between px-4 sm:px-6 shrink-0 z-10">
           <div className="flex items-center gap-4">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-marla-firma.png" alt="Marla Polo" className="h-7 w-auto hidden sm:block dark:brightness-0 dark:invert" />
-            <span className="text-slate-800 dark:text-slate-100 font-black text-lg sm:hidden">Clínica Marla</span>
-            <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-widest">{esFullAccess ? 'Acceso Total' : 'Personal Administrativo'}</span>
+            <img src="/logo-marla-firma.png" alt="Marla Polo" className="h-7 w-auto md:hidden dark:brightness-0 dark:invert" />
+            <span className="hidden sm:inline-block bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 text-[9px] font-bold px-2 py-0.5 rounded uppercase tracking-widest">{esFullAccess ? 'Acceso Total' : 'Personal Administrativo'}</span>
           </div>
-          <div className="flex items-center gap-4">
-            <Link href="/registro" className="text-[#28363E] dark:text-slate-300 font-bold text-sm hover:underline flex items-center gap-1"><span className="hidden sm:inline">+ Nuevo Paciente</span><span className="sm:hidden text-lg leading-none">+</span></Link>
-            <button onClick={alternarTema} title={tema === 'dark' ? 'Modo claro' : 'Modo oscuro'} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-500 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+          <div className="flex items-center gap-1.5 sm:gap-4">
+            <Link href="/registro" aria-label="Nuevo paciente" className="text-[#28363E] dark:text-slate-300 font-bold text-sm sm:hover:underline flex items-center justify-center gap-1 w-10 h-10 sm:w-auto sm:h-auto rounded-xl active:bg-slate-100 dark:active:bg-slate-800"><span className="hidden sm:inline">+ Nuevo Paciente</span><span className="sm:hidden text-2xl leading-none">+</span></Link>
+            <button onClick={alternarTema} title={tema === 'dark' ? 'Modo claro' : 'Modo oscuro'} className="w-10 h-10 sm:w-8 sm:h-8 rounded-lg flex items-center justify-center text-slate-500 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
         {tema === 'dark' ? '☀️' : '🌙'}
       </button>
-            <div className="h-6 w-px bg-slate-200 dark:bg-slate-700"></div>
+            <div className="hidden sm:block h-6 w-px bg-slate-200 dark:bg-slate-700"></div>
             <div className="relative">
               <button onClick={() => setShowMenuPerfil(!showMenuPerfil)} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 p-1.5 rounded-lg transition-colors">
                 <div className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-bold text-[#28363E] dark:text-slate-300 overflow-hidden shrink-0">
@@ -1321,7 +1338,7 @@ export default function Home() {
 
                     <div className="flex-1 relative pb-10">
                       {HORAS_SMART.map((hora) => (
-                        <div key={hora} className={`grid ${vistaAgenda === 'Semana' ? 'grid-cols-[80px_repeat(7,1fr)]' : 'grid-cols-[80px_1fr]'} border-b border-slate-100 dark:border-slate-800 h-24 bg-white/50 dark:bg-slate-900/40`}>
+                        <div key={hora} className={`grid ${vistaAgenda === 'Semana' ? 'grid-cols-[80px_repeat(7,1fr)]' : 'grid-cols-[80px_1fr]'} border-b border-slate-100 dark:border-slate-800 h-24 bg-white/50 dark:bg-slate-900/40`} data-hora={hora.substring(0, 2)}>
                           <div className="text-[10px] text-slate-400 dark:text-slate-500 font-bold text-center py-2 border-r border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">{hora}</div>
 
                           {(vistaAgenda === 'Semana' ? diasSemanales.map(d => d.iso) : [fechaSeleccionada]).map((isoDate, colIdx) => {
@@ -1332,7 +1349,7 @@ export default function Home() {
                               <div
                                 key={colIdx}
                                 className={`border-r border-slate-100 dark:border-slate-800 relative p-1 transition-colors cursor-pointer group hover:bg-slate-50 dark:hover:bg-slate-800 ${isoDate === hoyFechaFormat ? 'bg-slate-50/10 dark:bg-slate-800/10' : 'bg-transparent'}`}
-                                onClick={() => { if (!bloqueada && citasEnCelda.length === 0) abrirAgendadorRapido(isoDate, hora) }}
+                                onClick={() => { if (!bloqueada) abrirAgendadorRapido(isoDate, hora) }}
                               >
                                 {citasEnCelda.map(c => {
                                   const isCheckedIn = c.estado === 'en_espera'
@@ -1361,25 +1378,43 @@ export default function Home() {
                                     )
                                   }
 
+                                  // La tarjeta se coloca según los minutos (09:30 queda a media celda) para que dos citas en la misma hora no se encimen.
+                                  const minutos = parseInt(c.hora_cita.substring(3, 5), 10) || 0
+                                  const compacta = c.duracion_min <= 30
+                                  const icono = isTerminado ? '✅' : isEnCaja ? '🛒' : isCheckedIn ? '🛋️' : isLate ? '⏳' : ''
                                   return (
                                     <div
                                       key={c.id}
-                                      style={{ height: `calc(${numBlocks * 100}% - 4px)` }}
+                                      style={{ top: `calc(${(minutos / 60) * 100}% + 2px)`, height: `calc(${numBlocks * 100}% - 4px)`, minHeight: '22px' }}
                                       onClick={(e) => { e.stopPropagation(); setCitaSeleccionada(c) }}
-                                      className={`absolute top-0.5 left-0.5 right-0.5 border-l-4 rounded p-1.5 shadow-sm overflow-hidden z-20 flex flex-col justify-between hover:shadow-md transition-all cursor-pointer ${bgClass}`}
+                                      title={`${c.hora_cita.substring(0, 5)} · ${c.nombre_paciente} · ${ETIQUETA_TIPO_CITA[c.tipo]}`}
+                                      className={`absolute left-0.5 right-0.5 border-l-4 rounded shadow-sm overflow-hidden z-20 hover:shadow-md hover:z-30 transition-all cursor-pointer ${compacta ? 'px-1.5 py-1 flex flex-col justify-center' : 'p-1.5 flex flex-col justify-between'} ${bgClass}`}
                                     >
-                                      <div>
-                                        <p className="font-bold text-[11px] leading-tight truncate">{c.nombre_paciente}</p>
-                                        <p className="text-[9px] truncate opacity-80 mt-0.5 font-medium flex items-center gap-1">
-                                          {isLate && <span>⚠️</span>} {ETIQUETA_TIPO_CITA[c.tipo]}
-                                        </p>
-                                      </div>
-                                      <div className="flex items-center justify-between mt-1 text-[9px] font-black opacity-80">
-                                        <span>{c.hora_cita.substring(0, 5)}</span>
-                                        <div className="flex gap-1 text-xs">
-                                          {isTerminado ? '✅' : isEnCaja ? '🛒' : isCheckedIn ? '🛋️' : isLate ? '⏳' : ''}
-                                        </div>
-                                      </div>
+                                      {compacta ? (
+                                        <>
+                                          <p className="font-bold text-[11px] leading-tight truncate flex items-center gap-1">
+                                            <span className="text-[9px] font-black opacity-70 shrink-0">{c.hora_cita.substring(0, 5)}</span>
+                                            <span className="truncate">{c.nombre_paciente}</span>
+                                            {icono && <span className="ml-auto shrink-0 text-[11px]">{icono}</span>}
+                                          </p>
+                                          {c.duracion_min >= 30 && (
+                                            <p className="text-[9px] truncate opacity-80 mt-0.5 font-medium">{isLate && '⚠️ '}{ETIQUETA_TIPO_CITA[c.tipo]}</p>
+                                          )}
+                                        </>
+                                      ) : (
+                                        <>
+                                          <div>
+                                            <p className="font-bold text-[11px] leading-tight truncate">{c.nombre_paciente}</p>
+                                            <p className="text-[9px] truncate opacity-80 mt-0.5 font-medium flex items-center gap-1">
+                                              {isLate && <span>⚠️</span>} {ETIQUETA_TIPO_CITA[c.tipo]}
+                                            </p>
+                                          </div>
+                                          <div className="flex items-center justify-between mt-1 text-[9px] font-black opacity-80">
+                                            <span>{c.hora_cita.substring(0, 5)}</span>
+                                            <div className="flex gap-1 text-xs">{icono}</div>
+                                          </div>
+                                        </>
+                                      )}
                                     </div>
                                   )
                                 })}
@@ -1669,7 +1704,7 @@ export default function Home() {
             <div className="flex-1 overflow-y-auto p-4 sm:p-8 pb-24 md:pb-8">
               <div className="max-w-6xl mx-auto space-y-6">
 
-                <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 flex justify-between items-center bg-gradient-to-r from-[#1C262C] to-slate-900 text-white">
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 bg-gradient-to-r from-[#1C262C] to-slate-900 text-white">
                   <div>
                     <h2 className="font-black text-2xl flex items-center gap-2">📊 Estela BI</h2>
                     <p className="text-sm text-slate-300 mt-1">Analítica y reportes de desempeño de tu clínica.</p>
