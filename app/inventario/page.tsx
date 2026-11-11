@@ -109,7 +109,7 @@ export default function ModuloInventario() {
     <main className="min-h-screen bg-[#F5F5F7] dark:bg-slate-950 p-4 sm:p-6 md:p-10 font-sans text-slate-800 dark:text-slate-100 pb-20">
 
       {showModal && productoEdit && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 hoja-movil">
           <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-md w-full p-8 animate-in zoom-in-95">
             <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-1">Resurtir Producto</h3>
             <p className="text-sm font-bold text-teal-600 mb-6">{productoEdit.producto}</p>
@@ -152,7 +152,7 @@ export default function ModuloInventario() {
       )}
 
       {showNuevoProducto && (
-        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 hoja-movil">
           <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl max-w-lg w-full p-8 animate-in zoom-in-95 border border-slate-200 dark:border-slate-700">
             <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 mb-1">Nuevo Producto</h3>
             <p className="text-xs text-slate-500 dark:text-slate-400 mb-6">Registra un nuevo suplemento en la farmacia.</p>
@@ -190,43 +190,43 @@ export default function ModuloInventario() {
 
       <div className="max-w-6xl mx-auto space-y-6">
 
-        <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700">
+        <div className="flex justify-between items-center gap-3 bg-white dark:bg-slate-900 p-3 sm:p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700">
           <Link href="/" className="text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors flex items-center gap-2">
-            <span className="text-lg">&larr;</span> Volver al Dashboard
+            <span className="text-lg">&larr;</span> <span className="sm:hidden">Inicio</span><span className="hidden sm:inline">Volver al Dashboard</span>
           </Link>
-          <button onClick={() => setShowNuevoProducto(true)} className="bg-slate-900 dark:bg-slate-600 text-white px-6 py-3 rounded-2xl text-sm font-black hover:bg-teal-600 transition-all shadow-md flex items-center gap-2">
+          <button onClick={() => setShowNuevoProducto(true)} className="bg-slate-900 dark:bg-slate-600 text-white px-4 sm:px-6 py-3 rounded-2xl text-sm font-black hover:bg-teal-600 transition-all shadow-md flex items-center gap-2 whitespace-nowrap">
             <span>📦</span> Alta de Producto
           </button>
         </div>
 
         <div className="flex flex-col md:flex-row gap-6">
-          <div className="w-full md:w-1/3 flex flex-col gap-4">
-            <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-3xl shadow-md text-white relative overflow-hidden">
+          <div className="w-full md:w-1/3 grid grid-cols-2 md:flex md:flex-col gap-3 md:gap-4">
+            <div className="col-span-2 bg-gradient-to-br from-slate-800 to-slate-900 p-5 md:p-6 rounded-3xl shadow-md text-white relative overflow-hidden">
               <div className="absolute top-0 right-0 -mr-6 -mt-6 text-8xl opacity-10">💰</div>
               <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest mb-1 relative z-10">Capital Congelado (Costo)</p>
               <p className="text-3xl font-black tracking-tighter relative z-10">${metricas.capitalInvertido.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
               <p className="text-xs text-slate-400 dark:text-slate-500 mt-2 font-medium relative z-10">Dinero invertido en stock actual.</p>
             </div>
 
-            <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700">
+            <div className="bg-white dark:bg-slate-900 p-4 md:p-6 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700">
               <p className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-1">Valor Venta Estimado</p>
-              <p className="text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">${metricas.valorVentaTotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
-              <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center">
+              <p className="text-xl md:text-3xl font-black text-slate-800 dark:text-slate-100 tracking-tighter">${metricas.valorVentaTotal.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</p>
+              <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 flex flex-wrap justify-between items-center gap-x-2">
                 <span className="text-xs font-bold text-slate-500 dark:text-slate-400">Ganancia Potencial</span>
                 <span className="text-sm font-black text-emerald-500">+${metricas.gananciaPotencial.toLocaleString('es-MX', { minimumFractionDigits: 2 })}</span>
               </div>
             </div>
 
-            <div className={`p-6 rounded-3xl shadow-sm border ${metricas.productosCriticos > 0 ? 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800' : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800'}`}>
+            <div className={`p-4 md:p-6 rounded-3xl shadow-sm border ${metricas.productosCriticos > 0 ? 'bg-red-50 dark:bg-red-950/40 border-red-200 dark:border-red-800' : 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800'}`}>
               <p className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${metricas.productosCriticos > 0 ? 'text-red-500' : 'text-emerald-600'}`}>Alertas de Stock</p>
-              <p className={`text-3xl font-black tracking-tighter ${metricas.productosCriticos > 0 ? 'text-red-700 dark:text-red-300' : 'text-emerald-700 dark:text-emerald-300'}`}>
-                {metricas.productosCriticos} <span className="text-sm font-bold">productos críticos</span>
+              <p className={`text-xl md:text-3xl font-black tracking-tighter ${metricas.productosCriticos > 0 ? 'text-red-700 dark:text-red-300' : 'text-emerald-700 dark:text-emerald-300'}`}>
+                {metricas.productosCriticos} <span className="text-xs md:text-sm font-bold tracking-normal">productos críticos</span>
               </p>
             </div>
           </div>
 
           <div className="flex-1 bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col">
-            <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-4 bg-slate-50/50 dark:bg-slate-800/50">
+            <div className="p-4 sm:p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4 bg-slate-50/50 dark:bg-slate-800/50">
               <h2 className="text-xl font-black text-slate-800 dark:text-slate-100">Catálogo ({metricas.totalItems})</h2>
               <div className="relative w-full sm:w-64">
                 <span className="absolute left-4 top-2.5 text-slate-400 dark:text-slate-500">🔍</span>
@@ -240,8 +240,32 @@ export default function ModuloInventario() {
               </div>
             </div>
 
-            <div className="flex-1 overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[700px]">
+            {/* Celular: tarjetas en vez de tabla */}
+            <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+              {inventarioFiltrado.map((p) => {
+                const margen = p.precio_venta - p.costo_unit
+                const pctMargen = p.precio_venta > 0 ? ((margen / p.precio_venta) * 100).toFixed(0) : '0'
+                return (
+                  <button key={p.id} onClick={() => abrirEdicion(p)} className="w-full text-left p-4 flex items-center gap-3 active:bg-slate-50 dark:active:bg-slate-800 transition-colors">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">{p.producto}</p>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider truncate">{p.proveedor || 'Sin Proveedor'}</p>
+                      <p className="text-xs mt-1.5 font-medium text-slate-500 dark:text-slate-400">
+                        <span className="font-black text-teal-700 dark:text-teal-300">${p.precio_venta.toFixed(2)}</span> · costo ${p.costo_unit.toFixed(2)} · <span className="font-bold text-emerald-500">{pctMargen}%</span>
+                      </p>
+                    </div>
+                    <span className={`shrink-0 min-w-[2.75rem] text-center px-3 py-2 rounded-xl text-sm font-black ${p.stock <= 5 ? 'bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300' : p.stock <= 15 ? 'bg-amber-100 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300' : 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300'}`}>{p.stock}</span>
+                    <span className="shrink-0 text-slate-300 dark:text-slate-600 text-lg">›</span>
+                  </button>
+                )
+              })}
+              {inventarioFiltrado.length === 0 && (
+                <p className="py-12 text-center text-slate-400 dark:text-slate-500 font-bold text-sm">No se encontraron productos en el almacén.</p>
+              )}
+            </div>
+
+            <div className="hidden md:block flex-1 overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[640px]">
                 <thead>
                   <tr className="bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
                     <th className="py-4 px-6 text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500">Producto</th>

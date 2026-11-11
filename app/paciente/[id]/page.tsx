@@ -292,6 +292,12 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
   const [modoConsulta, setModoConsulta] = useState(false)
   const [showCheckout, setShowCheckout] = useState(false)
   const [seccionActiva, setSeccionActiva] = useState('antecedentes')
+  // En celular las secciones van en una tira horizontal: mantiene visible la activa y regresa arriba al cambiar.
+  useEffect(() => {
+    if (typeof window === 'undefined' || window.innerWidth >= 1024) return
+    document.querySelector(`[data-seccion="${seccionActiva}"]`)?.scrollIntoView({ inline: 'center', block: 'nearest' })
+    window.scrollTo({ top: 0 })
+  }, [seccionActiva])
   const [realizarPlicometria, setRealizarPlicometria] = useState<'Si' | 'No'>('No')
   const [plicometriaValores, setPlicometriaValores] = useState<Record<string, string>>({})
 
@@ -831,27 +837,27 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
     return (
       <main className="min-h-screen bg-[#F5F5F7] dark:bg-slate-950 flex flex-col lg:flex-row">
         <div className="w-full lg:w-72 bg-slate-900 text-slate-300 flex flex-col sticky top-0 lg:h-screen z-20">
-          <div className="p-5 bg-slate-950 border-b border-slate-800">
+          <div className="px-4 py-3 lg:p-5 bg-slate-950 border-b border-slate-800 flex flex-wrap items-center gap-x-3 gap-y-1 lg:block">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/logo-marla-firma-blanco.png" alt="Marla Polo" className="h-6 w-auto mb-3" />
+            <img src="/logo-marla-firma-blanco.png" alt="Marla Polo" className="hidden lg:block h-6 w-auto mb-3" />
             <button
               onClick={() => { if (window.confirm('¿Salir de la consulta? Tu progreso se guardó automáticamente y podrás retomarlo desde el perfil del paciente.')) setModoConsulta(false) }}
-              className="mb-3 flex items-center gap-1.5 text-[11px] font-bold text-slate-400 dark:text-slate-500 hover:text-white transition-colors"
+              className="order-1 lg:mb-3 flex items-center gap-1.5 text-[11px] font-bold text-slate-400 dark:text-slate-500 hover:text-white transition-colors py-1.5 shrink-0"
             >
-              <span className="text-sm">&larr;</span> Salir sin terminar
+              <span className="text-sm">&larr;</span> Salir<span className="hidden lg:inline"> sin terminar</span>
             </button>
-            <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-black uppercase mb-1.5 ${esPrimeraVez ? 'bg-amber-500 text-amber-950' : 'bg-teal-500 text-teal-950'}`}>
-              {esPrimeraVez ? 'Estudio de Primera Vez' : 'Control de Seguimiento'}
+            <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-black uppercase lg:mb-1.5 order-3 lg:order-none shrink-0 ${esPrimeraVez ? 'bg-amber-500 text-amber-950' : 'bg-teal-500 text-teal-950'}`}>
+              <span className="lg:hidden">{esPrimeraVez ? '1ª Vez' : 'Seguimiento'}</span><span className="hidden lg:inline">{esPrimeraVez ? 'Estudio de Primera Vez' : 'Control de Seguimiento'}</span>
             </span>
-            <h2 className="text-white font-black text-md truncate">{paciente.nombre_completo}</h2>
+            <h2 className="order-2 lg:order-none flex-1 min-w-0 text-white font-black text-sm lg:text-base truncate">{paciente.nombre_completo}</h2>
             {ultimoAutoguardado && (
-              <p className="text-[9px] text-slate-500 dark:text-slate-400 font-bold mt-1.5 flex items-center gap-1">
+              <p className="order-4 w-full lg:w-auto text-[9px] text-slate-500 dark:text-slate-400 font-bold lg:mt-1.5 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                 Guardado {ultimoAutoguardado.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })}
               </p>
             )}
           </div>
-          <div className="flex lg:flex-col overflow-x-auto lg:overflow-y-auto p-3 gap-1 flex-1">
+          <div className="flex lg:flex-col overflow-x-auto lg:overflow-y-auto px-3 py-2 lg:p-3 gap-1 flex-1 sin-scrollbar">
             {esPrimeraVez ? (
               [
                 { id: 'antecedentes', label: '1. Antecedentes', icon: '📝' },
@@ -860,7 +866,7 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
                 { id: 'estilo', label: '4. Estilo de Vida', icon: '🥗' },
                 { id: 'enfoque', label: '5. Enfoque Nutricional', icon: '🎯' },
               ].map(tab => (
-                <button key={tab.id} onClick={() => setSeccionActiva(tab.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold text-left whitespace-nowrap transition-all ${seccionActiva === tab.id ? 'bg-teal-600 text-white shadow-md' : 'hover:bg-slate-800'}`}>
+                <button key={tab.id} onClick={() => setSeccionActiva(tab.id)} data-seccion={tab.id} className={`w-auto lg:w-full shrink-0 flex items-center gap-2 lg:gap-3 px-3.5 lg:px-4 py-2.5 lg:py-3 rounded-xl text-xs font-bold text-left whitespace-nowrap transition-all ${seccionActiva === tab.id ? 'bg-teal-600 text-white shadow-md' : 'hover:bg-slate-800'}`}>
                   <span>{tab.icon}</span> {tab.label}
                 </button>
               ))
@@ -873,25 +879,25 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
                 { id: 'antecedentes', label: '5. Actualizar Antecedentes', icon: '📝' },
                 { id: 'estilo', label: '6. Actualizar Estilo de Vida', icon: '🥗' },
               ].map(tab => (
-                <button key={tab.id} onClick={() => setSeccionActiva(tab.id)} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-xs font-bold text-left whitespace-nowrap transition-all ${seccionActiva === tab.id ? 'bg-teal-600 text-white shadow-md' : 'hover:bg-slate-800'}`}>
+                <button key={tab.id} onClick={() => setSeccionActiva(tab.id)} data-seccion={tab.id} className={`w-auto lg:w-full shrink-0 flex items-center gap-2 lg:gap-3 px-3.5 lg:px-4 py-2.5 lg:py-3 rounded-xl text-xs font-bold text-left whitespace-nowrap transition-all ${seccionActiva === tab.id ? 'bg-teal-600 text-white shadow-md' : 'hover:bg-slate-800'}`}>
                   <span>{tab.icon}</span> {tab.label}
                 </button>
               ))
             )}
           </div>
-          <div className="p-4 bg-slate-950 border-t border-slate-800">
-            <button onClick={abrirCheckout} className="w-full py-3 bg-teal-500 text-teal-950 rounded-xl text-xs font-black hover:bg-teal-400 transition-all shadow-md text-center">
+          <div className="fixed bottom-0 inset-x-0 lg:static p-3 lg:p-4 bg-slate-950 border-t border-slate-800 z-30" style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}>
+            <button onClick={abrirCheckout} className="w-full py-3.5 lg:py-3 bg-teal-500 text-teal-950 rounded-xl text-xs font-black hover:bg-teal-400 transition-all shadow-md text-center">
               Recetar y Mandar a Caja &rarr;
             </button>
           </div>
         </div>
 
-        <div className="flex-1 p-4 md:p-8 overflow-y-auto">
-          <div className="max-w-4xl mx-auto bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm p-6 sm:p-10">
+        <div className="flex-1 p-3 pb-28 md:p-8 md:pb-28 lg:pb-8 overflow-y-auto">
+          <div className="max-w-4xl mx-auto bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-700 shadow-sm p-5 sm:p-10">
 
             {seccionActiva === 'antecedentes' && (
               <div className="space-y-6 animate-in fade-in">
-                <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3">1. Historial de Antecedentes</h3>
+                <h3 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3">1. Historial de Antecedentes</h3>
                 {!esPrimeraVez && (
                   <div className="bg-sky-50 dark:bg-sky-950/40 border border-sky-100 dark:border-sky-800/60 rounded-2xl p-4 text-xs text-sky-900 dark:text-sky-300 font-medium">
                     Se precargó lo último registrado. Solo actualiza lo que haya cambiado (nuevo medicamento, alergia, cirugía, etc.).
@@ -966,7 +972,7 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
 
             {seccionActiva === 'seguimiento_notas' && !esPrimeraVez && (
               <div className="space-y-6 animate-in fade-in">
-                <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3">1. Seguimiento Clínico</h3>
+                <h3 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3">1. Seguimiento Clínico</h3>
                 <div className="bg-sky-50 dark:bg-sky-950/40 border border-sky-100 dark:border-sky-800/60 rounded-2xl p-5 text-sm text-sky-900 dark:text-sky-300 font-medium shadow-sm">
                   <span className="font-bold block mb-1">Evolución previa:</span> {ultimaConsulta?.notas_evolucion || 'Sin anotaciones previas.'}
                 </div>
@@ -979,7 +985,7 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
 
             {seccionActiva === 'mediciones' && (
               <div className="space-y-6 animate-in fade-in">
-                <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3">2. Antropometría y Mediciones</h3>
+                <h3 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3">2. Antropometría y Mediciones</h3>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
                   <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Circ. Abdominal (cm)</label><input type="number" name="circ_abdominal" value={formClinico.circ_abdominal} onChange={handleFormChange} className="w-full p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500 transition-all" /></div>
                   <div><label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Circ. Umbilical (cm)</label><input type="number" name="circ_umbilical" value={formClinico.circ_umbilical} onChange={handleFormChange} className="w-full p-4 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm outline-none focus:ring-2 focus:ring-teal-500 transition-all" /></div>
@@ -1007,7 +1013,7 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
 
             {seccionActiva === 'peso' && (
               <div className="space-y-6 animate-in fade-in">
-                <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3">3. Composición Corporal (InBody)</h3>
+                <h3 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3">3. Composición Corporal (InBody)</h3>
 
                 {ultimaConsultaConInbody && (
                   <div className="bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl p-4">
@@ -1057,7 +1063,7 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
 
             {seccionActiva === 'estilo' && (
               <div className="space-y-6 animate-in fade-in">
-                <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3">4. Alimentación y Estilo de Vida</h3>
+                <h3 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3">4. Alimentación y Estilo de Vida</h3>
                 {!esPrimeraVez && (
                   <div className="bg-sky-50 dark:bg-sky-950/40 border border-sky-100 dark:border-sky-800/60 rounded-2xl p-4 text-xs text-sky-900 dark:text-sky-300 font-medium">
                     Se precargó lo último registrado. Solo actualiza lo que haya cambiado.
@@ -1111,7 +1117,7 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
 
             {seccionActiva === 'enfoque' && (
               <div className="space-y-6 animate-in fade-in">
-                <h3 className="text-2xl font-black text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3">Enfoque Nutricional</h3>
+                <h3 className="text-xl sm:text-2xl font-black text-slate-800 dark:text-slate-100 border-b border-slate-100 dark:border-slate-800 pb-3">Enfoque Nutricional</h3>
                 <div className="space-y-5">
                   <div>
                     <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Enfoque Nutricional</label>
@@ -1168,7 +1174,7 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
   // ==============================================================================
   if (showCheckout && esFullAccess) {
     return (
-      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4 sm:p-8">
+      <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4 sm:p-8 hoja-movil">
         <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl max-w-4xl w-full flex flex-col md:flex-row overflow-hidden border border-slate-200/50 animate-in zoom-in-95 duration-200 max-h-[90vh]">
 
           <div className="w-full md:w-2/3 bg-white dark:bg-slate-900 p-6 md:p-10 overflow-y-auto border-r border-slate-100 dark:border-slate-800 flex flex-col gap-8">
@@ -1278,7 +1284,7 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
       )}
 
       {showEditPaciente && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4">
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-md flex items-center justify-center z-50 p-4 hoja-movil">
           <div className="bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl max-w-md w-full p-8">
             <h3 className="text-xl font-black text-slate-800 dark:text-slate-100 mb-2">Editar Perfil</h3>
             <div className="space-y-4 mb-8">
@@ -1325,10 +1331,10 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
           </div>
         )}
 
-        <div className="flex justify-between items-center bg-white dark:bg-slate-900 p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700">
-          <Link href="/" className="text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white flex items-center gap-2"><span className="text-lg">&larr;</span> Directorio</Link>
+        <div className="flex justify-between items-center gap-2 bg-white dark:bg-slate-900 p-3 sm:p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700">
+          <Link href="/" className="shrink-0 text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white flex items-center gap-2 py-2 pl-1"><span className="text-lg">&larr;</span> Directorio</Link>
 
-          <div className="flex gap-2">
+          <div className="flex flex-wrap justify-end gap-2 min-w-0">
             {!citaHoyEnEspera && !yaAtendidoHoy && citaHoyProgramada && (
               <button onClick={hacerCheckIn} className="px-5 py-3 rounded-2xl text-sm font-black transition-all flex items-center gap-2 bg-teal-50 dark:bg-teal-950/40 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 hover:bg-teal-100">
                 <span>🛋️</span> <span className="hidden sm:inline">Anunciar Llegada</span> Check-In
@@ -1340,8 +1346,8 @@ export default function ExpedientePaciente({ params }: { params: { id: string } 
               </button>
             )}
             {esFullAccess && (
-              <button onClick={iniciarConsulta} className="bg-slate-900 dark:bg-slate-600 text-white px-6 py-3 rounded-2xl text-sm font-black hover:bg-teal-600 transition-all flex items-center gap-2">
-                <span>🩺</span> {citaHoyEnEspera ? 'Paciente Esperando - Iniciar Consulta' : 'Nueva Consulta Directa'}
+              <button onClick={iniciarConsulta} className="bg-slate-900 dark:bg-slate-600 text-white px-4 sm:px-6 py-3 rounded-2xl text-sm font-black hover:bg-teal-600 transition-all flex items-center gap-2">
+                <span>🩺</span> {citaHoyEnEspera ? <><span className="sm:hidden">Iniciar Consulta</span><span className="hidden sm:inline">Paciente Esperando - Iniciar Consulta</span></> : <><span className="sm:hidden">Nueva Consulta</span><span className="hidden sm:inline">Nueva Consulta Directa</span></>}
               </button>
             )}
           </div>
