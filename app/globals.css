@@ -78,6 +78,37 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
   background-color: transparent;
 }
 
+/* Portal del paciente: se imprime completo (Descargar PDF), en claro y sin botones */
+@media print {
+  body:has(.portal-imprimible) * {
+    visibility: visible !important;
+  }
+  body:has(.portal-imprimible) {
+    background: #fff !important;
+  }
+  .portal-imprimible {
+    background: #fff !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+    zoom: 0.72;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .portal-imprimible > div {
+    max-width: 100% !important;
+  }
+  .portal-imprimible > div > * + * {
+    margin-top: 14px !important;
+  }
+  .portal-imprimible > div > div {
+    break-inside: avoid;
+    box-shadow: none !important;
+  }
+  .portal-imprimible .no-imprimir {
+    display: none !important;
+  }
+}
+
 @media print {
   body * {
     visibility: hidden;

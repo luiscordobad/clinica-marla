@@ -97,6 +97,10 @@ export type Cita = {
   tipo: TipoCita
   estado: EstadoCita
   notas: string | null
+  // Respuesta del paciente desde su portal
+  confirmada_at?: string | null
+  cambio_solicitado_at?: string | null
+  cambio_mensaje?: string | null
   created_by: string | null
   created_at: string
   updated_at: string
