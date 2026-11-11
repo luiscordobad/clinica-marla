@@ -5,6 +5,7 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import InstalarApp from '../../components/InstalarApp'
+import { DIAS_SEMANA, HORARIO_SUGERIDO, type HorarioAtencion } from '../../lib/horario'
 import { supabase } from '../../lib/supabase'
 import { obtenerEstadoSesion, type SesionActual } from '../../lib/auth'
 import { useCierreAutomatico } from '../../lib/inactividad'
@@ -33,6 +34,7 @@ export default function Usuarios() {
   const [servicios, setServicios] = useState<Servicio[]>([])
   const [configClinica, setConfigClinica] = useState<ConfiguracionClinica | null>(null)
   const [formClinica, setFormClinica] = useState({ nombre_clinica: '', direccion: '', telefono_contacto: '', horario: '' })
+  const [horarioAtencion, setHorarioAtencion] = useState<HorarioAtencion | null>(null)
   const [guardandoClinica, setGuardandoClinica] = useState(false)
   const [actividad, setActividad] = useState<ActividadItem[]>([])
   const [cargandoActividad, setCargandoActividad] = useState(false)
@@ -87,6 +89,7 @@ export default function Usuarios() {
     const { data } = await supabase.from('configuracion_clinica').select('*').eq('id', true).single()
     if (data) {
       setConfigClinica(data as ConfiguracionClinica)
+      setHorarioAtencion((data as ConfiguracionClinica).horario_atencion || null)
       setFormClinica({
         nombre_clinica: (data as ConfiguracionClinica).nombre_clinica || '',
         direccion: (data as ConfiguracionClinica).direccion || '',
@@ -252,8 +255,12 @@ export default function Usuarios() {
   }
 
   const guardarClinica = async () => {
+    if (horarioAtencion) {
+      const invertido = DIAS_SEMANA.find(d => { const h = horarioAtencion[d.clave]; return h && h.cierra <= h.abre })
+      if (invertido) return mostrarToast(`${invertido.nombre}: la hora de cierre debe ser después de la de apertura`)
+    }
     setGuardandoClinica(true)
-    const { error } = await supabase.from('configuracion_clinica').update(formClinica).eq('id', true)
+    const { error } = await supabase.from('configuracion_clinica').update({ ...formClinica, horario_atencion: horarioAtencion }).eq('id', true)
     if (!error) { await cargarConfigClinica(); mostrarToast('Perfil de clínica actualizado') } else mostrarToast('Error: ' + error.message)
     setGuardandoClinica(false)
   }
@@ -564,8 +571,42 @@ export default function Usuarios() {
               <input type="text" value={formClinica.telefono_contacto} onChange={(e) => setFormClinica({ ...formClinica, telefono_contacto: e.target.value })} className="w-full p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#28363E]" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Horario de Atención</label>
+              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Horario de Atención (texto para tickets y portal)</label>
               <input type="text" value={formClinica.horario} onChange={(e) => setFormClinica({ ...formClinica, horario: e.target.value })} placeholder="Ej. Lunes a Viernes 9am - 6pm" className="w-full p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#28363E]" />
+            </div>
+            <div className="pt-5 border-t border-slate-100 dark:border-slate-800">
+              <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Horario de la agenda</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 mb-3">La agenda solo muestra estas horas, marca los días cerrados y avisa si se agenda fuera de horario (se puede hacer una excepción).</p>
+              {!horarioAtencion ? (
+                <button onClick={() => setHorarioAtencion({ ...HORARIO_SUGERIDO })} className="w-full py-3 border border-dashed border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-xl text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">🕐 Configurar horario de atención</button>
+              ) : (
+                <div className="space-y-2">
+                  {DIAS_SEMANA.map(d => {
+                    const h = horarioAtencion[d.clave] ?? null
+                    return (
+                      <div key={d.clave} className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2.5">
+                        <label className="flex items-center gap-2.5 w-28 sm:w-32 shrink-0 cursor-pointer">
+                          <input type="checkbox" checked={!!h} onChange={(e) => setHorarioAtencion({ ...horarioAtencion, [d.clave]: e.target.checked ? { abre: '09:00', cierra: '19:00' } : null })} className="w-4 h-4 accent-[#28363E]" />
+                          <span className={`text-sm font-bold ${h ? 'text-slate-800 dark:text-slate-100' : 'text-slate-400 dark:text-slate-500'}`}>{d.nombre}</span>
+                        </label>
+                        {h ? (
+                          <div className="flex items-center gap-1.5 basis-full sm:basis-auto flex-1 min-w-0">
+                            <input type="time" step={1800} value={h.abre} onChange={(e) => setHorarioAtencion({ ...horarioAtencion, [d.clave]: { ...h, abre: e.target.value } })} className="flex-1 min-w-0 p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-bold text-slate-800 dark:text-slate-100 outline-none" />
+                            <span className="text-xs text-slate-400">a</span>
+                            <input type="time" step={1800} value={h.cierra} onChange={(e) => setHorarioAtencion({ ...horarioAtencion, [d.clave]: { ...h, cierra: e.target.value } })} className="flex-1 min-w-0 p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-bold text-slate-800 dark:text-slate-100 outline-none" />
+                          </div>
+                        ) : (
+                          <span className="text-xs font-bold text-slate-400 dark:text-slate-500">Cerrado</span>
+                        )}
+                      </div>
+                    )
+                  })}
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 pt-1">
+                    <button onClick={() => { const l = horarioAtencion['1']; if (l) setHorarioAtencion({ ...horarioAtencion, '2': { ...l }, '3': { ...l }, '4': { ...l }, '5': { ...l } }) }} className="text-[11px] font-bold text-[#28363E] dark:text-slate-300 hover:underline">Copiar lunes a martes–viernes</button>
+                    <button onClick={() => setHorarioAtencion(null)} className="text-[11px] font-bold text-slate-400 dark:text-slate-500 hover:underline">Quitar horario (agenda sin restricción)</button>
+                  </div>
+                </div>
+              )}
             </div>
             <button onClick={guardarClinica} disabled={guardandoClinica} className="w-full py-3 bg-[#28363E] dark:bg-[#3D5360] text-white rounded-xl text-sm font-black hover:bg-[#1C262C] dark:hover:bg-[#4A6472] transition-colors disabled:opacity-50">
               {guardandoClinica ? 'Guardando...' : 'Guardar Cambios'}

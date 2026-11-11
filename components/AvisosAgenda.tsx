@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { Cita } from '../lib/types'
 import { diasEntre, proximosFeriados } from '../lib/feriados'
+import { diaCerrado, type HorarioAtencion } from '../lib/horario'
 
 export type RangoBloqueo = { inicio: string; fin: string; motivo: string; ids: string[] }
 
@@ -27,10 +28,12 @@ const enCuanto = (n: number) => n <= 0 ? 'hoy' : n === 1 ? 'mañana' : `en ${n} 
 
 const CLAVE = 'feriados_ignorados'
 
+// Los feriados que caen en un día que la clínica ya tiene cerrado no se recuerdan.
 // Recordatorios de la agenda: feriados de México que vienen y vacaciones/bloqueos próximos.
-export default function AvisosAgenda({ citas, hoy, onBloquear, onIrAFecha, onGestionar }: {
+export default function AvisosAgenda({ citas, hoy, horario, onBloquear, onIrAFecha, onGestionar }: {
   citas: Cita[]
   hoy: string
+  horario: HorarioAtencion | null
   onBloquear: (fecha: string, motivo: string) => void
   onIrAFecha: (fecha: string) => void
   onGestionar: () => void
@@ -47,8 +50,8 @@ export default function AvisosAgenda({ citas, hoy, onBloquear, onIrAFecha, onGes
 
   const feriados = useMemo(() => {
     const bloqueados = new Set(citas.filter(c => c.tipo === 'bloqueo' && activa(c)).map(c => c.fecha_cita))
-    return proximosFeriados(hoy, 45).filter(f => !bloqueados.has(f.fecha) && !ignorados.includes(f.fecha) && new Date(f.fecha + 'T12:00:00').getDay() !== 0)
-  }, [citas, hoy, ignorados])
+    return proximosFeriados(hoy, 45).filter(f => !bloqueados.has(f.fecha) && !ignorados.includes(f.fecha) && (horario ? !diaCerrado(horario, f.fecha) : new Date(f.fecha + 'T12:00:00').getDay() !== 0))
+  }, [citas, hoy, ignorados, horario])
 
   const vacaciones = useMemo(() => agruparBloqueos(citas, hoy).filter(r => diasEntre(hoy, r.inicio) <= 21), [citas, hoy])
 

@@ -14,6 +14,7 @@ import {
 import { fechaLocalISO } from '../lib/fecha'
 import Link from 'next/link'
 import { feriadoEn } from '../lib/feriados'
+import { diaCerrado, fueraDeHorario, horaCerrada, horarioDelDia, horasDeAgenda, textoHorarioDia, type HorarioAtencion } from '../lib/horario'
 import AvisosAgenda, { agruparBloqueos, textoRango } from '../components/AvisosAgenda'
 
 export default function Home() {
@@ -26,6 +27,7 @@ export default function Home() {
   const [consultasResumen, setConsultasResumen] = useState<{ paciente_id: string; tipo: string; fecha: string; antecedentes: any }[]>([])
 
   const [loading, setLoading] = useState(true)
+  const [horarioAtencion, setHorarioAtencion] = useState<HorarioAtencion | null>(null)
   const [sesion, setSesion] = useState<SesionActual | null>(null)
   useCierreAutomatico(sesion?.usuario.auto_logout_minutos)
   const { tema, alternarTema } = useTema()
@@ -120,7 +122,6 @@ export default function Home() {
   const totalPagadoVenta = Number(formVenta.efectivo) + Number(formVenta.tarjeta) + Number(formVenta.transferencia)
   const balanceVenta = totalPagadoVenta - totalVenta
 
-  const HORAS_SMART = ['07:00', '08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00', '21:00']
   const DIAS_NOMBRES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
 
   const mostrarToast = (mensaje: string, tipo: 'exito' | 'error' | 'advertencia') => { setToast({ mensaje, tipo }); setTimeout(() => setToast(null), 4000) }
@@ -202,6 +203,7 @@ export default function Home() {
     const [{ data: pData }, { data: cData }, { data: payData }, { data: ppData }] = await Promise.all(consultas)
     if (pData) setPacientes(pData as Paciente[])
     if (cData) setCitas(cData as Cita[])
+    supabase.rpc('horario_atencion_clinica').then(({ data }) => { if (data && typeof data === 'object' && !Array.isArray(data)) setHorarioAtencion(data as HorarioAtencion) })
     if (payData) setPagos(payData as Pago[])
     if (ppData) setPagoProductos(ppData as PagoProducto[])
 
@@ -232,8 +234,11 @@ export default function Home() {
   // Al abrir la agenda en laptop, baja directo a la hora actual en vez de empezar en las 7 am.
   useEffect(() => {
     if (loading || activeTab !== 'Mi Consultorio' || window.innerWidth < 768) return
-    const hora = String(Math.min(21, Math.max(7, new Date().getHours()))).padStart(2, '0')
-    document.querySelector(`[data-hora="${hora}"]`)?.scrollIntoView({ block: 'center' })
+    const filas = Array.from(document.querySelectorAll<HTMLElement>('[data-hora]'))
+    if (filas.length === 0) return
+    const ahora = new Date().getHours()
+    const fila = filas.find(f => parseInt(f.dataset.hora || '0', 10) >= ahora) || filas[filas.length - 1]
+    fila.scrollIntoView({ block: 'center' })
   }, [loading, activeTab])
 
   const cerrarSesion = async () => { await supabase.auth.signOut(); window.location.href = '/login' }
@@ -272,7 +277,10 @@ export default function Home() {
     })
   }, [formCita.fecha, formCita.hora, formCita.tipo, citas])
 
-  const abrirAgendadorRapido = (fecha: string, hora: string) => { setFormCita({ paciente_id: '', fecha, hora, tipo: 'seguimiento', repeticion: 1 }); setShowModalAgendar(true) }
+  const abrirAgendadorRapido = (fecha: string, hora: string) => {
+    if (horaCerrada(horarioAtencion, fecha, hora) && !window.confirm(`Ese horario está fuera del horario de atención (${textoHorarioDia(horarioDelDia(horarioAtencion, fecha))}). ¿Agendar de todas formas?`)) return
+    setFormCita({ paciente_id: '', fecha, hora, tipo: 'seguimiento', repeticion: 1 }); setShowModalAgendar(true)
+  }
 
   const agendarNuevaCita = async () => {
     if (hayColisionCita) return mostrarToast('Existe un conflicto de horario.', 'error')
@@ -710,6 +718,10 @@ export default function Home() {
     return p.nombre_completo.toLowerCase().includes(searchTerm.toLowerCase()) || coincidePorTelefono
   })
   const diasSemanales = obtenerDiasSemana(fechaSeleccionada)
+  // La cuadrícula solo muestra el horario de atención (más cualquier hora que ya tenga citas esa semana).
+  const HORAS_SMART = horasDeAgenda(horarioAtencion, horarioAtencion
+    ? citas.filter(c => c.tipo !== 'bloqueo' && c.estado !== 'cancelada' && c.estado !== 'ausente' && diasSemanales.some(d => d.iso === c.fecha_cita)).map(c => parseInt(c.hora_cita.substring(0, 2), 10))
+    : [])
   const citasManana = citas.filter(c => c.fecha_cita === mananaFechaFormat && c.estado !== 'cancelada' && c.estado !== 'ausente' && c.tipo !== 'bloqueo')
 
   const pacienteCitaSeleccionada = citaSeleccionada && citaSeleccionada.tipo !== 'bloqueo' ? pacientes.find(p => p.id === citaSeleccionada.paciente_id) : null
@@ -1146,6 +1158,7 @@ export default function Home() {
               )}
             </div>
 
+            {formCita.tipo !== 'bloqueo' && formCita.fecha && formCita.hora && fueraDeHorario(horarioAtencion, formCita.fecha, formCita.hora, DURACION_POR_TIPO[formCita.tipo]) && <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl p-3 text-xs font-bold text-amber-700 dark:text-amber-300 mb-4 flex gap-2"><span>🕐</span> Fuera del horario de atención ({textoHorarioDia(horarioDelDia(horarioAtencion, formCita.fecha))} ese día). Puedes guardarla si es una excepción.</div>}
             {formCita.tipo !== 'bloqueo' && feriadoEn(formCita.fecha) && <div className="bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800 rounded-xl p-3 text-xs font-bold text-amber-700 dark:text-amber-300 mb-4 flex gap-2"><span>🇲🇽</span> Ese día es {feriadoEn(formCita.fecha)!.nombre}{feriadoEn(formCita.fecha)!.oficial ? ' (feriado oficial)' : ''}. Confirma que sí habrá consulta.</div>}
             {hayColisionCita && <div className="bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 rounded-xl p-3 text-xs font-bold text-rose-600 mb-4 animate-in fade-in flex gap-2"><span>⚠️</span> Horario ocupado por duración.</div>}
 
@@ -1375,6 +1388,7 @@ export default function Home() {
                         <div key={i} className={`py-3 text-center border-r border-slate-100 dark:border-slate-800 ${d.iso === hoyFechaFormat ? 'text-[#28363E] dark:text-slate-300 font-black bg-slate-50/30 dark:bg-slate-800/30 border-b-2 border-b-[#28363E] dark:border-b-[#28363E]' : 'text-slate-600 dark:text-slate-300 font-bold border-b-2 border-transparent'}`}>
                           <span className="text-[10px] uppercase block leading-none opacity-60 mb-0.5">{DIAS_NOMBRES[i]}</span>
                           <span className="text-base leading-none">{d.dateObj.getDate()}</span>
+                          {diaCerrado(horarioAtencion, d.iso) && !feriadoEn(d.iso) && <span className="block text-[9px] font-bold text-slate-400 dark:text-slate-500 mt-1 leading-none">Cerrado</span>}
                           {feriadoEn(d.iso) && <span title={feriadoEn(d.iso)!.nombre} className="block text-[9px] font-bold text-rose-500 dark:text-rose-400 truncate px-1 mt-1 leading-none">🇲🇽 {feriadoEn(d.iso)!.nombre}</span>}
                         </div>
                       )) : (
@@ -1397,7 +1411,7 @@ export default function Home() {
                             return (
                               <div
                                 key={colIdx}
-                                className={`border-r border-slate-100 dark:border-slate-800 relative p-1 transition-colors cursor-pointer group hover:bg-slate-50 dark:hover:bg-slate-800 ${isoDate === hoyFechaFormat ? 'bg-slate-50/10 dark:bg-slate-800/10' : 'bg-transparent'}`}
+                                className={`border-r border-slate-100 dark:border-slate-800 relative p-1 transition-colors cursor-pointer group hover:bg-slate-50 dark:hover:bg-slate-800 ${horaCerrada(horarioAtencion, isoDate, hora) ? 'bg-slate-100/80 dark:bg-slate-950/60' : isoDate === hoyFechaFormat ? 'bg-slate-50/10 dark:bg-slate-800/10' : 'bg-transparent'}`}
                                 onClick={() => { if (!bloqueada) abrirAgendadorRapido(isoDate, hora) }}
                               >
                                 {citasEnCelda.map(c => {
@@ -1497,7 +1511,7 @@ export default function Home() {
                           onClick={() => { setFechaSeleccionada(d.iso); setVistaAgenda('Dia') }}
                           className={`w-9 h-9 flex flex-col items-center justify-center rounded-full mx-auto cursor-pointer relative transition-colors ${d.iso === fechaSeleccionada ? 'bg-[#28363E] dark:bg-[#3D5360] text-white shadow-md' : bloqueado ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 line-through' : d.iso === hoyFechaFormat ? 'bg-slate-50 dark:bg-slate-800/60 text-[#28363E] dark:text-slate-300' : d.enMes ? 'text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700' : 'text-slate-300'}`}
                         >
-                          <span className={feriadoEn(d.iso) && d.iso !== fechaSeleccionada ? 'text-rose-500 dark:text-rose-400' : ''} title={feriadoEn(d.iso)?.nombre}>{d.dateObj.getDate()}</span>
+                          <span className={d.iso === fechaSeleccionada ? '' : feriadoEn(d.iso) ? 'text-rose-500 dark:text-rose-400' : diaCerrado(horarioAtencion, d.iso) ? 'text-slate-300 dark:text-slate-600' : ''} title={feriadoEn(d.iso)?.nombre || (diaCerrado(horarioAtencion, d.iso) ? 'Cerrado' : undefined)}>{d.dateObj.getDate()}</span>
                           {hasCitas && d.iso !== fechaSeleccionada && <div className={`absolute bottom-1 w-1 h-1 rounded-full ${bloqueado ? 'bg-slate-400' : 'bg-amber-400'}`}></div>}
                         </div>
                       )
@@ -1507,7 +1521,7 @@ export default function Home() {
 
                 <hr className="border-slate-100 dark:border-slate-800" />
 
-                <AvisosAgenda citas={citas} hoy={hoyFechaFormat} onBloquear={bloquearDia} onIrAFecha={(f) => { setFechaSeleccionada(f); setVistaAgenda('Dia') }} onGestionar={() => setShowModalVacaciones(true)} />
+                <AvisosAgenda horario={horarioAtencion} citas={citas} hoy={hoyFechaFormat} onBloquear={bloquearDia} onIrAFecha={(f) => { setFechaSeleccionada(f); setVistaAgenda('Dia') }} onGestionar={() => setShowModalVacaciones(true)} />
 
                 <div>
                   <h3 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3 flex items-center justify-between">
@@ -1602,7 +1616,7 @@ export default function Home() {
                       className={`shrink-0 w-14 py-2.5 rounded-2xl flex flex-col items-center gap-0.5 border transition-colors ${seleccionado ? 'bg-[#28363E] dark:bg-[#3D5360] border-[#28363E] dark:border-[#5B7785] text-white shadow-md' : bloqueado ? 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500' : d.iso === hoyFechaFormat ? 'bg-slate-50 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 text-[#28363E] dark:text-slate-300' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300'}`}
                     >
                       <span className="text-[9px] font-black uppercase opacity-70">{DIAS_NOMBRES[i]}</span>
-                      <span className={`text-base font-black leading-none ${feriadoEn(d.iso) && !seleccionado ? 'text-rose-500 dark:text-rose-400' : ''}`}>{d.dateObj.getDate()}</span>
+                      <span className={`text-base font-black leading-none ${seleccionado ? '' : feriadoEn(d.iso) ? 'text-rose-500 dark:text-rose-400' : diaCerrado(horarioAtencion, d.iso) ? 'text-slate-300 dark:text-slate-600' : ''}`}>{d.dateObj.getDate()}</span>
                       <div className={`w-1 h-1 rounded-full mt-0.5 ${bloqueado ? (seleccionado ? 'bg-white dark:bg-slate-900' : 'bg-slate-400') : hasCitas ? (seleccionado ? 'bg-white dark:bg-slate-900' : 'bg-amber-400') : 'bg-transparent'}`}></div>
                     </button>
                   )
@@ -1613,9 +1627,13 @@ export default function Home() {
                 <p className="mx-4 mt-1 mb-1 text-[11px] font-black text-rose-600 dark:text-rose-300 bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 rounded-xl px-3 py-2">🇲🇽 {feriadoEn(fechaSeleccionada)!.nombre}{feriadoEn(fechaSeleccionada)!.oficial ? ' · feriado oficial' : ''}</p>
               )}
 
+              {diaCerrado(horarioAtencion, fechaSeleccionada) && !feriadoEn(fechaSeleccionada) && (
+                <p className="mx-4 mt-1 mb-1 text-[11px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2">🕐 Día fuera del horario de atención</p>
+              )}
+
               {fechaSeleccionada === hoyFechaFormat && (
                 <div className="px-4 pt-2 pb-1">
-                  <AvisosAgenda citas={citas} hoy={hoyFechaFormat} onBloquear={bloquearDia} onIrAFecha={setFechaSeleccionada} onGestionar={() => setShowModalVacaciones(true)} />
+                  <AvisosAgenda horario={horarioAtencion} citas={citas} hoy={hoyFechaFormat} onBloquear={bloquearDia} onIrAFecha={setFechaSeleccionada} onGestionar={() => setShowModalVacaciones(true)} />
                 </div>
               )}
 
