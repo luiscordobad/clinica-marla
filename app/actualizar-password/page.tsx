@@ -43,54 +43,54 @@ export default function ActualizarPassword() {
   }
 
   return (
-    <main className="min-h-screen bg-[#F4F6F9] flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 border border-slate-100">
+    <main className="min-h-screen bg-[#F4F6F9] dark:bg-slate-950 flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-8 border border-slate-100 dark:border-slate-800">
         <div className="text-center mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-marla-completo.png" alt="Marla Polo — Nutrición Clínica & Diabetes" className="h-16 w-auto mx-auto mb-4" />
-          <p className="text-slate-500 mt-1 text-sm">Establece tu nueva contraseña</p>
+          <img src="/logo-marla-completo.png" alt="Marla Polo — Nutrición Clínica & Diabetes" className="h-16 w-auto mx-auto mb-4 dark:brightness-0 dark:invert" />
+          <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">Establece tu nueva contraseña</p>
         </div>
 
         {verificando ? (
-          <p className="text-center text-sm text-slate-400 py-6 animate-pulse">Verificando link...</p>
+          <p className="text-center text-sm text-slate-400 dark:text-slate-500 py-6 animate-pulse">Verificando link...</p>
         ) : !sesionValida ? (
           <div className="text-center space-y-4">
-            <div className="bg-rose-50 text-rose-600 p-4 rounded-xl text-sm border border-rose-200 font-medium">
+            <div className="bg-rose-50 dark:bg-rose-950/40 text-rose-600 p-4 rounded-xl text-sm border border-rose-200 dark:border-rose-800 font-medium">
               Este link no es válido o ya expiró. Solicita uno nuevo desde la pantalla de inicio de sesión.
             </div>
-            <Link href="/login" className="inline-block text-sm font-bold text-[#28363E] hover:underline">← Volver a iniciar sesión</Link>
+            <Link href="/login" className="inline-block text-sm font-bold text-[#28363E] dark:text-slate-300 hover:underline">← Volver a iniciar sesión</Link>
           </div>
         ) : listo ? (
-          <div className="bg-slate-50 text-[#28363E] p-4 rounded-xl text-sm text-center border border-slate-200 font-medium">
+          <div className="bg-slate-50 dark:bg-slate-800/60 text-[#28363E] dark:text-slate-300 p-4 rounded-xl text-sm text-center border border-slate-200 dark:border-slate-700 font-medium">
             ¡Listo! Tu contraseña se actualizó. Entrando al sistema...
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-bold text-slate-600 mb-2">Nueva contraseña</label>
+              <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-2">Nueva contraseña</label>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#28363E] focus:border-[#28363E] outline-none transition-all text-slate-800"
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[#28363E] focus:border-[#28363E] outline-none transition-all text-slate-800 dark:text-slate-100"
                 placeholder="••••••••"
                 required
               />
             </div>
             <div>
-              <label className="block text-sm font-bold text-slate-600 mb-2">Confirma tu nueva contraseña</label>
+              <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-2">Confirma tu nueva contraseña</label>
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#28363E] focus:border-[#28363E] outline-none transition-all text-slate-800"
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[#28363E] focus:border-[#28363E] outline-none transition-all text-slate-800 dark:text-slate-100"
                 placeholder="••••••••"
                 required
               />
             </div>
 
             {error && (
-              <div className="bg-rose-50 text-rose-600 p-3 rounded-xl text-sm text-center border border-rose-200 font-bold">
+              <div className="bg-rose-50 dark:bg-rose-950/40 text-rose-600 p-3 rounded-xl text-sm text-center border border-rose-200 dark:border-rose-800 font-bold">
                 {error}
               </div>
             )}
@@ -98,7 +98,7 @@ export default function ActualizarPassword() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#28363E] text-white font-black py-3.5 rounded-xl hover:bg-[#1C262C] transition-colors disabled:opacity-50 shadow-sm"
+              className="w-full bg-[#28363E] dark:bg-[#3D5360] text-white font-black py-3.5 rounded-xl hover:bg-[#1C262C] dark:hover:bg-[#4A6472] transition-colors disabled:opacity-50 shadow-sm"
             >
               {loading ? 'Guardando...' : 'Actualizar contraseña'}
             </button>

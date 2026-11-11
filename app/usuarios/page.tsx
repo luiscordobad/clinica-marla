@@ -7,6 +7,7 @@ import Link from 'next/link'
 import { supabase } from '../../lib/supabase'
 import { obtenerEstadoSesion, type SesionActual } from '../../lib/auth'
 import { useCierreAutomatico } from '../../lib/inactividad'
+import { useTema } from '../../lib/tema'
 import type { RolUsuario, Usuario, Servicio, ConfiguracionClinica } from '../../lib/types'
 
 type ActividadItem = {
@@ -22,6 +23,7 @@ export default function Usuarios() {
   const [cargando, setCargando] = useState(true)
   const [sesion, setSesion] = useState<SesionActual | null>(null)
   useCierreAutomatico(sesion?.usuario.auto_logout_minutos)
+  const { tema, cambiarTema } = useTema()
   const [usuarios, setUsuarios] = useState<Usuario[]>([])
   const [guardandoId, setGuardandoId] = useState<string | null>(null)
   const [toast, setToast] = useState<string | null>(null)
@@ -255,13 +257,13 @@ export default function Usuarios() {
     setGuardandoClinica(false)
   }
 
-  if (cargando) return <div className="min-h-screen bg-[#F8FAFC] flex items-center justify-center"><p className="animate-pulse font-bold text-[#28363E]">Cargando...</p></div>
+  if (cargando) return <div className="min-h-screen bg-[#F8FAFC] dark:bg-slate-950 flex items-center justify-center"><p className="animate-pulse font-bold text-[#28363E] dark:text-slate-300">Cargando...</p></div>
 
   const pendientes = usuarios.filter(u => !u.activo)
   const activos = usuarios.filter(u => u.activo)
 
   return (
-    <div className="min-h-screen bg-[#F4F6F9] p-6 md:p-10">
+    <div className="min-h-screen bg-[#F4F6F9] dark:bg-slate-950 p-6 md:p-10">
       {toast && (
         <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-[#00D084] text-white px-6 py-3 rounded-full shadow-xl font-bold text-sm">{toast}</div>
       )}
@@ -269,10 +271,10 @@ export default function Usuarios() {
       <div className="max-w-3xl mx-auto">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-black text-slate-800">Ajustes</h1>
-            <p className="text-sm text-slate-500 mt-1">Tu perfil{sesion?.esFullAccess ? ', accesos, catálogo de servicios, perfil de la clínica y actividad reciente.' : '.'}</p>
+            <h1 className="text-2xl font-black text-slate-800 dark:text-slate-100">Ajustes</h1>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Tu perfil{sesion?.esFullAccess ? ', accesos, catálogo de servicios, perfil de la clínica y actividad reciente.' : '.'}</p>
           </div>
-          <Link href="/" className="text-sm font-bold text-[#28363E] hover:underline">← Regresar</Link>
+          <Link href="/" className="text-sm font-bold text-[#28363E] dark:text-slate-300 hover:underline">← Regresar</Link>
         </div>
 
         <div className="flex gap-2 mb-8 overflow-x-auto pb-1">
@@ -288,7 +290,7 @@ export default function Usuarios() {
             <button
               key={t.id}
               onClick={() => { setVista(t.id as any); if (t.id === 'actividad' && actividad.length === 0) cargarActividad(usuarios) }}
-              className={`px-4 py-2.5 rounded-xl text-xs font-black whitespace-nowrap transition-colors ${vista === t.id ? 'bg-[#28363E] text-white shadow-sm' : 'bg-white border border-slate-200 text-slate-500 hover:border-slate-300'}`}
+              className={`px-4 py-2.5 rounded-xl text-xs font-black whitespace-nowrap transition-colors ${vista === t.id ? 'bg-[#28363E] dark:bg-[#3D5360] text-white shadow-sm' : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500'}`}
             >
               {t.l}
             </button>
@@ -296,102 +298,117 @@ export default function Usuarios() {
         </div>
 
         {vista === 'perfil' && sesion && (
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6 max-w-lg">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm space-y-6 max-w-lg">
             <div className="flex items-center gap-5">
               <div className="relative shrink-0">
                 {sesion.usuario.avatar_url ? (
                   /* eslint-disable-next-line @next/next/no-img-element */
-                  <img src={sesion.usuario.avatar_url} alt={sesion.usuario.nombre} className="w-20 h-20 rounded-full object-cover border border-slate-200" />
+                  <img src={sesion.usuario.avatar_url} alt={sesion.usuario.nombre} className="w-20 h-20 rounded-full object-cover border border-slate-200 dark:border-slate-700" />
                 ) : (
-                  <div className="w-20 h-20 rounded-full bg-slate-100 flex items-center justify-center text-2xl font-black text-[#28363E] border border-slate-200">
+                  <div className="w-20 h-20 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-2xl font-black text-[#28363E] dark:text-slate-300 border border-slate-200 dark:border-slate-700">
                     {sesion.usuario.nombre.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
                   </div>
                 )}
-                {subiendoAvatar && <div className="absolute inset-0 bg-white/70 rounded-full flex items-center justify-center text-[10px] font-bold text-slate-500">...</div>}
+                {subiendoAvatar && <div className="absolute inset-0 bg-white/70 rounded-full flex items-center justify-center text-[10px] font-bold text-slate-500 dark:text-slate-400">...</div>}
               </div>
               <div>
-                <label className="inline-block cursor-pointer bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold px-4 py-2.5 rounded-xl transition-colors">
+                <label className="inline-block cursor-pointer bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 text-xs font-bold px-4 py-2.5 rounded-xl transition-colors">
                   {sesion.usuario.avatar_url ? 'Cambiar foto' : 'Subir foto'}
                   <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) subirAvatar(f) }} disabled={subiendoAvatar} />
                 </label>
-                <p className="text-[11px] text-slate-400 mt-1.5">JPG o PNG, máximo 3MB.</p>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-1.5">JPG o PNG, máximo 3MB.</p>
               </div>
             </div>
 
-            <div className="space-y-4 pt-2 border-t border-slate-100">
+            <div className="space-y-4 pt-2 border-t border-slate-100 dark:border-slate-800">
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Nombre completo</label>
-                <input type="text" value={formPerfil.nombre} onChange={(e) => setFormPerfil({ ...formPerfil, nombre: e.target.value })} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-[#28363E]" />
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Nombre completo</label>
+                <input type="text" value={formPerfil.nombre} onChange={(e) => setFormPerfil({ ...formPerfil, nombre: e.target.value })} className="w-full p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-[#28363E]" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Correo</label>
-                <input type="text" value={sesion.usuario.email} disabled className="w-full p-3.5 bg-slate-100 border border-slate-200 rounded-xl text-sm text-slate-500 outline-none" />
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Correo</label>
+                <input type="text" value={sesion.usuario.email} disabled className="w-full p-3.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm text-slate-500 dark:text-slate-400 outline-none" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Teléfono</label>
-                <input type="text" value={formPerfil.telefono} onChange={(e) => setFormPerfil({ ...formPerfil, telefono: e.target.value })} placeholder="Ej. 55 1234 5678" className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#28363E]" />
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Teléfono</label>
+                <input type="text" value={formPerfil.telefono} onChange={(e) => setFormPerfil({ ...formPerfil, telefono: e.target.value })} placeholder="Ej. 55 1234 5678" className="w-full p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#28363E]" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Puesto</label>
-                <input type="text" value={formPerfil.puesto} onChange={(e) => setFormPerfil({ ...formPerfil, puesto: e.target.value })} placeholder="Ej. Nutrióloga, Recepción" className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#28363E]" />
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Puesto</label>
+                <input type="text" value={formPerfil.puesto} onChange={(e) => setFormPerfil({ ...formPerfil, puesto: e.target.value })} placeholder="Ej. Nutrióloga, Recepción" className="w-full p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#28363E]" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Cerrar mi sesión sola por inactividad</label>
-                <p className="text-[11px] text-slate-400 mb-2">Útil en una computadora compartida, ej. recepción.</p>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Apariencia</label>
                 <div className="flex flex-wrap gap-2">
-                  {[{ v: null, l: 'Nunca' }, { v: 5, l: '5 min' }, { v: 15, l: '15 min' }, { v: 30, l: '30 min' }].map(op => (
+                  {[{ v: 'light' as const, l: '☀️ Claro' }, { v: 'dark' as const, l: '🌙 Oscuro' }].map(op => (
                     <button
-                      key={op.l}
+                      key={op.v}
                       type="button"
-                      onClick={() => setFormPerfil({ ...formPerfil, auto_logout_minutos: op.v })}
-                      className={`px-3.5 py-2 rounded-full text-xs font-bold border transition-all ${formPerfil.auto_logout_minutos === op.v ? 'bg-[#28363E] border-[#28363E] text-white shadow-sm' : 'bg-white border-slate-200 text-slate-500 hover:border-slate-300'}`}
+                      onClick={() => cambiarTema(op.v)}
+                      className={`px-3.5 py-2 rounded-full text-xs font-bold border transition-all ${tema === op.v ? 'bg-[#28363E] dark:bg-[#3D5360] border-[#28363E] dark:border-[#5B7785] text-white shadow-sm' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500'}`}
                     >
                       {op.l}
                     </button>
                   ))}
                 </div>
               </div>
-              <button onClick={guardarPerfil} disabled={guardandoPerfil} className="w-full py-3 bg-[#28363E] text-white rounded-xl text-sm font-black hover:bg-[#1C262C] transition-colors disabled:opacity-50">
+              <div>
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Cerrar mi sesión sola por inactividad</label>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500 mb-2">Útil en una computadora compartida, ej. recepción.</p>
+                <div className="flex flex-wrap gap-2">
+                  {[{ v: null, l: 'Nunca' }, { v: 5, l: '5 min' }, { v: 15, l: '15 min' }, { v: 30, l: '30 min' }].map(op => (
+                    <button
+                      key={op.l}
+                      type="button"
+                      onClick={() => setFormPerfil({ ...formPerfil, auto_logout_minutos: op.v })}
+                      className={`px-3.5 py-2 rounded-full text-xs font-bold border transition-all ${formPerfil.auto_logout_minutos === op.v ? 'bg-[#28363E] dark:bg-[#3D5360] border-[#28363E] dark:border-[#5B7785] text-white shadow-sm' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500'}`}
+                    >
+                      {op.l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <button onClick={guardarPerfil} disabled={guardandoPerfil} className="w-full py-3 bg-[#28363E] dark:bg-[#3D5360] text-white rounded-xl text-sm font-black hover:bg-[#1C262C] dark:hover:bg-[#4A6472] transition-colors disabled:opacity-50">
                 {guardandoPerfil ? 'Guardando...' : 'Guardar Cambios'}
               </button>
             </div>
 
-            <div className="space-y-4 pt-6 border-t border-slate-100">
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Cambiar Correo</p>
+            <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-slate-800">
+              <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Cambiar Correo</p>
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Nuevo correo electrónico</label>
-                <input type="email" value={nuevoCorreo} onChange={(e) => setNuevoCorreo(e.target.value)} placeholder="nuevo@correo.com" className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#28363E]" />
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Nuevo correo electrónico</label>
+                <input type="email" value={nuevoCorreo} onChange={(e) => setNuevoCorreo(e.target.value)} placeholder="nuevo@correo.com" className="w-full p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#28363E]" />
               </div>
               {avisoCorreo && (
-                <div className="bg-slate-50 text-[#28363E] p-3 rounded-xl text-xs text-center border border-slate-200 font-medium">{avisoCorreo}</div>
+                <div className="bg-slate-50 dark:bg-slate-800/60 text-[#28363E] dark:text-slate-300 p-3 rounded-xl text-xs text-center border border-slate-200 dark:border-slate-700 font-medium">{avisoCorreo}</div>
               )}
               <button onClick={cambiarCorreo} disabled={cambiandoCorreo || !nuevoCorreo} className="w-full py-3 bg-slate-800 text-white rounded-xl text-sm font-black hover:bg-slate-900 transition-colors disabled:opacity-50">
                 {cambiandoCorreo ? 'Enviando...' : 'Cambiar Correo'}
               </button>
             </div>
 
-            <div className="space-y-4 pt-6 border-t border-slate-100">
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Cambiar Contraseña</p>
+            <div className="space-y-4 pt-6 border-t border-slate-100 dark:border-slate-800">
+              <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Cambiar Contraseña</p>
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Nueva contraseña</label>
-                <input type="password" value={formPassword.nueva} onChange={(e) => setFormPassword({ ...formPassword, nueva: e.target.value })} placeholder="••••••••" className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#28363E]" />
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Nueva contraseña</label>
+                <input type="password" value={formPassword.nueva} onChange={(e) => setFormPassword({ ...formPassword, nueva: e.target.value })} placeholder="••••••••" className="w-full p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#28363E]" />
               </div>
               <div>
-                <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Confirma la nueva contraseña</label>
-                <input type="password" value={formPassword.confirmar} onChange={(e) => setFormPassword({ ...formPassword, confirmar: e.target.value })} placeholder="••••••••" className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#28363E]" />
+                <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Confirma la nueva contraseña</label>
+                <input type="password" value={formPassword.confirmar} onChange={(e) => setFormPassword({ ...formPassword, confirmar: e.target.value })} placeholder="••••••••" className="w-full p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#28363E]" />
               </div>
               {errorPassword && (
-                <div className="bg-rose-50 text-rose-600 p-3 rounded-xl text-xs text-center border border-rose-200 font-bold">{errorPassword}</div>
+                <div className="bg-rose-50 dark:bg-rose-950/40 text-rose-600 p-3 rounded-xl text-xs text-center border border-rose-200 dark:border-rose-800 font-bold">{errorPassword}</div>
               )}
               <button onClick={cambiarPassword} disabled={cambiandoPassword || !formPassword.nueva} className="w-full py-3 bg-slate-800 text-white rounded-xl text-sm font-black hover:bg-slate-900 transition-colors disabled:opacity-50">
                 {cambiandoPassword ? 'Actualizando...' : 'Cambiar Contraseña'}
               </button>
             </div>
 
-            <div className="space-y-3 pt-6 border-t border-slate-100">
-              <p className="text-xs font-black text-slate-400 uppercase tracking-widest">Seguridad</p>
-              <p className="text-xs text-slate-500">Si perdiste tu celular o computadora con la sesión abierta, cierra el acceso desde todos lados.</p>
-              <button onClick={cerrarTodasLasSesiones} disabled={cerrandoTodo} className="w-full py-3 bg-rose-50 text-rose-600 border border-rose-200 rounded-xl text-sm font-black hover:bg-rose-100 transition-colors disabled:opacity-50">
+            <div className="space-y-3 pt-6 border-t border-slate-100 dark:border-slate-800">
+              <p className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Seguridad</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400">Si perdiste tu celular o computadora con la sesión abierta, cierra el acceso desde todos lados.</p>
+              <button onClick={cerrarTodasLasSesiones} disabled={cerrandoTodo} className="w-full py-3 bg-rose-50 dark:bg-rose-950/40 text-rose-600 border border-rose-200 dark:border-rose-800 rounded-xl text-sm font-black hover:bg-rose-100 transition-colors disabled:opacity-50">
                 {cerrandoTodo ? 'Cerrando...' : '🔒 Cerrar sesión en todos los dispositivos'}
               </button>
             </div>
@@ -405,16 +422,16 @@ export default function Usuarios() {
                 <h2 className="text-xs font-black text-amber-600 uppercase tracking-widest mb-3">⏳ Pendientes de aprobación ({pendientes.length})</h2>
                 <div className="space-y-3">
                   {pendientes.map(u => (
-                    <div key={u.id} className="bg-white border border-amber-200 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+                    <div key={u.id} className="bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-800 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
                       <div>
-                        <p className="font-black text-slate-800">{u.nombre}</p>
-                        <p className="text-sm text-slate-500">{u.email}</p>
+                        <p className="font-black text-slate-800 dark:text-slate-100">{u.nombre}</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">{u.email}</p>
                       </div>
                       <div className="flex gap-2">
                         <select
                           defaultValue="operativo"
                           id={`rol-nuevo-${u.id}`}
-                          className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none"
+                          className="p-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold outline-none"
                         >
                           <option value="operativo">Personal Administrativo</option>
                           <option value="full_access">Acceso Total</option>
@@ -436,25 +453,25 @@ export default function Usuarios() {
               </div>
             )}
 
-            <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Cuentas activas ({activos.length})</h2>
+            <h2 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-3">Cuentas activas ({activos.length})</h2>
             <div className="space-y-3">
               {activos.map(u => {
                 const esUnoMismo = sesion?.usuario.id === u.id
                 return (
-                  <div key={u.id} className="bg-white border border-slate-200 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+                  <div key={u.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
                     <div className="flex items-center gap-3.5 min-w-0">
                       {u.avatar_url ? (
                         /* eslint-disable-next-line @next/next/no-img-element */
-                        <img src={u.avatar_url} alt={u.nombre} className="w-11 h-11 rounded-full object-cover border border-slate-200 shrink-0" />
+                        <img src={u.avatar_url} alt={u.nombre} className="w-11 h-11 rounded-full object-cover border border-slate-200 dark:border-slate-700 shrink-0" />
                       ) : (
-                        <div className="w-11 h-11 rounded-full bg-slate-100 flex items-center justify-center text-sm font-black text-[#28363E] border border-slate-200 shrink-0">
+                        <div className="w-11 h-11 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-sm font-black text-[#28363E] dark:text-slate-300 border border-slate-200 dark:border-slate-700 shrink-0">
                           {u.nombre.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()}
                         </div>
                       )}
                       <div className="min-w-0">
-                        <p className="font-black text-slate-800 truncate">{u.nombre} {esUnoMismo && <span className="text-[10px] text-[#28363E] font-black ml-1">(TÚ)</span>}</p>
-                        <p className="text-sm text-slate-500 truncate">{u.puesto ? `${u.puesto} · ` : ''}{u.email}</p>
-                        <p className="text-[11px] text-slate-400 font-medium truncate">{formatearUltimoAcceso(ultimoAcceso[u.id])}</p>
+                        <p className="font-black text-slate-800 dark:text-slate-100 truncate">{u.nombre} {esUnoMismo && <span className="text-[10px] text-[#28363E] dark:text-slate-300 font-black ml-1">(TÚ)</span>}</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 truncate">{u.puesto ? `${u.puesto} · ` : ''}{u.email}</p>
+                        <p className="text-[11px] text-slate-400 dark:text-slate-500 font-medium truncate">{formatearUltimoAcceso(ultimoAcceso[u.id])}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
@@ -462,7 +479,7 @@ export default function Usuarios() {
                         value={u.rol}
                         disabled={esUnoMismo || guardandoId === u.id}
                         onChange={(e) => actualizarUsuario(u.id, { rol: e.target.value as RolUsuario })}
-                        className="p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none disabled:opacity-50"
+                        className="p-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold outline-none disabled:opacity-50"
                       >
                         <option value="operativo">Personal Administrativo</option>
                         <option value="full_access">Acceso Total</option>
@@ -470,7 +487,7 @@ export default function Usuarios() {
                       <button
                         disabled={esUnoMismo || guardandoId === u.id}
                         onClick={() => actualizarUsuario(u.id, { activo: false })}
-                        className="text-rose-500 text-xs font-bold px-3 py-2.5 rounded-xl border border-rose-200 hover:bg-rose-50 transition-colors disabled:opacity-40"
+                        className="text-rose-500 text-xs font-bold px-3 py-2.5 rounded-xl border border-rose-200 dark:border-rose-800 hover:bg-rose-50 transition-colors disabled:opacity-40"
                       >
                         Desactivar
                       </button>
@@ -480,7 +497,7 @@ export default function Usuarios() {
               })}
             </div>
 
-            <div className="mt-8 bg-slate-50 border border-slate-200 rounded-2xl p-5 text-sm text-[#28363E]">
+            <div className="mt-8 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-2xl p-5 text-sm text-[#28363E] dark:text-slate-300">
               <p className="font-bold mb-1">¿Cómo le doy acceso a alguien nuevo?</p>
               <p>Pídele que entre a la pantalla de inicio de sesión y toque "Personal nuevo, crea tu cuenta aquí". En cuanto se registre, aparecerá aquí arriba en "Pendientes de aprobación" para que le asignes su nivel de acceso.</p>
             </div>
@@ -490,64 +507,64 @@ export default function Usuarios() {
         {vista === 'servicios' && sesion?.esFullAccess && (
           <div>
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Catálogo de Servicios ({servicios.length})</h2>
-              <button onClick={agregarServicio} className="bg-[#28363E] text-white text-xs font-black px-3.5 py-2 rounded-lg hover:bg-[#1C262C] transition-colors">+ Agregar</button>
+              <h2 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Catálogo de Servicios ({servicios.length})</h2>
+              <button onClick={agregarServicio} className="bg-[#28363E] dark:bg-[#3D5360] text-white text-xs font-black px-3.5 py-2 rounded-lg hover:bg-[#1C262C] dark:hover:bg-[#4A6472] transition-colors">+ Agregar</button>
             </div>
-            <p className="text-xs text-slate-500 mb-4">Estos son los servicios que aparecen al cobrar en el expediente del paciente. Cambia el nombre o precio y se guarda solo.</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Estos son los servicios que aparecen al cobrar en el expediente del paciente. Cambia el nombre o precio y se guarda solo.</p>
             <div className="space-y-3">
               {servicios.map(s => (
-                <div key={s.id} className={`bg-white border rounded-2xl p-4 flex flex-wrap items-center gap-3 shadow-sm ${s.activo ? 'border-slate-200' : 'border-slate-100 opacity-50'}`}>
+                <div key={s.id} className={`bg-white dark:bg-slate-900 border rounded-2xl p-4 flex flex-wrap items-center gap-3 shadow-sm ${s.activo ? 'border-slate-200 dark:border-slate-700' : 'border-slate-100 dark:border-slate-800 opacity-50'}`}>
                   <span className="text-xl">{s.icono}</span>
                   <input
                     type="text"
                     defaultValue={s.nombre}
                     onBlur={(e) => e.target.value !== s.nombre && actualizarServicio(s.id, { nombre: e.target.value })}
-                    className="flex-1 min-w-[140px] p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-[#28363E]"
+                    className="flex-1 min-w-[140px] p-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-[#28363E]"
                   />
                   <div className="flex items-center gap-1">
-                    <span className="text-slate-400 text-sm">$</span>
+                    <span className="text-slate-400 dark:text-slate-500 text-sm">$</span>
                     <input
                       type="number"
                       defaultValue={s.precio}
                       onBlur={(e) => Number(e.target.value) !== s.precio && actualizarServicio(s.id, { precio: Number(e.target.value) || 0 })}
-                      className="w-24 p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-[#28363E] text-center"
+                      className="w-24 p-2.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-black outline-none focus:ring-2 focus:ring-[#28363E] text-center"
                     />
                   </div>
                   <button
                     onClick={() => actualizarServicio(s.id, { activo: !s.activo })}
-                    className={`text-xs font-bold px-3 py-2 rounded-lg transition-colors ${s.activo ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' : 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200'}`}
+                    className={`text-xs font-bold px-3 py-2 rounded-lg transition-colors ${s.activo ? 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600' : 'bg-emerald-100 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-200'}`}
                   >
                     {s.activo ? 'Ocultar' : 'Reactivar'}
                   </button>
-                  <button onClick={() => eliminarServicio(s.id)} className="text-rose-500 text-xs font-bold px-3 py-2 rounded-lg border border-rose-200 hover:bg-rose-50 transition-colors">Eliminar</button>
+                  <button onClick={() => eliminarServicio(s.id)} className="text-rose-500 text-xs font-bold px-3 py-2 rounded-lg border border-rose-200 dark:border-rose-800 hover:bg-rose-50 transition-colors">Eliminar</button>
                 </div>
               ))}
-              {servicios.length === 0 && <p className="text-center text-sm text-slate-400 py-10">Sin servicios todavía.</p>}
+              {servicios.length === 0 && <p className="text-center text-sm text-slate-400 dark:text-slate-500 py-10">Sin servicios todavía.</p>}
             </div>
           </div>
         )}
 
         {vista === 'clinica' && sesion?.esFullAccess && (
-          <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-4 max-w-lg">
-            <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Perfil de la Clínica</h2>
-            <p className="text-xs text-slate-500 -mt-2">Esta información aparece en el portal del paciente y se usa como referencia en tickets.</p>
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 shadow-sm space-y-4 max-w-lg">
+            <h2 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Perfil de la Clínica</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 -mt-2">Esta información aparece en el portal del paciente y se usa como referencia en tickets.</p>
             <div>
-              <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Nombre de la Clínica</label>
-              <input type="text" value={formClinica.nombre_clinica} onChange={(e) => setFormClinica({ ...formClinica, nombre_clinica: e.target.value })} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-[#28363E]" />
+              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Nombre de la Clínica</label>
+              <input type="text" value={formClinica.nombre_clinica} onChange={(e) => setFormClinica({ ...formClinica, nombre_clinica: e.target.value })} className="w-full p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-bold outline-none focus:ring-2 focus:ring-[#28363E]" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Dirección</label>
-              <input type="text" value={formClinica.direccion} onChange={(e) => setFormClinica({ ...formClinica, direccion: e.target.value })} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#28363E]" />
+              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Dirección</label>
+              <input type="text" value={formClinica.direccion} onChange={(e) => setFormClinica({ ...formClinica, direccion: e.target.value })} className="w-full p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#28363E]" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Teléfono de Contacto</label>
-              <input type="text" value={formClinica.telefono_contacto} onChange={(e) => setFormClinica({ ...formClinica, telefono_contacto: e.target.value })} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#28363E]" />
+              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Teléfono de Contacto</label>
+              <input type="text" value={formClinica.telefono_contacto} onChange={(e) => setFormClinica({ ...formClinica, telefono_contacto: e.target.value })} className="w-full p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#28363E]" />
             </div>
             <div>
-              <label className="block text-xs font-bold text-slate-500 mb-1.5 ml-1">Horario de Atención</label>
-              <input type="text" value={formClinica.horario} onChange={(e) => setFormClinica({ ...formClinica, horario: e.target.value })} placeholder="Ej. Lunes a Viernes 9am - 6pm" className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#28363E]" />
+              <label className="block text-xs font-bold text-slate-500 dark:text-slate-400 mb-1.5 ml-1">Horario de Atención</label>
+              <input type="text" value={formClinica.horario} onChange={(e) => setFormClinica({ ...formClinica, horario: e.target.value })} placeholder="Ej. Lunes a Viernes 9am - 6pm" className="w-full p-3.5 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-[#28363E]" />
             </div>
-            <button onClick={guardarClinica} disabled={guardandoClinica} className="w-full py-3 bg-[#28363E] text-white rounded-xl text-sm font-black hover:bg-[#1C262C] transition-colors disabled:opacity-50">
+            <button onClick={guardarClinica} disabled={guardandoClinica} className="w-full py-3 bg-[#28363E] dark:bg-[#3D5360] text-white rounded-xl text-sm font-black hover:bg-[#1C262C] dark:hover:bg-[#4A6472] transition-colors disabled:opacity-50">
               {guardandoClinica ? 'Guardando...' : 'Guardar Cambios'}
             </button>
           </div>
@@ -556,30 +573,30 @@ export default function Usuarios() {
         {vista === 'actividad' && sesion?.esFullAccess && (
           <div>
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-              <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest">Actividad Reciente</h2>
+              <h2 className="text-xs font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Actividad Reciente</h2>
               <select
                 value={filtroActividad}
                 onChange={(e) => setFiltroActividad(e.target.value)}
-                className="p-2 bg-white border border-slate-200 rounded-lg text-xs font-bold outline-none focus:ring-2 focus:ring-[#28363E]"
+                className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-xs font-bold outline-none focus:ring-2 focus:ring-[#28363E]"
               >
                 <option value="">Todos</option>
                 {usuarios.map(u => <option key={u.id} value={u.id}>{u.nombre}</option>)}
               </select>
             </div>
             {cargandoActividad ? (
-              <p className="text-center text-sm text-slate-400 py-10 animate-pulse">Cargando...</p>
+              <p className="text-center text-sm text-slate-400 dark:text-slate-500 py-10 animate-pulse">Cargando...</p>
             ) : (
               <div className="space-y-2.5">
                 {actividad.filter(a => !filtroActividad || a.quienId === filtroActividad).map(a => (
-                  <div key={a.id} className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
+                  <div key={a.id} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-4 flex items-center gap-3 shadow-sm">
                     <span className="text-lg shrink-0">{a.icono}</span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-slate-800 truncate">{a.texto}</p>
-                      <p className="text-[11px] text-slate-500">{a.quien} · {new Date(a.cuando).toLocaleString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
+                      <p className="text-sm font-bold text-slate-800 dark:text-slate-100 truncate">{a.texto}</p>
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">{a.quien} · {new Date(a.cuando).toLocaleString('es-MX', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
                     </div>
                   </div>
                 ))}
-                {actividad.filter(a => !filtroActividad || a.quienId === filtroActividad).length === 0 && <p className="text-center text-sm text-slate-400 py-10">Sin actividad registrada para este filtro.</p>}
+                {actividad.filter(a => !filtroActividad || a.quienId === filtroActividad).length === 0 && <p className="text-center text-sm text-slate-400 dark:text-slate-500 py-10">Sin actividad registrada para este filtro.</p>}
               </div>
             )}
           </div>

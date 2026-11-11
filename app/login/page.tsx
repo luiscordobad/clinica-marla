@@ -5,10 +5,12 @@ export const dynamic = 'force-dynamic'
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase'
 import { obtenerEstadoSesion } from '../../lib/auth'
+import { useTema } from '../../lib/tema'
 
 type Modo = 'login' | 'registro' | 'recuperar'
 
 export default function Login() {
+  const { tema, alternarTema } = useTema()
   const [modo, setModo] = useState<Modo>('login')
   const [nombre, setNombre] = useState('')
   const [email, setEmail] = useState('')
@@ -119,16 +121,19 @@ export default function Login() {
   }
 
   return (
-    <main className="min-h-screen bg-[#F4F6F9] flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-xl p-8 border border-slate-100">
+    <main className="min-h-screen bg-[#F4F6F9] dark:bg-slate-950 flex items-center justify-center p-4 relative">
+      <button onClick={alternarTema} title={tema === 'dark' ? 'Modo claro' : 'Modo oscuro'} className="absolute top-4 right-4 w-9 h-9 rounded-lg flex items-center justify-center text-slate-500 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+        {tema === 'dark' ? '☀️' : '🌙'}
+      </button>
+      <div className="max-w-md w-full bg-white dark:bg-slate-900 rounded-3xl shadow-xl p-8 border border-slate-100 dark:border-slate-800">
         <div className="text-center mb-8">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo-marla-completo.png" alt="Marla Polo — Nutrición Clínica & Diabetes" className="h-16 w-auto mx-auto mb-4" />
-          <p className="text-slate-500 mt-1 text-sm">{modo === 'login' ? 'Inicia sesión en tu cuenta' : modo === 'registro' ? 'Crea tu cuenta de acceso' : 'Recupera el acceso a tu cuenta'}</p>
+          <img src="/logo-marla-completo.png" alt="Marla Polo — Nutrición Clínica & Diabetes" className="h-16 w-auto mx-auto mb-4 dark:brightness-0 dark:invert" />
+          <p className="text-slate-500 dark:text-slate-400 mt-1 text-sm">{modo === 'login' ? 'Inicia sesión en tu cuenta' : modo === 'registro' ? 'Crea tu cuenta de acceso' : 'Recupera el acceso a tu cuenta'}</p>
         </div>
 
         {aviso && (
-          <div className="bg-slate-50 text-[#28363E] p-4 rounded-xl text-sm text-center border border-slate-200 mb-6 font-medium">
+          <div className="bg-slate-50 dark:bg-slate-800/60 text-[#28363E] dark:text-slate-300 p-4 rounded-xl text-sm text-center border border-slate-200 dark:border-slate-700 mb-6 font-medium">
             {aviso}
           </div>
         )}
@@ -136,12 +141,12 @@ export default function Login() {
         <form onSubmit={modo === 'login' ? handleLogin : modo === 'registro' ? handleRegistro : handleRecuperar} className="space-y-5">
           {modo === 'registro' && (
             <div>
-              <label className="block text-sm font-bold text-slate-600 mb-2">Nombre completo</label>
+              <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-2">Nombre completo</label>
               <input
                 type="text"
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#28363E] focus:border-[#28363E] outline-none transition-all text-slate-800"
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[#28363E] focus:border-[#28363E] outline-none transition-all text-slate-800 dark:text-slate-100"
                 placeholder="Marla Pérez"
                 required
               />
@@ -149,12 +154,12 @@ export default function Login() {
           )}
 
           <div>
-            <label className="block text-sm font-bold text-slate-600 mb-2">Correo Electrónico</label>
+            <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-2">Correo Electrónico</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#28363E] focus:border-[#28363E] outline-none transition-all text-slate-800"
+              className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[#28363E] focus:border-[#28363E] outline-none transition-all text-slate-800 dark:text-slate-100"
               placeholder="correo@ejemplo.com"
               required
             />
@@ -163,16 +168,16 @@ export default function Login() {
           {modo !== 'recuperar' && (
             <div>
               <div className="flex items-center justify-between mb-2">
-                <label className="block text-sm font-bold text-slate-600">Contraseña</label>
+                <label className="block text-sm font-bold text-slate-600 dark:text-slate-300">Contraseña</label>
                 {modo === 'login' && (
-                  <button type="button" onClick={() => { setModo('recuperar'); setError(null); setAviso(null) }} className="text-xs font-bold text-[#28363E] hover:underline">¿Olvidaste tu contraseña?</button>
+                  <button type="button" onClick={() => { setModo('recuperar'); setError(null); setAviso(null) }} className="text-xs font-bold text-[#28363E] dark:text-slate-300 hover:underline">¿Olvidaste tu contraseña?</button>
                 )}
               </div>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#28363E] focus:border-[#28363E] outline-none transition-all text-slate-800"
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[#28363E] focus:border-[#28363E] outline-none transition-all text-slate-800 dark:text-slate-100"
                 placeholder="••••••••"
                 required
               />
@@ -181,12 +186,12 @@ export default function Login() {
 
           {modo === 'registro' && (
             <div>
-              <label className="block text-sm font-bold text-slate-600 mb-2">Confirma tu contraseña</label>
+              <label className="block text-sm font-bold text-slate-600 dark:text-slate-300 mb-2">Confirma tu contraseña</label>
               <input
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#28363E] focus:border-[#28363E] outline-none transition-all text-slate-800"
+                className="w-full px-4 py-3 bg-slate-50 dark:bg-slate-800/60 border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-[#28363E] focus:border-[#28363E] outline-none transition-all text-slate-800 dark:text-slate-100"
                 placeholder="••••••••"
                 required
               />
@@ -194,7 +199,7 @@ export default function Login() {
           )}
 
           {error && (
-            <div className="bg-rose-50 text-rose-600 p-3 rounded-xl text-sm text-center border border-rose-200 font-bold">
+            <div className="bg-rose-50 dark:bg-rose-950/40 text-rose-600 p-3 rounded-xl text-sm text-center border border-rose-200 dark:border-rose-800 font-bold">
               {error}
             </div>
           )}
@@ -202,7 +207,7 @@ export default function Login() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-[#28363E] text-white font-black py-3.5 rounded-xl hover:bg-[#1C262C] transition-colors disabled:opacity-50 shadow-sm"
+            className="w-full bg-[#28363E] dark:bg-[#3D5360] text-white font-black py-3.5 rounded-xl hover:bg-[#1C262C] dark:hover:bg-[#4A6472] transition-colors disabled:opacity-50 shadow-sm"
           >
             {loading ? 'Un momento...' : modo === 'login' ? 'Entrar al Sistema' : modo === 'registro' ? 'Crear mi cuenta' : 'Enviar link de recuperación'}
           </button>
@@ -211,21 +216,21 @@ export default function Login() {
         {modo === 'recuperar' ? (
           <button
             onClick={() => { setModo('login'); setError(null); setAviso(null) }}
-            className="w-full text-center text-sm font-bold text-slate-500 hover:text-[#28363E] transition-colors mt-6"
+            className="w-full text-center text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-[#28363E] dark:hover:text-slate-200 transition-colors mt-6"
           >
             ← Regresar a iniciar sesión
           </button>
         ) : (
           <button
             onClick={() => { setModo(modo === 'login' ? 'registro' : 'login'); setError(null); setAviso(null) }}
-            className="w-full text-center text-sm font-bold text-slate-500 hover:text-[#28363E] transition-colors mt-6"
+            className="w-full text-center text-sm font-bold text-slate-500 dark:text-slate-400 hover:text-[#28363E] dark:hover:text-slate-200 transition-colors mt-6"
           >
             {modo === 'login' ? '¿Personal nuevo? Crea tu cuenta aquí' : '¿Ya tienes cuenta? Inicia sesión'}
           </button>
         )}
 
         {modo === 'registro' && (
-          <p className="text-[11px] text-slate-400 text-center mt-3 leading-relaxed">
+          <p className="text-[11px] text-slate-400 dark:text-slate-500 text-center mt-3 leading-relaxed">
             Tu cuenta quedará pendiente hasta que un administrador la active desde la sección de Usuarios.
           </p>
         )}
